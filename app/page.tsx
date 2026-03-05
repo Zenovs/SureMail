@@ -105,7 +105,7 @@ export default function Home() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = 'suremail_vorlage.csv'
+    link.download = 'coremail_vorlage.csv'
     link.click()
   }
 
@@ -258,7 +258,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-blue-600 mb-2">📧 SureMail</h1>
+          <h1 className="text-4xl font-bold text-blue-600 mb-2">📧 CoreMail</h1>
           <p className="text-gray-600">Einfaches E-Mail-Marketing mit personalisierten Templates</p>
         </div>
 
@@ -717,7 +717,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="text-center mt-8 text-sm text-gray-500">
-          <p>SureMail - Einfaches E-Mail-Marketing © {new Date().getFullYear()}</p>
+          <p>CoreMail - Einfaches E-Mail-Marketing © {new Date().getFullYear()}</p>
         </footer>
       </div>
     </main>

@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'SureMail - E-Mail Marketing Tool',
+  title: 'CoreMail - E-Mail Marketing Tool',
   description: 'Einfaches E-Mail-Marketing mit CSV-Upload und personalisierten Templates',
 }
 
