@@ -220,3 +220,5 @@ MIT - Frei verwendbar für private und kommerzielle Projekte.
 ---
 
 **Entwickelt mit ❤️ für einfaches E-Mail-Marketing**
+
+**Powered by [wireon](https://wireon.ch)**

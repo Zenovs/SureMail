@@ -257,16 +257,15 @@ export default function Home() {
     <main className="min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-blue-600 mb-2">📧 CoreMail</h1>
-          <p className="text-gray-600">Einfaches E-Mail-Marketing mit personalisierten Templates</p>
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-blue-600 mb-1">📧 CoreMail</h1>
+          <p className="text-gray-500 text-sm">Personalisierte E-Mail-Kampagnen einfach versenden</p>
         </div>
 
-        {/* Warning Banner */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-800">
-            <strong>Hinweis:</strong> Ihre Daten werden nur im Browser gespeichert und gehen beim Schließen des Tabs verloren. SMTP-Zugangsdaten werden nicht dauerhaft gespeichert.
+        {/* Compact Warning Banner */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 mb-6 text-center">
+          <p className="text-xs text-amber-700">
+            🔒 Alle Daten bleiben nur in Ihrer Browser-Session – keine Speicherung auf dem Server
           </p>
         </div>
 
@@ -312,11 +311,8 @@ export default function Home() {
         <div className="card">
           {/* Step 1: CSV Upload */}
           {currentStep === 1 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Schritt 1: Kontakte hochladen</h2>
-                <p className="text-gray-600">Laden Sie eine CSV-Datei mit Ihren Kontakten hoch.</p>
-              </div>
+            <div className="space-y-5">
+              <h2 className="text-xl font-semibold text-gray-800 text-center">Kontakte hochladen (CSV)</h2>
 
               {/* Download Template */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -409,11 +405,8 @@ export default function Home() {
 
           {/* Step 2: Template */}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Schritt 2: E-Mail Template</h2>
-                <p className="text-gray-600">Erstellen Sie Ihr E-Mail-Template mit Platzhaltern.</p>
-              </div>
+            <div className="space-y-5">
+              <h2 className="text-xl font-semibold text-gray-800 text-center">E-Mail Template erstellen</h2>
 
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
@@ -488,11 +481,8 @@ export default function Home() {
 
           {/* Step 3: SMTP Configuration */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Schritt 3: SMTP Konfiguration</h2>
-                <p className="text-gray-600">Geben Sie Ihre E-Mail-Server-Daten ein.</p>
-              </div>
+            <div className="space-y-5">
+              <h2 className="text-xl font-semibold text-gray-800 text-center">SMTP-Server konfigurieren</h2>
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -577,11 +567,8 @@ export default function Home() {
 
           {/* Step 4: Send & Results */}
           {currentStep === 4 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Schritt 4: E-Mails versenden</h2>
-                <p className="text-gray-600">Überprüfen Sie Ihre Einstellungen und starten Sie den Versand.</p>
-              </div>
+            <div className="space-y-5">
+              <h2 className="text-xl font-semibold text-gray-800 text-center">Versand starten</h2>
 
               {sendResults.length === 0 && (
                 <>
@@ -718,6 +705,9 @@ export default function Home() {
         {/* Footer */}
         <footer className="text-center mt-8 text-sm text-gray-500">
           <p>CoreMail - Einfaches E-Mail-Marketing © {new Date().getFullYear()}</p>
+          <p className="mt-2 text-gray-400">
+            Powered by <a href="https://wireon.ch" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-600 transition-colors">wireon</a>
+          </p>
         </footer>
       </div>
     </main>
