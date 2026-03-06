@@ -1,4 +1,4 @@
-# 📧 CoreMail - E-Mail Marketing Tool
+# CoreMail
 
 Ein einfaches, benutzerfreundliches E-Mail-Marketing-Tool mit personalisierten Templates – speziell entwickelt für Nicht-IT-User, die schnell und sicher personalisierte E-Mail-Kampagnen versenden möchten.
 
