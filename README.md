@@ -25,13 +25,36 @@ Ein minimaler, sicherer E-Mail-Client für Linux/Ubuntu mit Darknet-Design.
 
 ## 📦 Installation
 
-### Voraussetzungen
+### AppImage (Empfohlen für Endnutzer)
 
-- Node.js 18+ 
-- npm oder yarn
-- Linux/Ubuntu (für AppImage)
+1. **AppImage herunterladen:**
+   ```
+   CoreMail Desktop-1.0.0.AppImage
+   ```
 
-### Development Setup
+2. **Ausführbar machen:**
+   ```bash
+   chmod +x "CoreMail Desktop-1.0.0.AppImage"
+   ```
+
+3. **Starten:**
+   ```bash
+   ./"CoreMail Desktop-1.0.0.AppImage"
+   ```
+
+> 💡 **Tipp:** Das AppImage ist eigenständig - keine Installation erforderlich!
+
+### Systemanforderungen
+
+| Anforderung | Minimum |
+|-------------|---------|
+| **OS** | Ubuntu 20.04+ / Debian 11+ / Fedora 35+ |
+| **Architektur** | x86_64 (64-bit) |
+| **RAM** | 512 MB |
+| **Speicher** | 200 MB |
+| **GLIBC** | 2.31+ |
+
+### Development Setup (Für Entwickler)
 
 ```bash
 # Repository klonen / In Projektordner wechseln
