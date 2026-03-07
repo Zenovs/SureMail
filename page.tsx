@@ -244,7 +244,7 @@ export default function HomePage() {
         <div className="rounded-2xl border border-white/[0.06] bg-[#111318] p-10 flex items-center justify-between">
           <div>
             <div className="text-lg font-medium text-[#e4e6ed] mb-2">Lieber direkt im Browser?</div>
-            <p className="text-[#6b7280] text-sm">SureMail – der Web-Mailer läuft ohne Installation, direkt im Browser.</p>
+            <p className="text-[#6b7280] text-sm">CoreMail – der Web-Mailer läuft ohne Installation, direkt im Browser.</p>
           </div>
           <Link
             href="/app"
