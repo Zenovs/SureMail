@@ -268,12 +268,26 @@ export default function Home() {
         </div>
 
         {/* Compact Security Banner */}
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-2 mb-6 flex items-center justify-center gap-2">
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-2 mb-4 flex items-center justify-center gap-2">
           <Shield className="w-4 h-4 text-emerald-400" />
           <p className="text-xs text-emerald-400 font-mono">
             Verschlüsselte Session • Keine Datenspeicherung • Zero-Log Policy
           </p>
         </div>
+
+        {/* Desktop Client Banner */}
+        <a 
+          href="/download" 
+          className="block bg-cyan-500/10 border border-cyan-500/30 rounded-lg px-4 py-3 mb-6 hover:bg-cyan-500/20 transition-colors group"
+        >
+          <div className="flex items-center justify-center gap-3">
+            <Download className="w-5 h-5 text-cyan-400" />
+            <p className="text-sm text-cyan-400 font-mono">
+              <span className="font-bold">NEU:</span> CoreMail Desktop v1.0 ist da! 
+              <span className="ml-2 group-hover:underline">Jetzt herunterladen →</span>
+            </p>
+          </div>
+        </a>
 
         {/* Step Indicator */}
         <div className="flex justify-between mb-8">
