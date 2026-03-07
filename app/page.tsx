@@ -15,7 +15,9 @@ import {
   ArrowLeft,
   Users,
   Settings,
-  X
+  X,
+  Terminal,
+  Shield
 } from 'lucide-react'
 import Papa from 'papaparse'
 
@@ -105,7 +107,7 @@ export default function Home() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
-    link.download = 'suremail_vorlage.csv'
+    link.download = 'coremail_vorlage.csv'
     link.click()
   }
 
@@ -257,16 +259,19 @@ export default function Home() {
     <main className="min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-blue-600 mb-2">📧 SureMail</h1>
-          <p className="text-gray-600">Einfaches E-Mail-Marketing mit personalisierten Templates</p>
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <Terminal className="w-8 h-8 text-cyan-400" />
+            <h1 className="text-3xl font-bold text-cyan-400 glow-text font-mono">CoreMail</h1>
+          </div>
+          <p className="text-zinc-500 text-sm font-mono">// Personalisierte E-Mail-Kampagnen</p>
         </div>
 
-        {/* Warning Banner */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-800">
-            <strong>Hinweis:</strong> Ihre Daten werden nur im Browser gespeichert und gehen beim Schließen des Tabs verloren. SMTP-Zugangsdaten werden nicht dauerhaft gespeichert.
+        {/* Compact Security Banner */}
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-4 py-2 mb-6 flex items-center justify-center gap-2">
+          <Shield className="w-4 h-4 text-emerald-400" />
+          <p className="text-xs text-emerald-400 font-mono">
+            Verschlüsselte Session • Keine Datenspeicherung • Zero-Log Policy
           </p>
         </div>
 
@@ -276,17 +281,17 @@ export default function Home() {
             <div key={step.id} className="flex items-center">
               <div
                 className={`flex flex-col items-center cursor-pointer transition-all ${
-                  currentStep >= step.id ? 'text-blue-600' : 'text-gray-400'
+                  currentStep >= step.id ? 'text-cyan-400' : 'text-zinc-600'
                 }`}
                 onClick={() => step.id < currentStep && setCurrentStep(step.id)}
               >
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-all ${
+                  className={`w-12 h-12 rounded-lg flex items-center justify-center mb-2 transition-all border ${
                     currentStep > step.id
-                      ? 'bg-green-500 text-white'
+                      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
                       : currentStep === step.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-500'
+                      ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400 shadow-glow-cyan'
+                      : 'bg-zinc-800/50 border-zinc-700 text-zinc-500'
                   }`}
                 >
                   {currentStep > step.id ? (
@@ -295,12 +300,12 @@ export default function Home() {
                     <step.icon className="w-6 h-6" />
                   )}
                 </div>
-                <span className="text-sm font-medium hidden md:block">{step.title}</span>
+                <span className="text-sm font-medium hidden md:block font-mono">{step.title}</span>
               </div>
               {index < STEPS.length - 1 && (
                 <div
-                  className={`w-12 md:w-24 h-1 mx-2 rounded ${
-                    currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
+                  className={`w-12 md:w-24 h-0.5 mx-2 rounded ${
+                    currentStep > step.id ? 'bg-emerald-500/50' : 'bg-zinc-800'
                   }`}
                 />
               )}
@@ -312,25 +317,22 @@ export default function Home() {
         <div className="card">
           {/* Step 1: CSV Upload */}
           {currentStep === 1 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Schritt 1: Kontakte hochladen</h2>
-                <p className="text-gray-600">Laden Sie eine CSV-Datei mit Ihren Kontakten hoch.</p>
-              </div>
+            <div className="space-y-5">
+              <h2 className="text-xl font-semibold text-cyan-400 text-center font-mono">&gt; Kontakte hochladen</h2>
 
               {/* Download Template */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div className="flex items-center gap-3">
-                    <Info className="w-5 h-5 text-blue-600" />
+                    <Info className="w-5 h-5 text-cyan-400" />
                     <div>
-                      <p className="font-medium text-blue-800">CSV-Vorlage benötigt?</p>
-                      <p className="text-sm text-blue-600">Spalten: vorname, nachname, email, firma</p>
+                      <p className="font-medium text-zinc-200">CSV-Vorlage benötigt?</p>
+                      <p className="text-sm text-zinc-500 font-mono">Spalten: vorname, nachname, email, firma</p>
                     </div>
                   </div>
                   <button onClick={downloadCsvTemplate} className="btn-secondary flex items-center gap-2">
                     <Download className="w-4 h-4" />
-                    Vorlage herunterladen
+                    Download
                   </button>
                 </div>
               </div>
@@ -343,56 +345,56 @@ export default function Home() {
                   onChange={handleCsvUpload}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-500 transition-colors">
-                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-700 mb-2">
+                <div className="border-2 border-dashed border-zinc-700 rounded-xl p-12 text-center hover:border-cyan-500/50 transition-colors bg-zinc-900/30">
+                  <Upload className="w-12 h-12 text-cyan-400/50 mx-auto mb-4" />
+                  <p className="text-lg font-medium text-zinc-300 mb-2">
                     CSV-Datei hierher ziehen oder klicken
                   </p>
-                  <p className="text-sm text-gray-500">Unterstützt: .csv Dateien</p>
+                  <p className="text-sm text-zinc-600 font-mono">.csv</p>
                 </div>
               </div>
 
               {csvFileName && (
-                <p className="text-sm text-gray-600 text-center">
-                  📄 Geladene Datei: <strong>{csvFileName}</strong>
+                <p className="text-sm text-zinc-400 text-center font-mono">
+                  <span className="text-emerald-400">✓</span> Geladen: <strong className="text-cyan-400">{csvFileName}</strong>
                 </p>
               )}
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <p className="text-red-800">{error}</p>
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <p className="text-red-400 font-mono text-sm">{error}</p>
                 </div>
               )}
 
               {/* Contact Preview */}
               {contacts.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-gray-800">
-                    ✅ {contacts.length} Kontakt{contacts.length !== 1 ? 'e' : ''} geladen
+                  <h3 className="font-semibold text-emerald-400 font-mono">
+                    <span className="text-zinc-500">[</span>{contacts.length}<span className="text-zinc-500">]</span> Kontakt{contacts.length !== 1 ? 'e' : ''} geladen
                   </h3>
-                  <div className="max-h-64 overflow-y-auto border rounded-lg">
+                  <div className="max-h-64 overflow-y-auto border border-zinc-800 rounded-lg bg-zinc-900/50">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 sticky top-0">
+                      <thead className="bg-zinc-800/80 sticky top-0">
                         <tr>
-                          <th className="text-left p-3 font-medium">Vorname</th>
-                          <th className="text-left p-3 font-medium">Nachname</th>
-                          <th className="text-left p-3 font-medium">E-Mail</th>
-                          <th className="text-left p-3 font-medium">Firma</th>
+                          <th className="text-left p-3 font-medium text-zinc-400 font-mono">vorname</th>
+                          <th className="text-left p-3 font-medium text-zinc-400 font-mono">nachname</th>
+                          <th className="text-left p-3 font-medium text-zinc-400 font-mono">email</th>
+                          <th className="text-left p-3 font-medium text-zinc-400 font-mono">firma</th>
                           <th className="p-3"></th>
                         </tr>
                       </thead>
                       <tbody>
                         {contacts.map((contact, index) => (
-                          <tr key={index} className="border-t hover:bg-gray-50">
-                            <td className="p-3">{contact.vorname}</td>
-                            <td className="p-3">{contact.nachname}</td>
-                            <td className="p-3">{contact.email}</td>
-                            <td className="p-3">{contact.firma}</td>
+                          <tr key={index} className="border-t border-zinc-800 hover:bg-zinc-800/30">
+                            <td className="p-3 text-zinc-300">{contact.vorname}</td>
+                            <td className="p-3 text-zinc-300">{contact.nachname}</td>
+                            <td className="p-3 text-cyan-400 font-mono text-xs">{contact.email}</td>
+                            <td className="p-3 text-zinc-400">{contact.firma}</td>
                             <td className="p-3">
                               <button
                                 onClick={() => removeContact(index)}
-                                className="text-red-500 hover:text-red-700"
+                                className="text-red-400/60 hover:text-red-400 transition-colors"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -409,68 +411,59 @@ export default function Home() {
 
           {/* Step 2: Template */}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Schritt 2: E-Mail Template</h2>
-                <p className="text-gray-600">Erstellen Sie Ihr E-Mail-Template mit Platzhaltern.</p>
-              </div>
+            <div className="space-y-5">
+              <h2 className="text-xl font-semibold text-cyan-400 text-center font-mono">&gt; E-Mail Template</h2>
 
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <Info className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-green-800">Verfügbare Platzhalter:</p>
+                    <p className="font-medium text-zinc-200">Verfügbare Platzhalter:</p>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {['[vorname]', '[nachname]', '[email]', '[firma]'].map((placeholder) => (
                         <code
                           key={placeholder}
-                          className="bg-green-100 px-2 py-1 rounded text-green-800 text-sm"
+                          className="bg-cyan-500/10 border border-cyan-500/30 px-2 py-1 rounded text-cyan-400 text-sm font-mono"
                         >
                           {placeholder}
                         </code>
                       ))}
                     </div>
-                    <p className="text-sm text-green-700 mt-2">
-                      Diese werden automatisch durch die Daten aus der CSV ersetzt.
-                    </p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-gray-700 mb-2">E-Mail Betreff</label>
+                <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">Betreff:</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="input-field"
+                  className="input-field font-mono"
                   placeholder="z.B.: Hallo [vorname], wir haben Neuigkeiten!"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-gray-700 mb-2">
-                  HTML/MJML Template
-                  <span className="text-sm font-normal text-gray-500 ml-2">
-                    (Sie können HTML von MJML.io einfügen)
-                  </span>
+                <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">
+                  HTML Template:
                 </label>
                 <textarea
                   value={template}
                   onChange={(e) => setTemplate(e.target.value)}
-                  className="input-field font-mono text-sm"
+                  className="input-field font-mono text-sm text-zinc-300"
                   rows={16}
-                  placeholder="Fügen Sie hier Ihren HTML-Code ein..."
+                  placeholder="HTML-Code hier einfügen..."
                 />
               </div>
 
               {/* Preview */}
               {contacts.length > 0 && (
                 <div>
-                  <label className="block font-medium text-gray-700 mb-2">
-                    Vorschau (für: {contacts[0].vorname} {contacts[0].nachname})
+                  <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">
+                    Vorschau <span className="text-zinc-500">// {contacts[0].email}</span>
                   </label>
-                  <div className="border rounded-lg p-4 bg-white max-h-64 overflow-y-auto">
+                  <div className="border border-zinc-700 rounded-lg p-4 bg-white max-h-64 overflow-y-auto">
                     <div
                       dangerouslySetInnerHTML={{
                         __html: template
@@ -488,88 +481,85 @@ export default function Home() {
 
           {/* Step 3: SMTP Configuration */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Schritt 3: SMTP Konfiguration</h2>
-                <p className="text-gray-600">Geben Sie Ihre E-Mail-Server-Daten ein.</p>
-              </div>
+            <div className="space-y-5">
+              <h2 className="text-xl font-semibold text-cyan-400 text-center font-mono">&gt; SMTP-Server</h2>
 
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800">
-                  Ihre SMTP-Zugangsdaten werden nur für den aktuellen Versand verwendet und NICHT gespeichert.
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-start gap-3">
+                <Shield className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-400 font-mono">
+                  Zugangsdaten werden nicht gespeichert. Nur für aktuellen Versand.
                 </p>
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-medium text-gray-700 mb-2">SMTP Host *</label>
+                  <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">host *</label>
                   <input
                     type="text"
                     value={smtpConfig.host}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
-                    className="input-field"
-                    placeholder="z.B.: smtp.gmail.com"
+                    className="input-field font-mono"
+                    placeholder="smtp.gmail.com"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-gray-700 mb-2">SMTP Port *</label>
+                  <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">port *</label>
                   <input
                     type="text"
                     value={smtpConfig.port}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, port: e.target.value })}
-                    className="input-field"
-                    placeholder="z.B.: 587"
+                    className="input-field font-mono"
+                    placeholder="587"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-gray-700 mb-2">Benutzername *</label>
+                  <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">username *</label>
                   <input
                     type="text"
                     value={smtpConfig.username}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, username: e.target.value })}
-                    className="input-field"
-                    placeholder="z.B.: ihre@email.de"
+                    className="input-field font-mono"
+                    placeholder="user@domain.com"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-gray-700 mb-2">Passwort *</label>
+                  <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">password *</label>
                   <input
                     type="password"
                     value={smtpConfig.password}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
-                    className="input-field"
-                    placeholder="SMTP-Passwort oder App-Passwort"
+                    className="input-field font-mono"
+                    placeholder="••••••••"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-gray-700 mb-2">Absender E-Mail *</label>
+                  <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">from_email *</label>
                   <input
                     type="email"
                     value={smtpConfig.fromEmail}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, fromEmail: e.target.value })}
-                    className="input-field"
-                    placeholder="absender@beispiel.de"
+                    className="input-field font-mono"
+                    placeholder="sender@domain.com"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-gray-700 mb-2">Absender Name (optional)</label>
+                  <label className="block font-medium text-zinc-300 mb-2 font-mono text-sm">from_name</label>
                   <input
                     type="text"
                     value={smtpConfig.fromName}
                     onChange={(e) => setSmtpConfig({ ...smtpConfig, fromName: e.target.value })}
                     className="input-field"
-                    placeholder="z.B.: Ihre Firma GmbH"
+                    placeholder="Firma GmbH"
                   />
                 </div>
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-800 mb-2">💡 Hinweise für gängige Anbieter:</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
-                  <li><strong>Gmail:</strong> smtp.gmail.com, Port 587, App-Passwort erforderlich</li>
-                  <li><strong>Outlook:</strong> smtp-mail.outlook.com, Port 587</li>
-                  <li><strong>GMX:</strong> mail.gmx.net, Port 587</li>
+              <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+                <h4 className="font-medium text-zinc-300 mb-2 font-mono text-sm">// Provider-Konfiguration:</h4>
+                <ul className="text-sm text-zinc-500 space-y-1 font-mono">
+                  <li><span className="text-cyan-400">Gmail:</span> smtp.gmail.com:587</li>
+                  <li><span className="text-cyan-400">Outlook:</span> smtp-mail.outlook.com:587</li>
+                  <li><span className="text-cyan-400">GMX:</span> mail.gmx.net:587</li>
                 </ul>
               </div>
             </div>
@@ -577,41 +567,38 @@ export default function Home() {
 
           {/* Step 4: Send & Results */}
           {currentStep === 4 && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-gray-800 mb-2">Schritt 4: E-Mails versenden</h2>
-                <p className="text-gray-600">Überprüfen Sie Ihre Einstellungen und starten Sie den Versand.</p>
-              </div>
+            <div className="space-y-5">
+              <h2 className="text-xl font-semibold text-cyan-400 text-center font-mono">&gt; Versand starten</h2>
 
               {sendResults.length === 0 && (
                 <>
                   {/* Summary */}
-                  <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-                    <h3 className="font-semibold text-gray-800">Zusammenfassung:</h3>
+                  <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-6 space-y-4 font-mono">
+                    <h3 className="font-semibold text-zinc-300 text-sm">// Zusammenfassung</h3>
                     <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-blue-600" />
-                        <span><strong>{contacts.length}</strong> Empfänger</span>
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Users className="w-5 h-5 text-cyan-400" />
+                        <span>recipients: <span className="text-emerald-400">{contacts.length}</span></span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-blue-600" />
-                        <span>Von: <strong>{smtpConfig.fromName || smtpConfig.fromEmail}</strong></span>
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Mail className="w-5 h-5 text-cyan-400" />
+                        <span>from: <span className="text-zinc-200">{smtpConfig.fromName || smtpConfig.fromEmail}</span></span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-blue-600" />
-                        <span>Betreff: <strong>{subject}</strong></span>
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <FileText className="w-5 h-5 text-cyan-400" />
+                        <span>subject: <span className="text-zinc-200 truncate">{subject}</span></span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Settings className="w-5 h-5 text-blue-600" />
-                        <span>Server: <strong>{smtpConfig.host}:{smtpConfig.port}</strong></span>
+                      <div className="flex items-center gap-2 text-zinc-400">
+                        <Settings className="w-5 h-5 text-cyan-400" />
+                        <span>server: <span className="text-zinc-200">{smtpConfig.host}:{smtpConfig.port}</span></span>
                       </div>
                     </div>
                   </div>
 
                   {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                      <p className="text-red-800">{error}</p>
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                      <p className="text-red-400 font-mono text-sm">{error}</p>
                     </div>
                   )}
 
@@ -619,17 +606,17 @@ export default function Home() {
                     <button
                       onClick={sendEmails}
                       disabled={isSending}
-                      className="btn-success text-lg px-8 py-4 flex items-center gap-3 mx-auto"
+                      className="btn-success text-lg px-8 py-4 flex items-center gap-3 mx-auto font-mono"
                     >
                       {isSending ? (
                         <>
                           <Loader2 className="w-6 h-6 animate-spin" />
-                          E-Mails werden versendet...
+                          Sende E-Mails...
                         </>
                       ) : (
                         <>
                           <Send className="w-6 h-6" />
-                          {contacts.length} E-Mail{contacts.length !== 1 ? 's' : ''} versenden
+                          EXECUTE [{contacts.length}]
                         </>
                       )}
                     </button>
@@ -641,38 +628,40 @@ export default function Home() {
               {sendResults.length > 0 && (
                 <div className="space-y-4">
                   <div className="text-center py-4">
-                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-gray-800">Versand abgeschlossen!</h3>
-                    <p className="text-gray-600">
-                      {sendResults.filter((r) => r.success).length} von {sendResults.length} E-Mails erfolgreich gesendet
+                    <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-emerald-400 font-mono">Versand abgeschlossen</h3>
+                    <p className="text-zinc-500 font-mono text-sm">
+                      <span className="text-emerald-400">{sendResults.filter((r) => r.success).length}</span>
+                      <span className="text-zinc-600"> / </span>
+                      <span>{sendResults.length}</span> erfolgreich
                     </p>
                   </div>
 
-                  <div className="max-h-96 overflow-y-auto border rounded-lg">
+                  <div className="max-h-96 overflow-y-auto border border-zinc-800 rounded-lg bg-zinc-900/50">
                     <table className="w-full text-sm">
-                      <thead className="bg-gray-50 sticky top-0">
+                      <thead className="bg-zinc-800/80 sticky top-0">
                         <tr>
-                          <th className="text-left p-3 font-medium">Status</th>
-                          <th className="text-left p-3 font-medium">E-Mail-Adresse</th>
-                          <th className="text-left p-3 font-medium">Details</th>
+                          <th className="text-left p-3 font-medium text-zinc-400 font-mono">status</th>
+                          <th className="text-left p-3 font-medium text-zinc-400 font-mono">email</th>
+                          <th className="text-left p-3 font-medium text-zinc-400 font-mono">info</th>
                         </tr>
                       </thead>
                       <tbody>
                         {sendResults.map((result, index) => (
-                          <tr key={index} className="border-t">
+                          <tr key={index} className="border-t border-zinc-800">
                             <td className="p-3">
                               {result.success ? (
-                                <span className="flex items-center gap-1 text-green-600">
-                                  <CheckCircle className="w-4 h-4" /> Gesendet
+                                <span className="flex items-center gap-1 text-emerald-400 font-mono text-xs">
+                                  <CheckCircle className="w-4 h-4" /> OK
                                 </span>
                               ) : (
-                                <span className="flex items-center gap-1 text-red-600">
-                                  <AlertCircle className="w-4 h-4" /> Fehler
+                                <span className="flex items-center gap-1 text-red-400 font-mono text-xs">
+                                  <AlertCircle className="w-4 h-4" /> ERR
                                 </span>
                               )}
                             </td>
-                            <td className="p-3">{result.email}</td>
-                            <td className="p-3 text-gray-500">{result.error || '-'}</td>
+                            <td className="p-3 text-cyan-400 font-mono text-xs">{result.email}</td>
+                            <td className="p-3 text-zinc-500 font-mono text-xs">{result.error || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -680,8 +669,8 @@ export default function Home() {
                   </div>
 
                   <div className="text-center pt-4">
-                    <button onClick={resetAll} className="btn-primary">
-                      Neue Kampagne starten
+                    <button onClick={resetAll} className="btn-primary font-mono">
+                      &gt; Neue Kampagne
                     </button>
                   </div>
                 </div>
@@ -691,23 +680,23 @@ export default function Home() {
 
           {/* Navigation Buttons */}
           {sendResults.length === 0 && (
-            <div className="flex justify-between mt-8 pt-6 border-t">
+            <div className="flex justify-between mt-8 pt-6 border-t border-zinc-800">
               <button
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                className="btn-secondary flex items-center gap-2 disabled:opacity-50"
+                className="btn-secondary flex items-center gap-2 disabled:opacity-50 font-mono"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Zurück
+                zurück
               </button>
 
               {currentStep < 4 ? (
                 <button
                   onClick={nextStep}
                   disabled={!validateStep(currentStep)}
-                  className="btn-primary flex items-center gap-2"
+                  className="btn-primary flex items-center gap-2 font-mono"
                 >
-                  Weiter
+                  weiter
                   <ArrowRight className="w-4 h-4" />
                 </button>
               ) : null}
@@ -716,8 +705,11 @@ export default function Home() {
         </div>
 
         {/* Footer */}
-        <footer className="text-center mt-8 text-sm text-gray-500">
-          <p>SureMail - Einfaches E-Mail-Marketing © {new Date().getFullYear()}</p>
+        <footer className="text-center mt-8 text-sm font-mono">
+          <p className="text-zinc-600">CoreMail <span className="text-zinc-700">© {new Date().getFullYear()}</span></p>
+          <p className="mt-2 text-zinc-700">
+            Powered by <a href="https://wireon.ch" target="_blank" rel="noopener noreferrer" className="text-cyan-500/70 hover:text-cyan-400 transition-colors">wireon</a>
+          </p>
         </footer>
       </div>
     </main>

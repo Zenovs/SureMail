@@ -1,10 +1,10 @@
-# 📧 SureMail - E-Mail Marketing Tool
+# CoreMail
 
 Ein einfaches, benutzerfreundliches E-Mail-Marketing-Tool mit personalisierten Templates – speziell entwickelt für Nicht-IT-User, die schnell und sicher personalisierte E-Mail-Kampagnen versenden möchten.
 
 ## 🎯 Projektbeschreibung und Zweck
 
-SureMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermöglicht, personalisierte E-Mails an eine Liste von Empfängern zu versenden, ohne dabei sensible Daten zu speichern. Perfekt für kleine Unternehmen, Freelancer und Teams, die eine einfache Lösung für Newsletter und Marketing-Kampagnen suchen.
+CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermöglicht, personalisierte E-Mails an eine Liste von Empfängern zu versenden, ohne dabei sensible Daten zu speichern. Perfekt für kleine Unternehmen, Freelancer und Teams, die eine einfache Lösung für Newsletter und Marketing-Kampagnen suchen.
 
 **Hauptziele:**
 - Einfache Bedienung ohne technische Vorkenntnisse
@@ -25,7 +25,7 @@ SureMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 ## 🔒 Sicherheitshinweise
 
-**Wichtig:** SureMail speichert **KEINE** Daten dauerhaft!
+**Wichtig:** CoreMail speichert **KEINE** Daten dauerhaft!
 
 - ✅ SMTP-Zugangsdaten werden **NICHT** auf dem Server gespeichert
 - ✅ Kontaktdaten bleiben nur in der Browser-Session
@@ -46,8 +46,8 @@ SureMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 1. **Repository forken oder klonen**
    ```bash
-   git clone https://github.com/Zenovs/SureMail.git
-   cd SureMail
+   git clone https://github.com/Zenovs/CoreMail.git
+   cd CoreMail
    ```
 
 2. **Bei Vercel anmelden**
@@ -56,7 +56,7 @@ SureMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 3. **Neues Projekt erstellen**
    - Klicken Sie auf "Add New..." → "Project"
-   - Wählen Sie das SureMail-Repository aus
+   - Wählen Sie das CoreMail-Repository aus
    - Klicken Sie auf "Import"
 
 4. **Projekt konfigurieren**
@@ -72,7 +72,7 @@ SureMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
    - Ihre App ist live! 🎉
 
 6. **URL erhalten**
-   - Nach dem Deployment erhalten Sie eine URL wie `suremail.vercel.app`
+   - Nach dem Deployment erhalten Sie eine URL wie `coremail.vercel.app`
    - Diese können Sie sofort verwenden oder eine eigene Domain verbinden
 
 ### Automatische Updates
@@ -89,8 +89,8 @@ SureMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 1. **Repository klonen**
    ```bash
-   git clone https://github.com/Zenovs/SureMail.git
-   cd SureMail
+   git clone https://github.com/Zenovs/CoreMail.git
+   cd CoreMail
    ```
 
 2. **Dependencies installieren**
@@ -220,3 +220,5 @@ MIT - Frei verwendbar für private und kommerzielle Projekte.
 ---
 
 **Entwickelt mit ❤️ für einfaches E-Mail-Marketing**
+
+**Powered by [wireon](https://wireon.ch)**
