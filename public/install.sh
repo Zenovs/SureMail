@@ -20,7 +20,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Konfiguration
-VERSION="1.5.4"
+VERSION="1.6.0"
 APP_NAME="CoreMail Desktop"
 BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
@@ -409,16 +409,16 @@ setup_path() {
     fi
 }
 
-# Automatische Ollama-Installation (v1.5.4+ mit verbessertem Logging)
+# Automatische Ollama-Installation (v1.6.0 mit In-App Installation)
 show_ollama_info() {
     echo ""
     echo -e "${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}║  ${CYAN}🤖 v1.5.4: Robustere Ollama-Installation${NC}                  ${BOLD}║${NC}"
+    echo -e "${BOLD}║  ${CYAN}🚀 v1.6.0: In-App Ollama-Installation!${NC}                    ${BOLD}║${NC}"
     echo -e "${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  CoreMail Desktop v1.5.4 enthält ${BOLD}verbesserte KI-Integration${NC}:"
-    echo -e "    • Robustere Ollama-Installation mit Logging"
-    echo -e "    • Verbesserte Einstellungs-UI (breitere Leiste, Scrolling)"
+    echo -e "  CoreMail Desktop v1.6.0 enthält ${BOLD}revolutionäre Updates${NC}:"
+    echo -e "    • ${GREEN}NEU:${NC} In-App Ollama-Installation (beim ersten Start!)"
+    echo -e "    • ${GREEN}NEU:${NC} Alle 6 Themes funktionieren perfekt (Theme-Fixes)"
     echo -e "    • KI-Chatbot Widget"
     echo -e "    • E-Mails zusammenfassen"
     echo -e "    • Antwort-Vorschläge generieren"
@@ -426,7 +426,7 @@ show_ollama_info() {
     echo ""
     echo -e "  ${GREEN}✓ 100% lokal - Keine Cloud, keine Datenübertragung!${NC}"
     echo -e "  ${GREEN}✓ Deine E-Mails bleiben privat auf deinem Rechner.${NC}"
-    echo -e "  ${GREEN}✓ Ollama wird automatisch installiert${NC}"
+    echo -e "  ${GREEN}✓ Keine externen Scripts mehr nötig!${NC}"
     echo ""
     echo -e "  📋 ${YELLOW}Installation-Log: ${LOG_FILE}${NC}"
     echo ""

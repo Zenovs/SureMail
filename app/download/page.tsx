@@ -69,7 +69,7 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400/20 to-cyan-400/20 border border-purple-400/40 rounded-full text-purple-400 text-sm font-mono mb-6 animate-pulse">
             <Bot className="w-4 h-4" />
-            <span>🔧 Desktop Client v1.5.4 - Bugfix Release!</span>
+            <span>🚀 Desktop Client v1.6.0 - In-App Ollama Installation!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
@@ -81,7 +81,7 @@ export default function DownloadPage() {
         </div>
       </section>
 
-      {/* NEW: Neu in v1.5.0 Section - Local AI */}
+      {/* NEW: Neu in v1.6.0 Section - In-App Ollama Installation */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-gradient-to-r from-purple-500/20 via-cyan-500/15 to-emerald-500/20 border-2 border-purple-400/50 rounded-2xl p-8 relative overflow-hidden">
@@ -96,21 +96,21 @@ export default function DownloadPage() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold">
-                    <span className="font-mono text-purple-400">// </span>Neu in v1.5.4
+                    <span className="font-mono text-purple-400">// </span>Neu in v1.6.0
                   </h2>
-                  <p className="text-gray-400 font-mono text-sm">Lokale KI-Integration mit Ollama – 100% privat!</p>
+                  <p className="text-gray-400 font-mono text-sm">Revolutionär: In-App Ollama-Installation!</p>
                 </div>
               </div>
 
-              {/* Bugfix Badge */}
+              {/* Feature Badges */}
               <div className="flex flex-wrap justify-center gap-2 mb-4">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-400/10 border border-yellow-400/30 rounded-full">
-                  <Wrench className="w-4 h-4 text-yellow-400" />
-                  <span className="text-yellow-400 text-sm font-semibold">Bugfix: Robustere Ollama-Installation mit Logging</span>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-400/10 border border-emerald-400/30 rounded-full">
+                  <Zap className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400 text-sm font-semibold">NEU: In-App Ollama-Installation (beim ersten Start!)</span>
                 </div>
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded-full">
-                  <PanelLeft className="w-4 h-4 text-cyan-400" />
-                  <span className="text-cyan-400 text-sm font-semibold">Verbesserte Einstellungs-UI</span>
+                  <Palette className="w-4 h-4 text-cyan-400" />
+                  <span className="text-cyan-400 text-sm font-semibold">Theme-Fixes: Alle 6 Themes funktionieren!</span>
                 </div>
               </div>
 
@@ -271,7 +271,7 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Lädt CoreMail Desktop v1.5.4 von GitHub Releases herunter</span>
+                  <span>Lädt CoreMail Desktop v1.6.0 von GitHub Releases herunter</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -334,7 +334,7 @@ export default function DownloadPage() {
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
-              <span className="text-purple-400 font-bold">v1.5.4</span>
+              <span className="text-purple-400 font-bold">v1.6.0</span>
             </div>
 
             {/* Info Box */}
@@ -381,6 +381,21 @@ export default function DownloadPage() {
           <h2 className="text-xl font-bold mb-6 text-center text-gray-400">
             <span className="font-mono text-gray-500">// </span>Frühere Versionen
           </h2>
+
+          {/* v1.5.4 */}
+          <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6 mb-4">
+            <h3 className="font-bold text-gray-300 mb-3">v1.5.4 – Bugfix Release</h3>
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Robustere Ollama-Installation mit Logging</span>
+              </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Verbesserte Einstellungs-UI (breitere Leiste, Scrolling)</span>
+              </div>
+            </div>
+          </div>
 
           {/* v1.4.0 */}
           <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6 mb-4">
@@ -628,7 +643,7 @@ export default function DownloadPage() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-dark-700">
         <div className="max-w-4xl mx-auto text-center text-gray-500 text-sm">
-          <p>CoreMail Desktop v1.5.4 • Powered by Electron & Ollama</p>
+          <p>CoreMail Desktop v1.6.0 • Powered by Electron & Ollama</p>
           <p className="mt-2">
             <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
               Zur Web-App →
