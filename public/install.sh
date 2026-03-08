@@ -20,7 +20,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Konfiguration
-VERSION="1.2.1"
+VERSION="1.2.2"
 APP_NAME="CoreMail Desktop"
 BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
@@ -28,7 +28,7 @@ APPLICATIONS_DIR="$HOME/.local/share/applications"
 ICONS_DIR="$HOME/.local/share/icons"
 EXTRACTED_DIR="$HOME/.local/share/coremail"
 DOWNLOAD_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
-ICON_URL="https://i.pinimg.com/736x/7b/10/de/7b10de9767ac5f50b38ebf3c17ecc248.jpg"
+ICON_URL="https://img.freepik.com/premium-vector/customer-service-representative-icon-with-phone-email-documents-other-communication-icons_150234-85805.jpg"
 
 # Installationsmodus: appimage oder extracted
 INSTALL_MODE="appimage"

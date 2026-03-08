@@ -56,7 +56,7 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded-full text-cyan-400 text-sm font-mono mb-6">
             <Monitor className="w-4 h-4" />
-            <span>Desktop Client v1.2.1 - Bugfix Release!</span>
+            <span>Desktop Client v1.2.2 - Professionelles Icon!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
@@ -138,7 +138,7 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Lädt CoreMail Desktop v1.2.1 von GitHub Releases herunter</span>
+                  <span>Lädt CoreMail Desktop v1.2.2 von GitHub Releases herunter</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -197,7 +197,7 @@ export default function DownloadPage() {
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
-              <span>v1.2.1</span>
+              <span>v1.2.2</span>
             </div>
 
             {/* Info Box */}
@@ -238,26 +238,56 @@ export default function DownloadPage() {
         </div>
       </section>
 
-      {/* New in v1.2.1 Section */}
+      {/* New in v1.2.2 Section */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-400/30 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-6 text-center">
-              <span className="font-mono text-emerald-400">// </span>Neu in v1.2.1 – Bugfix Release
-            </h2>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <img src="/coremail-icon.png" alt="CoreMail Icon" className="w-16 h-16 rounded-xl" />
+              <h2 className="text-2xl font-bold">
+                <span className="font-mono text-emerald-400">// </span>Neu in v1.2.2
+              </h2>
+            </div>
             <div className="grid md:grid-cols-2 gap-4 mb-6">
               <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
                 <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-bold text-white">E-Mail-Liste scrollt korrekt</h4>
-                  <p className="text-gray-400 text-sm">Die E-Mail-Liste scrollt jetzt wie erwartet – keine springenden oder fehlenden Einträge mehr.</p>
+                  <h4 className="font-bold text-white">Professionelles App-Icon</h4>
+                  <p className="text-gray-400 text-sm">Neues, professionelles Icon – wird jetzt korrekt im App-Menü und in der Taskleiste angezeigt.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
                 <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-bold text-white">E-Mail-Vorschau scrollt korrekt</h4>
-                  <p className="text-gray-400 text-sm">Die E-Mail-Vorschau scrollt jetzt flüssig – lange E-Mails sind vollständig lesbar.</p>
+                  <h4 className="font-bold text-white">Version wird korrekt angezeigt</h4>
+                  <p className="text-gray-400 text-sm">Die Versionsnummer wird jetzt dynamisch aus package.json gelesen und korrekt in der App angezeigt.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* v1.2.1 Section */}
+      <section className="py-8 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-dark-800/50 border border-dark-700 rounded-2xl p-8">
+            <h2 className="text-xl font-bold mb-6 text-center text-gray-400">
+              <span className="font-mono text-gray-500">// </span>v1.2.1 – Bugfix Release
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3 bg-dark-800/30 rounded-xl p-4">
+                <CheckCircle className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold text-gray-300">E-Mail-Liste scrollt korrekt</h4>
+                  <p className="text-gray-500 text-sm">Keine springenden oder fehlenden Einträge mehr.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-dark-800/30 rounded-xl p-4">
+                <CheckCircle className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold text-gray-300">E-Mail-Vorschau scrollt korrekt</h4>
+                  <p className="text-gray-500 text-sm">Lange E-Mails sind vollständig lesbar.</p>
                 </div>
               </div>
             </div>
@@ -479,7 +509,7 @@ export default function DownloadPage() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-dark-700">
         <div className="max-w-4xl mx-auto text-center text-gray-500 text-sm">
-          <p>CoreMail Desktop v1.2.1 • Powered by Electron</p>
+          <p>CoreMail Desktop v1.2.2 • Powered by Electron</p>
           <p className="mt-2">
             <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
               Zur Web-App →
