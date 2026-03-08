@@ -2,6 +2,29 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.5.1] - 2026-03-08
+
+### 🐛 Bugfixes
+
+#### OpenGL-Fehler behoben
+- **GPU VSync-Fehler**: "GetVSyncParametersIfAvailable() failed" wird nicht mehr angezeigt
+- **Electron GPU-Flags**: Chromium-GPU-Sandbox und VSync deaktiviert für bessere Kompatibilität
+- **Linux-Grafiktreiber**: Verbesserte Unterstützung für verschiedene GPU-Konfigurationen
+
+#### Update-Funktion repariert
+- **Absturz beim Update behoben**: App stürzt nicht mehr ab beim Installieren von Updates
+- **Robuster Download**: Besseres Error-Handling bei Redirects und fehlenden Content-Length Headern
+- **AppImage-Start**: Verwendet jetzt `spawn` statt `shell.openPath` für zuverlässiges Starten
+- **Timeout-Handling**: Download-Timeouts werden korrekt behandelt
+- **Datei-Validierung**: Überprüfung der Download-Integrität vor Installation
+
+### 🔧 Technische Verbesserungen
+- **HTTP/HTTPS-Handling**: Unterstützung für beide Protokolle bei Redirects
+- **Redirect-Limit**: Maximum 10 Weiterleitungen, um Endlos-Schleifen zu vermeiden
+- **Progress-Anzeige**: Funktioniert jetzt auch ohne Content-Length Header
+
+---
+
 ## [1.5.0] - 2026-03-08
 
 ### ✨ Neue Features

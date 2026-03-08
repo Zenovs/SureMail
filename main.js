@@ -2,12 +2,26 @@ const { app, BrowserWindow, ipcMain, Notification, shell, dialog } = require('el
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
+const http = require('http');
 const crypto = require('crypto');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const Store = require('electron-store');
 const imapSimple = require('imap-simple');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
+
+// ============ GPU/OPENGL FIX (v1.5.1) ============
+// Disable GPU features that cause "GetVSyncParametersIfAvailable() failed" errors
+// These flags must be set before app.whenReady()
+app.commandLine.appendSwitch('disable-gpu-vsync');
+app.commandLine.appendSwitch('disable-frame-rate-limit');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+// Fallback to software rendering if GPU fails
+app.commandLine.appendSwitch('disable-software-rasterizer');
+
+// Disable hardware acceleration completely if issues persist (can be enabled via settings)
+// app.disableHardwareAcceleration();
 
 // App Version - read from package.json
 const APP_VERSION = require('./package.json').version;
@@ -154,47 +168,124 @@ async function downloadUpdate(downloadUrl) {
     const downloadDir = app.getPath('downloads');
     const filename = `CoreMail-Desktop-update.AppImage`;
     const filePath = path.join(downloadDir, filename);
+    
+    // Remove existing file if present
+    try {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    } catch (e) {
+      console.log('Could not remove existing file:', e.message);
+    }
 
-    // Follow redirects
+    let redirectCount = 0;
+    const MAX_REDIRECTS = 10;
+
+    // Follow redirects with proper HTTP/HTTPS handling
     const download = (url) => {
-      https.get(url, {
-        headers: { 'User-Agent': 'CoreMail-Desktop' }
+      if (redirectCount++ > MAX_REDIRECTS) {
+        reject(new Error('Zu viele Weiterleitungen'));
+        return;
+      }
+
+      const protocol = url.startsWith('https') ? https : http;
+      
+      const request = protocol.get(url, {
+        headers: { 
+          'User-Agent': 'CoreMail-Desktop',
+          'Accept': 'application/octet-stream'
+        },
+        timeout: 30000
       }, (response) => {
-        if (response.statusCode === 302 || response.statusCode === 301) {
-          download(response.headers.location);
+        // Handle redirects
+        if (response.statusCode === 302 || response.statusCode === 301 || response.statusCode === 307) {
+          const redirectUrl = response.headers.location;
+          if (redirectUrl) {
+            // Handle relative URLs
+            const finalUrl = redirectUrl.startsWith('http') ? redirectUrl : new URL(redirectUrl, url).href;
+            download(finalUrl);
+            return;
+          }
+        }
+
+        // Check for HTTP errors
+        if (response.statusCode !== 200) {
+          reject(new Error(`HTTP-Fehler: ${response.statusCode}`));
           return;
         }
 
+        // Get total size - handle missing Content-Length
         const totalSize = parseInt(response.headers['content-length'], 10);
+        const hasValidSize = !isNaN(totalSize) && totalSize > 0;
         let downloadedSize = 0;
+        
         const file = fs.createWriteStream(filePath);
 
         response.on('data', (chunk) => {
           downloadedSize += chunk.length;
-          const progress = Math.round((downloadedSize / totalSize) * 100);
-          if (mainWindow) {
-            mainWindow.webContents.send('update:progress', { progress, downloaded: downloadedSize, total: totalSize });
+          
+          // Calculate progress - handle unknown size
+          let progress;
+          if (hasValidSize) {
+            progress = Math.round((downloadedSize / totalSize) * 100);
+          } else {
+            // Show downloaded MB instead of percentage
+            progress = Math.min(99, Math.round(downloadedSize / (1024 * 1024))); // MB downloaded as "progress"
+          }
+          
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('update:progress', { 
+              progress, 
+              downloaded: downloadedSize, 
+              total: hasValidSize ? totalSize : downloadedSize,
+              hasValidSize
+            });
           }
         });
 
         response.pipe(file);
 
         file.on('finish', () => {
-          file.close();
-          // Make executable
-          try {
-            fs.chmodSync(filePath, 0o755);
-          } catch (e) {
-            console.error('chmod error:', e);
-          }
-          resolve({ success: true, filePath });
+          file.close(() => {
+            // Verify file was downloaded
+            try {
+              const stats = fs.statSync(filePath);
+              if (stats.size < 1000) {
+                fs.unlinkSync(filePath);
+                reject(new Error('Download unvollständig - Datei zu klein'));
+                return;
+              }
+              
+              // Make executable
+              fs.chmodSync(filePath, 0o755);
+              console.log('Update downloaded successfully:', filePath, 'Size:', stats.size);
+              resolve({ success: true, filePath, size: stats.size });
+            } catch (e) {
+              reject(new Error('Datei konnte nicht verifiziert werden: ' + e.message));
+            }
+          });
         });
 
         file.on('error', (err) => {
           fs.unlink(filePath, () => {});
-          reject(err);
+          reject(new Error('Schreibfehler: ' + err.message));
         });
-      }).on('error', reject);
+
+        response.on('error', (err) => {
+          file.close();
+          fs.unlink(filePath, () => {});
+          reject(new Error('Download-Fehler: ' + err.message));
+        });
+      });
+
+      request.on('error', (err) => {
+        reject(new Error('Verbindungsfehler: ' + err.message));
+      });
+
+      request.on('timeout', () => {
+        request.destroy();
+        reject(new Error('Download-Timeout'));
+      });
     };
 
     download(downloadUrl);
@@ -268,12 +359,48 @@ ipcMain.handle('update:download', async (event, downloadUrl) => {
 
 ipcMain.handle('update:install', async (event, filePath) => {
   try {
-    // Open the new AppImage
-    shell.openPath(filePath);
-    // Quit the current app
-    setTimeout(() => app.quit(), 1000);
+    // Verify file exists and is executable
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: 'Update-Datei nicht gefunden' };
+    }
+    
+    const stats = fs.statSync(filePath);
+    if (stats.size < 1000) {
+      return { success: false, error: 'Update-Datei ist beschädigt' };
+    }
+    
+    // Ensure file is executable
+    try {
+      fs.chmodSync(filePath, 0o755);
+    } catch (e) {
+      console.error('chmod error:', e);
+    }
+    
+    // Start the new AppImage using spawn (more reliable than shell.openPath for AppImages)
+    console.log('Starting update from:', filePath);
+    
+    const child = spawn(filePath, [], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env, APPIMAGE_EXTRACT_AND_RUN: '0' }
+    });
+    
+    child.unref();
+    
+    child.on('error', (err) => {
+      console.error('Failed to start update:', err);
+      // Fallback to shell.openPath
+      shell.openPath(filePath);
+    });
+    
+    // Quit the current app after a short delay to allow new instance to start
+    setTimeout(() => {
+      app.quit();
+    }, 1500);
+    
     return { success: true };
   } catch (error) {
+    console.error('Update install error:', error);
     return { success: false, error: error.message };
   }
 });
