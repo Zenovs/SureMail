@@ -134,6 +134,10 @@ export default function DownloadPage() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Prüft und installiert automatisch <code className="text-cyan-400">FUSE</code> (benötigt für AppImages)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
                   <span>Lädt CoreMail Desktop v1.0.0 von GitHub Releases herunter</span>
                 </li>
                 <li className="flex items-start gap-2">
@@ -146,9 +150,18 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Keine sudo-Rechte erforderlich – alles im Benutzer-Verzeichnis</span>
+                  <span>Alternative ohne FUSE: Extrahiert das AppImage automatisch</span>
                 </li>
               </ul>
+              <div className="mt-4 pt-3 border-t border-dark-700">
+                <p className="text-xs text-yellow-400/80 flex items-start gap-2">
+                  <Shield className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Hinweis:</strong> Für die automatische FUSE-Installation werden einmalig sudo-Rechte benötigt. 
+                    Falls kein sudo verfügbar ist, wird das AppImage automatisch extrahiert.
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
         </div>

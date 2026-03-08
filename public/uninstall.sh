@@ -21,6 +21,7 @@ BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
 APPLICATIONS_DIR="$HOME/.local/share/applications"
 ICONS_DIR="$HOME/.local/share/icons"
+EXTRACTED_DIR="$HOME/.local/share/coremail"
 
 print_banner() {
     echo -e "${RED}"
@@ -91,6 +92,15 @@ remove_icon() {
     fi
 }
 
+# Entferne extrahiertes AppImage (falls vorhanden)
+remove_extracted() {
+    if [ -d "${EXTRACTED_DIR}" ]; then
+        print_step "Entferne extrahierte Installation..."
+        rm -rf "${EXTRACTED_DIR}"
+        print_success "Extrahiertes Verzeichnis entfernt"
+    fi
+}
+
 # Zeige Erfolgsmeldung
 print_success_message() {
     echo ""
@@ -108,6 +118,7 @@ main() {
     print_banner
     confirm_uninstall
     remove_appimage
+    remove_extracted
     remove_desktop_entry
     remove_icon
     print_success_message
