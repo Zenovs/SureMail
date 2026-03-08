@@ -14,11 +14,26 @@ import {
   Cpu,
   ExternalLink,
   Github,
-  Wrench
+  Wrench,
+  Zap,
+  Copy,
+  Check
 } from 'lucide-react'
+import { useState } from 'react'
 
 export default function DownloadPage() {
   const githubReleaseUrl = 'https://github.com/Zenovs/coremail/releases'
+  const [copiedCurl, setCopiedCurl] = useState(false)
+  const [copiedWget, setCopiedWget] = useState(false)
+  
+  const curlCommand = 'curl -sSL https://suremail.vercel.app/install.sh | bash'
+  const wgetCommand = 'wget -qO- https://suremail.vercel.app/install.sh | bash'
+  
+  const copyToClipboard = (text: string, setCopied: (val: boolean) => void) => {
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
   
   return (
     <main className="min-h-screen bg-dark-900 text-white">
@@ -53,15 +68,101 @@ export default function DownloadPage() {
         </div>
       </section>
 
-      {/* Download Section */}
+      {/* Quick Install Section */}
+      <section className="py-8 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-400/30 rounded-2xl p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-emerald-400/20 rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">Quick Install</h2>
+                <p className="text-gray-400 text-sm">Eine Zeile – fertig installiert</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-300 mb-6">
+              Kopiere einen der folgenden Befehle und füge ihn in dein Terminal ein:
+            </p>
+            
+            {/* Curl Command */}
+            <div className="mb-4">
+              <label className="text-sm text-gray-400 font-mono mb-2 block">Mit curl:</label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-dark-900 border border-dark-700 rounded-lg px-4 py-3 text-cyan-400 font-mono text-sm overflow-x-auto">
+                  {curlCommand}
+                </code>
+                <button
+                  onClick={() => copyToClipboard(curlCommand, setCopiedCurl)}
+                  className="p-3 bg-dark-800 border border-dark-700 rounded-lg hover:bg-dark-700 transition-colors"
+                  title="Kopieren"
+                >
+                  {copiedCurl ? (
+                    <Check className="w-5 h-5 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+            
+            {/* Wget Command */}
+            <div className="mb-6">
+              <label className="text-sm text-gray-400 font-mono mb-2 block">Mit wget:</label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-dark-900 border border-dark-700 rounded-lg px-4 py-3 text-cyan-400 font-mono text-sm overflow-x-auto">
+                  {wgetCommand}
+                </code>
+                <button
+                  onClick={() => copyToClipboard(wgetCommand, setCopiedWget)}
+                  className="p-3 bg-dark-800 border border-dark-700 rounded-lg hover:bg-dark-700 transition-colors"
+                  title="Kopieren"
+                >
+                  {copiedWget ? (
+                    <Check className="w-5 h-5 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-5 h-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
+            </div>
+            
+            {/* What does it do? */}
+            <div className="bg-dark-800/50 border border-dark-700 rounded-xl p-4">
+              <h4 className="font-mono text-emerald-400 text-sm mb-3">// Was macht das Script?</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Lädt CoreMail Desktop v1.0.0 von GitHub Releases herunter</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Installiert nach <code className="text-cyan-400">~/.local/bin/coremail-desktop</code></span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Erstellt einen Desktop-Eintrag im App-Menü</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Keine sudo-Rechte erforderlich – alles im Benutzer-Verzeichnis</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Alternative Download Section */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-dark-800 border border-dark-700 rounded-2xl p-8 text-center">
             <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-cyan-400 to-emerald-400 rounded-2xl flex items-center justify-center">
               <Download className="w-10 h-10 text-dark-900" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Download für Linux</h2>
-            <p className="text-gray-400 mb-6">AppImage – Keine Installation erforderlich</p>
+            <h2 className="text-2xl font-bold mb-2">Manuelle Installation</h2>
+            <p className="text-gray-400 mb-6">Für Sicherheitsbewusste: Lade direkt von GitHub herunter</p>
             
             <a 
               href={githubReleaseUrl}
@@ -90,14 +191,13 @@ export default function DownloadPage() {
             <div className="mt-8 p-4 bg-cyan-400/5 border border-cyan-400/20 rounded-xl text-left">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-cyan-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Github className="w-4 h-4 text-cyan-400" />
+                  <Shield className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <h3 className="font-mono text-cyan-400 text-sm mb-1">Warum GitHub Releases?</h3>
+                  <h3 className="font-mono text-cyan-400 text-sm mb-1">Sicherheitshinweis</h3>
                   <p className="text-gray-400 text-sm">
-                    Die AppImage-Datei ist mit ~130 MB zu groß für direktes Hosting. 
-                    GitHub Releases ist der Standard für Software-Downloads und garantiert schnelle, 
-                    sichere Downloads weltweit.
+                    Du kannst das Installations-Script vor der Ausführung prüfen: 
+                    <code className="text-cyan-400 ml-1">curl -sSL https://suremail.vercel.app/install.sh</code>
                   </p>
                 </div>
               </div>
@@ -221,11 +321,11 @@ export default function DownloadPage() {
         </div>
       </section>
 
-      {/* Installation Guide */}
+      {/* Installation Guide (Manual) */}
       <section className="py-16 px-6">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-bold text-center mb-12">
-            <span className="font-mono text-cyan-400">// </span>Installation
+            <span className="font-mono text-cyan-400">// </span>Manuelle Installation
           </h2>
           <div className="bg-dark-800 border border-dark-700 rounded-xl p-8">
             <div className="space-y-6">
@@ -266,6 +366,24 @@ export default function DownloadPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Uninstall Section */}
+      <section className="py-8 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-dark-800/50 border border-dark-700 rounded-xl p-6">
+            <h3 className="font-bold mb-4 flex items-center gap-2">
+              <Terminal className="w-5 h-5 text-gray-400" />
+              Deinstallation
+            </h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Um CoreMail Desktop zu deinstallieren, führe folgenden Befehl aus:
+            </p>
+            <code className="block bg-dark-900 border border-dark-700 rounded-lg px-4 py-3 text-red-400 font-mono text-sm">
+              curl -sSL https://suremail.vercel.app/uninstall.sh | bash
+            </code>
           </div>
         </div>
       </section>

@@ -36,6 +36,39 @@ CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 **Empfehlung:** Verwenden Sie App-spezifische Passwörter für SMTP (z.B. Gmail App-Passwörter) statt Ihres Haupt-Passworts.
 
+## 🖥️ Desktop Client
+
+CoreMail ist auch als Desktop-App für Linux verfügbar!
+
+### Quick Install (Eine Zeile)
+
+Mit curl:
+```bash
+curl -sSL https://suremail.vercel.app/install.sh | bash
+```
+
+Mit wget:
+```bash
+wget -qO- https://suremail.vercel.app/install.sh | bash
+```
+
+Das Script:
+- Lädt CoreMail Desktop v1.0.0 von GitHub Releases herunter
+- Installiert nach `~/.local/bin/coremail-desktop`
+- Erstellt einen Desktop-Eintrag im App-Menü
+- Keine sudo-Rechte erforderlich
+
+### Deinstallation
+
+```bash
+curl -sSL https://suremail.vercel.app/uninstall.sh | bash
+```
+
+### Systemanforderungen
+- Ubuntu 20.04+ / Debian 11+ / Fedora 38+ / Linux Mint 21+
+- 64-bit Linux
+- 2 GB RAM, 200 MB Speicher
+
 ## 🚀 Vercel-Deployment (Schritt-für-Schritt)
 
 ### Voraussetzungen
