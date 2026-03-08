@@ -40,7 +40,11 @@ CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 CoreMail ist auch als Desktop-App für Linux verfügbar!
 
-### 🆕 Neu in v1.3.0 – Major Update!
+### 🆕 Neu in v1.3.1 – Bugfix Release
+
+- **Versions-Anzeige korrigiert**: Version wird jetzt dynamisch korrekt angezeigt
+
+### v1.3.0 – Major Update!
 
 - **Update-Funktion (in der App)**: Prüfe und installiere Updates direkt in der App – kein manueller Download mehr nötig
 - **Bessere Anhang-Verwaltung**: Drag & Drop, Vorschau und Fortschrittsanzeige für alle Anhänge
@@ -85,7 +89,7 @@ wget -qO- https://suremail.vercel.app/install.sh | bash
 ```
 
 Das Script:
-- Lädt CoreMail Desktop v1.3.0 von GitHub Releases herunter
+- Lädt CoreMail Desktop v1.3.1 von GitHub Releases herunter
 - Prüft und installiert automatisch FUSE (benötigt für AppImages)
 - Installiert nach `~/.local/bin/coremail-desktop`
 - Erstellt einen Desktop-Eintrag im App-Menü

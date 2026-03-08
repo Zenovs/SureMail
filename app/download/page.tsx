@@ -61,7 +61,7 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-400/20 to-cyan-400/20 border border-emerald-400/40 rounded-full text-emerald-400 text-sm font-mono mb-6 animate-pulse">
             <Sparkles className="w-4 h-4" />
-            <span>NEU: Desktop Client v1.3.0 - Major Update!</span>
+            <span>NEU: Desktop Client v1.3.1 - Bugfix Release!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
@@ -73,7 +73,7 @@ export default function DownloadPage() {
         </div>
       </section>
 
-      {/* NEW: Neu in v1.3.0 Section - Hero Position */}
+      {/* NEW: Neu in v1.3.1 Section - Hero Position */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-gradient-to-r from-emerald-500/20 via-cyan-500/15 to-purple-500/20 border-2 border-emerald-400/50 rounded-2xl p-8 relative overflow-hidden">
@@ -86,9 +86,9 @@ export default function DownloadPage() {
                 <img src="/coremail-icon.png" alt="CoreMail Icon" className="w-20 h-20 rounded-2xl shadow-lg shadow-emerald-400/20" />
                 <div>
                   <h2 className="text-3xl font-bold">
-                    <span className="font-mono text-emerald-400">// </span>Neu in v1.3.0
+                    <span className="font-mono text-emerald-400">// </span>Neu in v1.3.1
                   </h2>
-                  <p className="text-gray-400 font-mono text-sm">Major Update mit vielen neuen Features</p>
+                  <p className="text-gray-400 font-mono text-sm">Bugfix: Version wird jetzt korrekt angezeigt</p>
                 </div>
               </div>
               
@@ -236,7 +236,7 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Lädt CoreMail Desktop v1.3.0 von GitHub Releases herunter</span>
+                  <span>Lädt CoreMail Desktop v1.3.1 von GitHub Releases herunter</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -295,7 +295,7 @@ export default function DownloadPage() {
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
-              <span className="text-emerald-400 font-bold">v1.3.0</span>
+              <span className="text-emerald-400 font-bold">v1.3.1</span>
             </div>
 
             {/* Info Box */}
@@ -556,7 +556,7 @@ export default function DownloadPage() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-dark-700">
         <div className="max-w-4xl mx-auto text-center text-gray-500 text-sm">
-          <p>CoreMail Desktop v1.3.0 • Powered by Electron</p>
+          <p>CoreMail Desktop v1.3.1 • Powered by Electron</p>
           <p className="mt-2">
             <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
               Zur Web-App →
