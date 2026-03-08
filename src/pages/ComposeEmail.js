@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import { useOllama } from '../context/OllamaContext';
@@ -322,7 +323,7 @@ function ComposeEmail({ onBack, replyTo = null }) {
                 }`}
                 title="KI-Assistent"
               >
-                🤖 KI-Assistent
+                <MessageCircle className="w-4 h-4 inline mr-1" /> KI-Assistent
               </button>
             )}
             <button
@@ -550,7 +551,7 @@ function ComposeEmail({ onBack, replyTo = null }) {
           <div className="p-4 border-b border-gray-700">
             <div className="flex items-center justify-between">
               <h3 className={`font-semibold ${c.text} flex items-center gap-2`}>
-                🤖 KI-Assistent
+                <MessageCircle className="w-5 h-5" /> KI-Assistent
               </h3>
               <button
                 onClick={() => setShowAiPanel(false)}

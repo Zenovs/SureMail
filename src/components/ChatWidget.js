@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useOllama } from '../context/OllamaContext';
 
@@ -73,7 +74,7 @@ const ChatWidget = () => {
         }`}
         title={isAvailable ? 'KI-Assistent öffnen' : 'Ollama nicht verfügbar'}
       >
-        <span className="text-2xl">🤖</span>
+        <MessageCircle className="w-7 h-7 text-white" />
         {!isChecking && !isAvailable && (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px]">
             !
@@ -95,7 +96,7 @@ const ChatWidget = () => {
       <div className={`flex items-center justify-between px-4 py-3 border-b ${c.border} bg-gradient-to-r from-cyan-500/10 to-blue-500/10`}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
-            <span className="text-xl">🤖</span>
+            <MessageCircle className="w-6 h-6 text-white" />
           </div>
           <div>
             <h3 className={`font-semibold ${c.text}`}>KI-Assistent</h3>

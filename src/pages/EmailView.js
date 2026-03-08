@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useOllama } from '../context/OllamaContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -228,7 +229,7 @@ const EmailView = ({ email, onBack, onReply }) => {
                   </>
                 ) : (
                   <>
-                    🤖 Zusammenfassen
+                    <MessageCircle className="w-4 h-4 inline mr-1" /> Zusammenfassen
                   </>
                 )}
               </button>
@@ -271,7 +272,7 @@ const EmailView = ({ email, onBack, onReply }) => {
         <div className={`mx-6 mt-4 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30`}>
           <div className="flex items-start justify-between mb-2">
             <h4 className="font-medium text-purple-400 flex items-center gap-2">
-              🤖 KI-Zusammenfassung
+              <MessageCircle className="w-4 h-4 inline mr-1" /> KI-Zusammenfassung
             </h4>
             <button
               onClick={() => setAiSummary(null)}

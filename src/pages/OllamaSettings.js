@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useOllama } from '../context/OllamaContext';
 
@@ -64,7 +65,7 @@ const OllamaSettings = () => {
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
               isAvailable ? 'bg-green-500/20' : 'bg-red-500/20'
             }`}>
-              <span className="text-2xl">🤖</span>
+              <MessageCircle className="w-6 h-6 text-current" />
             </div>
             <div>
               <h3 className={`font-semibold ${c.text}`}>Ollama Status</h3>

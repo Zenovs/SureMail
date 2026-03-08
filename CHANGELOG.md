@@ -2,6 +2,35 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.5.3] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 💬 Professionelles Chat-Icon
+- **Lucide MessageCircle Icon**: Roboter-Emoji (🤖) durch modernes Chat-Icon ersetzt
+- **Konsistentes Design**: Icon-Änderung in allen Komponenten:
+  - ChatWidget (schwebendes Panel + Button)
+  - EmailView (Zusammenfassen-Button)
+  - ComposeEmail (KI-Assistent-Button + Panel)
+  - OllamaSettings (Status-Anzeige)
+  - SettingsV2 (Tab-Icon + Changelog)
+- **Lucide-React**: Neue Abhängigkeit für professionelle SVG-Icons
+
+#### 🔧 Automatische Ollama-Installation
+- **Keine manuelle Interaktion**: Ollama wird automatisch installiert
+- **Intelligente Prüfung**: 
+  - Prüft ob Ollama bereits installiert ist
+  - Startet Ollama-Service falls nicht aktiv
+  - Prüft und lädt Standard-Modell (llama3.2:1b)
+- **Robuste Fehlerbehandlung**: CoreMail funktioniert auch ohne Ollama
+- **Besseres Logging**: Klare Status-Meldungen während Installation
+
+### 🔧 Technische Änderungen
+- **lucide-react**: Neue Abhängigkeit für Icon-Komponenten
+- **install.sh**: Komplett überarbeitet für automatische Installation
+
+---
+
 ## [1.5.2] - 2026-03-08
 
 ### 🐛 Kritische Bugfixes
@@ -50,7 +79,7 @@ Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentie
 
 ### ✨ Neue Features
 
-#### 🤖 Lokale KI-Integration (Ollama)
+#### 💬 Lokale KI-Integration (Ollama)
 - **Ollama-Integration**: Vollständig lokale KI ohne Cloud-Abhängigkeit
 - **E-Mails zusammenfassen**: Ein-Klick-Zusammenfassung von E-Mail-Inhalten
 - **Antwort-Vorschläge**: KI generiert Antwort-Entwürfe basierend auf Original-E-Mail

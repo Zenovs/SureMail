@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.5.2
+# 📧 CoreMail Desktop v1.5.3
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration und fortschrittlichen Funktionen.
 
@@ -8,7 +8,7 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 
 ## ✨ Features
 
-### 🤖 Lokale KI-Integration (NEU in v1.5)
+### 💬 Lokale KI-Integration (NEU in v1.5)
 - **Ollama-Integration**: Lokale KI ohne Cloud-Abhängigkeit
 - **E-Mails zusammenfassen**: Ein Klick für prägnante Zusammenfassungen
 - **Antwort-Vorschläge**: KI hilft beim Verfassen von Antworten
@@ -181,8 +181,17 @@ ollama pull llama3.2:1b
 
 Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
 
-### v1.5.0 (aktuell)
-- 🤖 **Lokale KI-Integration mit Ollama**
+### v1.5.3 (aktuell)
+- 💬 **Professionelles Chat-Icon**
+  - Roboter-Emoji durch modernes Lucide Chat-Icon ersetzt
+  - Konsistentes Design in allen Komponenten
+- 🔧 **Automatische Ollama-Installation**
+  - Ollama wird automatisch bei Installation installiert
+  - Kein manuelles Nachfragen mehr
+  - Standard-Modell (llama3.2:1b) wird automatisch geladen
+
+### v1.5.0 - v1.5.2
+- 💬 **Lokale KI-Integration mit Ollama**
   - E-Mails mit einem Klick zusammenfassen
   - Antwort-Vorschläge generieren lassen
   - Texte verbessern, kürzen, förmlicher/freundlicher machen
@@ -193,9 +202,6 @@ Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
   - Modelle installieren, verwalten und wechseln
   - Download-Fortschrittsanzeige
   - Empfohlene Modelle: llama3.2:1b, mistral:7b, etc.
-- 📥 **Erweiterter Installer**
-  - Ollama automatisch installieren
-  - Standardmodell herunterladen
 
 ### v1.4.0
 - 📐 **Individualisierbare Sidebar**

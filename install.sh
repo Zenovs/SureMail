@@ -2,11 +2,11 @@
 
 # CoreMail Desktop Installer
 # Installiert CoreMail Desktop als AppImage mit Desktop-Integration
-# Inklusive optionaler Ollama KI-Integration (v1.5.0+)
+# Inklusive automatischer Ollama KI-Integration (v1.5.3+)
 
 set -e
 
-VERSION="1.5.1"
+VERSION="1.5.3"
 APP_NAME="CoreMail Desktop"
 APPIMAGE_NAME="CoreMail.Desktop-${VERSION}.AppImage"
 INSTALL_DIR="$HOME/.local/share/coremail"
@@ -87,64 +87,107 @@ echo "📍 Icon installiert in: $ICON_FILE"
 echo "📍 Desktop-Eintrag: $DESKTOP_FILE"
 echo ""
 
-# ============ OLLAMA KI-INTEGRATION (OPTIONAL) ============
+# ============ OLLAMA KI-INTEGRATION (AUTOMATISCH) ============
 
 echo ""
-echo "🤖 KI-Integration (Ollama)"
+echo "💬 KI-Integration (Ollama)"
 echo "=========================="
 
-# Prüfe ob Ollama bereits installiert ist
-if command -v ollama &> /dev/null; then
-    echo "✅ Ollama ist bereits installiert."
-    OLLAMA_VERSION=$(ollama --version 2>/dev/null || echo "unbekannt")
-    echo "   Version: $OLLAMA_VERSION"
-else
-    echo ""
-    echo "📦 Ollama ist nicht installiert."
-    echo "   Ollama ermöglicht lokale KI-Funktionen in CoreMail:"
-    echo "   - E-Mails zusammenfassen"
-    echo "   - Antworten vorschlagen"
-    echo "   - Texte verbessern"
-    echo ""
-    read -p "🔧 Ollama jetzt installieren? (j/n): " install_ollama
+install_ollama_automatic() {
+    echo "⬇️  Installiere Ollama..."
     
-    if [[ "$install_ollama" =~ ^[jJyY]$ ]]; then
-        echo ""
-        echo "⬇️ Installiere Ollama..."
-        curl -fsSL https://ollama.com/install.sh | sh
-        
-        if command -v ollama &> /dev/null; then
-            echo "✅ Ollama erfolgreich installiert!"
-            
-            # Starte Ollama Service
-            echo "🚀 Starte Ollama Service..."
-            ollama serve &>/dev/null &
-            sleep 2
-            
-            # Installiere Standard-Modell
-            echo ""
-            read -p "📥 Kompaktes KI-Modell (llama3.2:1b, ~1.3GB) herunterladen? (j/n): " install_model
-            
-            if [[ "$install_model" =~ ^[jJyY]$ ]]; then
-                echo "⬇️ Lade llama3.2:1b herunter (kann einige Minuten dauern)..."
-                ollama pull llama3.2:1b
-                echo "✅ Modell erfolgreich installiert!"
-            fi
-        else
-            echo "❌ Ollama-Installation fehlgeschlagen."
-        fi
+    if curl -fsSL https://ollama.com/install.sh | sh; then
+        echo "✅ Ollama erfolgreich installiert!"
+        return 0
     else
-        echo "ℹ️  Ollama-Installation übersprungen."
+        echo "⚠️  Ollama-Installation fehlgeschlagen."
+        echo "   CoreMail funktioniert trotzdem, aber ohne KI-Features."
         echo "   Du kannst Ollama später manuell installieren mit:"
         echo "   curl -fsSL https://ollama.com/install.sh | sh"
+        return 1
+    fi
+}
+
+start_ollama_service() {
+    echo "🚀 Starte Ollama Service..."
+    
+    # Prüfe ob Service bereits läuft
+    if pgrep -x "ollama" > /dev/null; then
+        echo "   Ollama Service läuft bereits."
+        return 0
+    fi
+    
+    # Starte im Hintergrund
+    nohup ollama serve &>/dev/null &
+    sleep 3
+    
+    # Prüfe ob erfolgreich gestartet
+    if pgrep -x "ollama" > /dev/null; then
+        echo "   Ollama Service gestartet."
+        return 0
+    else
+        echo "   Konnte Ollama Service nicht starten."
+        return 1
+    fi
+}
+
+download_default_model() {
+    echo "📥 Lade Standard-Modell (llama3.2:1b, ~1.3GB)..."
+    echo "   Dies kann einige Minuten dauern..."
+    
+    if ollama pull llama3.2:1b 2>&1; then
+        echo "✅ KI-Modell erfolgreich installiert!"
+        return 0
+    else
+        echo "⚠️  Modell-Download fehlgeschlagen."
+        echo "   Du kannst es später in CoreMail unter Einstellungen → KI-Assistent herunterladen."
+        return 1
+    fi
+}
+
+# Hauptlogik für Ollama-Installation
+echo "🔍 Prüfe Ollama-Installation..."
+
+if command -v ollama &> /dev/null; then
+    OLLAMA_VERSION=$(ollama --version 2>/dev/null || echo "unbekannt")
+    echo "✅ Ollama ist bereits installiert (Version: $OLLAMA_VERSION)"
+    
+    # Starte Service falls nicht läuft
+    start_ollama_service
+    
+    # Prüfe ob Standard-Modell vorhanden
+    echo "🔍 Prüfe installierte Modelle..."
+    if ollama list 2>/dev/null | grep -q "llama3.2:1b"; then
+        echo "✅ Standard-Modell (llama3.2:1b) ist installiert."
+    else
+        echo "📦 Standard-Modell nicht gefunden."
+        download_default_model
+    fi
+else
+    echo "📦 Ollama ist nicht installiert."
+    echo ""
+    echo "   Ollama ermöglicht lokale KI-Funktionen in CoreMail:"
+    echo "   • E-Mails zusammenfassen"
+    echo "   • Antworten vorschlagen"
+    echo "   • Texte verbessern"
+    echo ""
+    
+    # Automatische Installation
+    if install_ollama_automatic; then
+        start_ollama_service
+        download_default_model
     fi
 fi
 
 echo ""
-echo "🚀 CoreMail Desktop kann jetzt über das Anwendungsmenü gestartet werden."
-echo "   Oder direkt mit: $INSTALL_DIR/$APPIMAGE_NAME"
+echo "════════════════════════════════════════════════════════════"
+echo "🎉 CoreMail Desktop Installation abgeschlossen!"
+echo "════════════════════════════════════════════════════════════"
+echo ""
+echo "🚀 CoreMail kann jetzt gestartet werden:"
+echo "   • Über das Anwendungsmenü"
+echo "   • Oder direkt mit: $INSTALL_DIR/$APPIMAGE_NAME"
 echo ""
 echo "💡 Tipps für die KI-Integration:"
-echo "   - Starte Ollama mit: ollama serve"
-echo "   - Lade ein Modell mit: ollama pull llama3.2:1b"
-echo "   - Verwalte Modelle in CoreMail unter Einstellungen → KI-Assistent"
+echo "   • Ollama startet automatisch mit: ollama serve"
+echo "   • Verwalte Modelle in CoreMail unter Einstellungen → KI-Assistent"

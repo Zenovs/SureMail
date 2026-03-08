@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { MessageCircle } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
@@ -45,7 +46,7 @@ function SettingsV2() {
 
   const tabs = [
     { id: 'general', name: 'Allgemein', icon: '⚙️' },
-    { id: 'ai', name: 'KI-Assistent', icon: '🤖' },
+    { id: 'ai', name: 'KI-Assistent', icon: <MessageCircle className="w-5 h-5" /> },
     { id: 'sidebar', name: 'Sidebar', icon: '📐' },
     { id: 'notifications', name: 'Benachrichtigungen', icon: '🔔' },
     { id: 'signatures', name: 'Signaturen', icon: '✍️' },
@@ -151,7 +152,7 @@ function SettingsV2() {
               <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.5.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🤖</span>
+                  <MessageCircle className="w-4 h-4 text-cyan-400 mt-0.5" />
                   <span>Lokale KI-Integration mit Ollama für E-Mail-Assistenz</span>
                 </li>
                 <li className="flex items-start gap-2">

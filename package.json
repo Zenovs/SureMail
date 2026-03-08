@@ -1,6 +1,6 @@
 {
   "name": "coremail-desktop",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "CoreMail Desktop Client v1.5.0 - Multi-Account E-Mail-Client für Linux mit lokaler KI-Integration (Ollama)",
   "main": "main.js",
   "scripts": {
@@ -74,6 +74,7 @@
     "@electron/remote": "^2.1.2",
     "electron-store": "^8.1.0",
     "imap-simple": "^5.1.0",
+    "lucide-react": "^0.577.0",
     "mailparser": "^3.6.6",
     "nodemailer": "^6.9.9",
     "react": "^18.2.0",
