@@ -2,6 +2,78 @@ import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
+// v1.8.0: Server Presets including Microsoft Exchange
+const SERVER_PRESETS = [
+  { 
+    id: 'custom', 
+    name: 'Benutzerdefiniert',
+    icon: '⚙️',
+    imap: { host: '', port: '993', tls: true },
+    smtp: { host: '', port: '465', secure: true }
+  },
+  { 
+    id: 'gmail', 
+    name: 'Gmail',
+    icon: '📧',
+    imap: { host: 'imap.gmail.com', port: '993', tls: true },
+    smtp: { host: 'smtp.gmail.com', port: '465', secure: true },
+    note: 'Erfordert App-Passwort'
+  },
+  { 
+    id: 'outlook', 
+    name: 'Outlook.com / Hotmail',
+    icon: '📬',
+    imap: { host: 'outlook.office365.com', port: '993', tls: true },
+    smtp: { host: 'smtp.office365.com', port: '587', secure: false },
+    note: 'Outlook.com, Hotmail, Live.com'
+  },
+  { 
+    id: 'exchange', 
+    name: 'Microsoft Exchange / Office 365',
+    icon: '🏢',
+    imap: { host: 'outlook.office365.com', port: '993', tls: true },
+    smtp: { host: 'smtp.office365.com', port: '587', secure: false },
+    note: 'Für Firmen-Exchange-Konten mit IMAP aktiviert'
+  },
+  { 
+    id: 'icloud', 
+    name: 'iCloud Mail',
+    icon: '☁️',
+    imap: { host: 'imap.mail.me.com', port: '993', tls: true },
+    smtp: { host: 'smtp.mail.me.com', port: '587', secure: false },
+    note: 'Erfordert App-Passwort'
+  },
+  { 
+    id: 'yahoo', 
+    name: 'Yahoo Mail',
+    icon: '📨',
+    imap: { host: 'imap.mail.yahoo.com', port: '993', tls: true },
+    smtp: { host: 'smtp.mail.yahoo.com', port: '465', secure: true },
+    note: 'Erfordert App-Passwort'
+  },
+  { 
+    id: 'gmx', 
+    name: 'GMX',
+    icon: '📩',
+    imap: { host: 'imap.gmx.net', port: '993', tls: true },
+    smtp: { host: 'mail.gmx.net', port: '587', secure: false }
+  },
+  { 
+    id: 'webde', 
+    name: 'WEB.DE',
+    icon: '📪',
+    imap: { host: 'imap.web.de', port: '993', tls: true },
+    smtp: { host: 'smtp.web.de', port: '587', secure: false }
+  },
+  { 
+    id: 'ionos', 
+    name: 'IONOS / 1&1',
+    icon: '🌐',
+    imap: { host: 'imap.ionos.de', port: '993', tls: true },
+    smtp: { host: 'smtp.ionos.de', port: '587', secure: false }
+  }
+];
+
 function AccountManager() {
   const { currentTheme } = useTheme();
   const { accounts, categories, addAccount, updateAccount, deleteAccount, addCategory, deleteCategory } = useAccounts();
@@ -10,6 +82,7 @@ function AccountManager() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [testing, setTesting] = useState({ imap: false, smtp: false });
   const [testResults, setTestResults] = useState({ imap: null, smtp: null });
+  const [selectedPreset, setSelectedPreset] = useState('custom');
   const c = currentTheme.colors;
 
   const [accountForm, setAccountForm] = useState({
@@ -21,6 +94,29 @@ function AccountManager() {
 
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#3b82f6' });
 
+  // v1.8.0: Apply preset
+  const applyPreset = (presetId) => {
+    setSelectedPreset(presetId);
+    const preset = SERVER_PRESETS.find(p => p.id === presetId);
+    if (preset && presetId !== 'custom') {
+      setAccountForm(f => ({
+        ...f,
+        imap: {
+          ...f.imap,
+          host: preset.imap.host,
+          port: preset.imap.port,
+          tls: preset.imap.tls
+        },
+        smtp: {
+          ...f.smtp,
+          host: preset.smtp.host,
+          port: preset.smtp.port,
+          secure: preset.smtp.secure
+        }
+      }));
+    }
+  };
+
   const resetForm = () => {
     setAccountForm({
       name: '',
@@ -31,6 +127,7 @@ function AccountManager() {
     setEditingAccount(null);
     setShowAccountForm(false);
     setTestResults({ imap: null, smtp: null });
+    setSelectedPreset('custom');
   };
 
   const handleEditAccount = (account) => {
@@ -223,6 +320,38 @@ function AccountManager() {
                     </select>
                   </div>
                 </div>
+
+                {/* v1.8.0: Server Preset Selector */}
+                {!editingAccount && (
+                  <div className={`${c.bgTertiary} p-4 rounded-lg`}>
+                    <h4 className={`font-medium ${c.text} mb-3`}>Server-Vorlage</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {SERVER_PRESETS.map(preset => (
+                        <button
+                          key={preset.id}
+                          onClick={() => applyPreset(preset.id)}
+                          className={`p-3 rounded-lg text-left transition-colors ${
+                            selectedPreset === preset.id
+                              ? `${c.accentBg} text-white`
+                              : `${c.card} ${c.border} border ${c.hover}`
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{preset.icon}</span>
+                            <span className={`text-sm font-medium ${selectedPreset === preset.id ? 'text-white' : c.text}`}>
+                              {preset.name}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {SERVER_PRESETS.find(p => p.id === selectedPreset)?.note && (
+                      <p className={`text-xs ${c.textSecondary} mt-2 flex items-center gap-1`}>
+                        ℹ️ {SERVER_PRESETS.find(p => p.id === selectedPreset)?.note}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* IMAP */}
                 <div className={`${c.bgTertiary} p-4 rounded-lg`}>

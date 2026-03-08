@@ -132,16 +132,16 @@ function UpdateSettings() {
 
       {/* Update Available */}
       {updateInfo?.hasUpdate && (
-        <div className={`${c.card} ${c.border} border rounded-xl p-6 border-cyan-500`}>
+        <div className={`${c.card} ${c.border} border rounded-xl p-6 border-cyan-500 max-w-full overflow-hidden`}>
           <div className="flex items-start gap-4">
-            <div className="text-3xl">🎉</div>
-            <div className="flex-1">
-              <h3 className={`text-lg font-semibold ${c.text} mb-2`}>
+            <div className="text-3xl flex-shrink-0">🎉</div>
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <h3 className={`text-lg font-semibold ${c.text} mb-2 truncate`}>
                 Update verfügbar: v{updateInfo.latestVersion}
               </h3>
               
               {updateInfo.releaseNotes && (
-                <div className={`text-sm ${c.textSecondary} mb-4 whitespace-pre-wrap max-h-40 overflow-auto`}>
+                <div className={`text-sm ${c.textSecondary} mb-4 whitespace-pre-wrap max-h-40 overflow-auto break-words`}>
                   {updateInfo.releaseNotes}
                 </div>
               )}
@@ -156,11 +156,11 @@ function UpdateSettings() {
               )}
               
               {downloading && (
-                <div className="space-y-2">
-                  <div className={`w-full h-3 ${c.bgTertiary} rounded-full overflow-hidden`}>
+                <div className="space-y-2 max-w-full">
+                  <div className={`w-full max-w-full h-3 ${c.bgTertiary} rounded-full overflow-hidden`}>
                     <div 
                       className="h-full bg-cyan-500 transition-all duration-300"
-                      style={{ width: `${progress}%` }}
+                      style={{ width: `${Math.min(progress, 100)}%` }}
                     />
                   </div>
                   <p className={`text-sm ${c.textSecondary}`}>

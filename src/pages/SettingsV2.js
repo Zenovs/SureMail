@@ -6,6 +6,7 @@ import NotificationSettings from './NotificationSettings';
 import SignatureEditor from './SignatureEditor';
 import SidebarSettings from './SidebarSettings';
 import OllamaSettings from './OllamaSettings';
+import CategorySettings from './CategorySettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
@@ -48,6 +49,7 @@ function SettingsV2() {
     { id: 'general', name: 'Allgemein', icon: '⚙️' },
     { id: 'ai', name: 'KI-Assistent', icon: <MessageCircle className="w-5 h-5" /> },
     { id: 'sidebar', name: 'Sidebar', icon: '📐' },
+    { id: 'categories', name: 'Kategorien', icon: '🏷️' },
     { id: 'notifications', name: 'Benachrichtigungen', icon: '🔔' },
     { id: 'signatures', name: 'Signaturen', icon: '✍️' },
     { id: 'downloads', name: 'Downloads', icon: '📁' },
@@ -157,23 +159,35 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.7.2</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.8.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">🔧</span>
-                  <span>Ollama API 404-Fehler behoben - Chat funktioniert jetzt</span>
+                  <span className="text-green-400">🗑️</span>
+                  <span>E-Mail-Aktionen: Löschen, Gelesen/Ungelesen, Antworten, Allen antworten, Weiterleiten</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">💬</span>
-                  <span>Korrekte /api/chat Endpoint-Verwendung</span>
+                  <span className="text-cyan-400">⚡</span>
+                  <span>Performance-Verbesserung: E-Mail-Caching, Lazy Loading</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-orange-400">📝</span>
-                  <span>Bessere Fehlermeldungen für Ollama-Probleme</span>
+                  <span className="text-orange-400">📁</span>
+                  <span>Ordner-Struktur: Posteingang, Gesendet, Entwürfe, Papierkorb, Spam</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-400">✨</span>
-                  <span>KI-Assistent kommuniziert jetzt korrekt mit Ollama</span>
+                  <span className="text-purple-400">🏷️</span>
+                  <span>Kategorien-Verwaltung: Erstellen, Bearbeiten, Löschen, Farben ändern</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-pink-400">🤖</span>
+                  <span>KI-Zugriff auf Postfächer: E-Mail-Kontext für bessere Antworten</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400">📧</span>
+                  <span>Microsoft Exchange/Office 365 Support (IMAP)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-400">🔧</span>
+                  <span>UI-Fix: Update-Balken überläuft nicht mehr</span>
                 </li>
               </ul>
             </div>
@@ -185,6 +199,9 @@ function SettingsV2() {
       
       case 'sidebar':
         return <SidebarSettings />;
+      
+      case 'categories':
+        return <CategorySettings />;
       
       case 'notifications':
         return <NotificationSettings />;

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Trash2, Mail, MailOpen, Reply, ReplyAll, Forward, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAccounts } from '../context/AccountContext';
 import { useOllama } from '../context/OllamaContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-const EmailView = ({ email, onBack, onReply }) => {
+const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolder = 'INBOX' }) => {
   const { currentTheme } = useTheme();
+  const { activeAccountId } = useAccounts();
   const { isAvailable: aiAvailable, summarizeEmail, isGenerating: aiGenerating } = useOllama();
   const [fullEmail, setFullEmail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +17,8 @@ const EmailView = ({ email, onBack, onReply }) => {
   const [previewAttachment, setPreviewAttachment] = useState(null);
   const [aiSummary, setAiSummary] = useState(null);
   const [summarizing, setSummarizing] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [isRead, setIsRead] = useState(email?.seen ?? true);
   const c = currentTheme.colors;
 
   useEffect(() => {
@@ -24,6 +28,7 @@ const EmailView = ({ email, onBack, onReply }) => {
       // If email already has html/text, use it directly (from split view)
       if (email.html || email.text) {
         setFullEmail(email);
+        setIsRead(email.seen ?? true);
         setLoading(false);
         return;
       }
@@ -43,10 +48,11 @@ const EmailView = ({ email, onBack, onReply }) => {
           return;
         }
 
-        const result = await window.electronAPI.fetchEmail(email.uid);
+        const result = await window.electronAPI.fetchEmailForAccount(activeAccountId, email.uid);
         
         if (result.success) {
           setFullEmail(result.email);
+          setIsRead(true); // Email is marked as read when opened
         } else {
           setError(result.error);
         }
@@ -58,7 +64,67 @@ const EmailView = ({ email, onBack, onReply }) => {
     };
 
     fetchFullEmail();
-  }, [email]);
+  }, [email, activeAccountId]);
+
+  // === EMAIL ACTIONS ===
+  const handleDelete = async () => {
+    if (!window.electronAPI || !activeAccountId || !email?.uid) return;
+    
+    setActionLoading('delete');
+    try {
+      const result = await window.electronAPI.deleteEmail(activeAccountId, email.uid, currentFolder);
+      if (result.success) {
+        onBack?.(); // Go back to list after deletion
+      } else {
+        alert('Fehler beim Löschen: ' + result.error);
+      }
+    } catch (err) {
+      alert('Fehler: ' + err.message);
+    }
+    setActionLoading(null);
+  };
+
+  const handleToggleRead = async () => {
+    if (!window.electronAPI || !activeAccountId || !email?.uid) return;
+    
+    setActionLoading('read');
+    try {
+      const newReadState = !isRead;
+      const result = await window.electronAPI.markAsRead(activeAccountId, email.uid, newReadState, currentFolder);
+      if (result.success) {
+        setIsRead(newReadState);
+      } else {
+        alert('Fehler: ' + result.error);
+      }
+    } catch (err) {
+      alert('Fehler: ' + err.message);
+    }
+    setActionLoading(null);
+  };
+
+  const handleReply = () => {
+    if (onReply) {
+      onReply(fullEmail || email);
+    }
+  };
+
+  const handleReplyAll = () => {
+    if (onReplyAll) {
+      onReplyAll(fullEmail || email);
+    } else if (onReply) {
+      // Fallback to regular reply if replyAll not provided
+      onReply(fullEmail || email, { replyAll: true });
+    }
+  };
+
+  const handleForward = () => {
+    if (onForward) {
+      onForward(fullEmail || email);
+    } else if (onReply) {
+      // Fallback to regular reply if forward not provided
+      onReply(fullEmail || email, { forward: true });
+    }
+  };
 
   const formatDate = (date) => {
     return new Date(date).toLocaleString('de-DE', {
@@ -98,17 +164,15 @@ const EmailView = ({ email, onBack, onReply }) => {
       if (window.electronAPI?.saveAllAttachments) {
         const result = await window.electronAPI.saveAllAttachments(fullEmail.attachments);
         if (result.success) {
-          // Show success for all
           fullEmail.attachments.forEach((_, i) => {
             setDownloadProgress(prev => ({ ...prev, [i]: 'done' }));
           });
           setTimeout(() => setDownloadProgress({}), 2000);
         }
       } else {
-        // Fallback: download one by one
         for (let i = 0; i < fullEmail.attachments.length; i++) {
           await downloadAttachment(fullEmail.attachments[i], i);
-          await new Promise(r => setTimeout(r, 500)); // Small delay between downloads
+          await new Promise(r => setTimeout(r, 500));
         }
       }
     } catch (e) {
@@ -116,16 +180,6 @@ const EmailView = ({ email, onBack, onReply }) => {
     }
     
     setDownloadingAll(false);
-  };
-
-  const openAttachment = async (attachment) => {
-    // For images and PDFs, show preview
-    if (attachment.contentType.startsWith('image/') || attachment.contentType === 'application/pdf') {
-      setPreviewAttachment(attachment);
-    } else {
-      // Download and open with system app
-      downloadAttachment(attachment, -1);
-    }
   };
 
   const formatFileSize = (bytes) => {
@@ -197,21 +251,86 @@ const EmailView = ({ email, onBack, onReply }) => {
 
   return (
     <div className={`flex-1 flex flex-col overflow-hidden ${c.bg}`}>
-      {/* Header */}
+      {/* Header with Actions */}
       <header className={`px-6 py-4 ${c.border} border-b ${c.bgSecondary}`}>
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
             className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.text}`}
+            title="Zurück"
           >
-            ←
+            <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1">
             <h2 className={`text-lg font-semibold ${c.text} truncate`}>
               {fullEmail.subject}
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1">
+            {/* Delete */}
+            <button
+              onClick={handleDelete}
+              disabled={actionLoading === 'delete'}
+              className={`p-2 ${c.hover} rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
+              title="Löschen"
+            >
+              {actionLoading === 'delete' ? (
+                <span className="animate-spin">⏳</span>
+              ) : (
+                <Trash2 className="w-5 h-5" />
+              )}
+            </button>
+            
+            {/* Mark Read/Unread */}
+            <button
+              onClick={handleToggleRead}
+              disabled={actionLoading === 'read'}
+              className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.text}`}
+              title={isRead ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
+            >
+              {actionLoading === 'read' ? (
+                <span className="animate-spin">⏳</span>
+              ) : isRead ? (
+                <Mail className="w-5 h-5" />
+              ) : (
+                <MailOpen className="w-5 h-5" />
+              )}
+            </button>
+
+            <div className={`w-px h-6 ${c.border} mx-2`} />
+
+            {/* Reply */}
+            <button
+              onClick={handleReply}
+              className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.accent}`}
+              title="Antworten"
+            >
+              <Reply className="w-5 h-5" />
+            </button>
+            
+            {/* Reply All */}
+            <button
+              onClick={handleReplyAll}
+              className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.accent}`}
+              title="Allen antworten"
+            >
+              <ReplyAll className="w-5 h-5" />
+            </button>
+            
+            {/* Forward */}
+            <button
+              onClick={handleForward}
+              className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.accent}`}
+              title="Weiterleiten"
+            >
+              <Forward className="w-5 h-5" />
+            </button>
+
+            <div className={`w-px h-6 ${c.border} mx-2`} />
+
+            {/* AI Summarize */}
             {aiAvailable && (
               <button
                 onClick={handleSummarize}
@@ -229,17 +348,11 @@ const EmailView = ({ email, onBack, onReply }) => {
                   </>
                 ) : (
                   <>
-                    <MessageCircle className="w-4 h-4 inline mr-1" /> Zusammenfassen
+                    <MessageCircle className="w-4 h-4" /> Zusammenfassen
                   </>
                 )}
               </button>
             )}
-            <button
-              onClick={onReply}
-              className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors flex items-center gap-2`}
-            >
-              ↩️ Antworten
-            </button>
           </div>
         </div>
       </header>
@@ -255,6 +368,11 @@ const EmailView = ({ email, onBack, onReply }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className={`font-medium ${c.text}`}>{fullEmail.from}</span>
+              {!isRead && (
+                <span className={`px-2 py-0.5 ${c.accentBg} text-white text-xs rounded-full`}>
+                  Ungelesen
+                </span>
+              )}
             </div>
             <div className={`text-sm ${c.textSecondary}`}>
               <span>An: {fullEmail.to}</span>
@@ -272,7 +390,7 @@ const EmailView = ({ email, onBack, onReply }) => {
         <div className={`mx-6 mt-4 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30`}>
           <div className="flex items-start justify-between mb-2">
             <h4 className="font-medium text-purple-400 flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 inline mr-1" /> KI-Zusammenfassung
+              <MessageCircle className="w-4 h-4" /> KI-Zusammenfassung
             </h4>
             <button
               onClick={() => setAiSummary(null)}
@@ -321,7 +439,6 @@ const EmailView = ({ email, onBack, onReply }) => {
                     key={index}
                     className={`${c.bgSecondary} rounded-lg ${c.border} border overflow-hidden`}
                   >
-                    {/* Preview for images */}
                     {att.contentType.startsWith('image/') && (
                       <div 
                         className="w-full h-32 bg-gray-900 flex items-center justify-center cursor-pointer"
@@ -335,7 +452,6 @@ const EmailView = ({ email, onBack, onReply }) => {
                       </div>
                     )}
                     
-                    {/* Preview for PDFs - first page */}
                     {att.contentType === 'application/pdf' && (
                       <div 
                         className="w-full h-32 bg-red-900/20 flex items-center justify-center cursor-pointer"
@@ -348,7 +464,6 @@ const EmailView = ({ email, onBack, onReply }) => {
                       </div>
                     )}
                     
-                    {/* File info bar */}
                     <div className="flex items-center justify-between p-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="text-2xl flex-shrink-0">{getFileIcon(att.contentType, att.filename)}</span>

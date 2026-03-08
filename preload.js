@@ -53,6 +53,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fetchEmailsForAccount: (accountId, options) => ipcRenderer.invoke('imap:fetchEmailsForAccount', accountId, options),
   fetchEmailForAccount: (accountId, uid) => ipcRenderer.invoke('imap:fetchEmailForAccount', accountId, uid),
   
+  // IMAP Operations v1.8.0
+  deleteEmail: (accountId, uid, folder) => ipcRenderer.invoke('imap:deleteEmail', accountId, uid, folder),
+  markAsRead: (accountId, uid, isRead, folder) => ipcRenderer.invoke('imap:markAsRead', accountId, uid, isRead, folder),
+  moveEmail: (accountId, uid, sourceFolder, destFolder) => ipcRenderer.invoke('imap:moveEmail', accountId, uid, sourceFolder, destFolder),
+  listFolders: (accountId) => ipcRenderer.invoke('imap:listFolders', accountId),
+  fetchEmailsFromFolder: (accountId, folder, options) => ipcRenderer.invoke('imap:fetchEmailsFromFolder', accountId, folder, options),
+  
   // SMTP
   testSmtp: (settings) => ipcRenderer.invoke('smtp:test', settings),
   sendEmail: (emailData) => ipcRenderer.invoke('smtp:send', emailData),

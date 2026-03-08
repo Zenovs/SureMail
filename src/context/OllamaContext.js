@@ -13,6 +13,8 @@ export const OllamaProvider = ({ children }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(null);
+  // v1.8.0: Email context for AI access
+  const [emailContext, setEmailContext] = useState(null);
 
   // Load saved settings
   useEffect(() => {
@@ -335,6 +337,64 @@ ${text}`;
     return generate(prompt, 'Du bist ein Textverbesserungs-Assistent. Halte den ursprünglichen Sinn bei.');
   }, [generate]);
 
+  // v1.8.0: Set email context for AI access
+  const setCurrentEmailContext = useCallback((email) => {
+    if (email) {
+      setEmailContext({
+        subject: email.subject,
+        from: email.from,
+        to: email.to,
+        date: email.date,
+        content: email.text || email.html?.replace(/<[^>]*>/g, '') || '',
+        hasAttachments: email.attachments?.length > 0
+      });
+    } else {
+      setEmailContext(null);
+    }
+  }, []);
+
+  // v1.8.0: Generate with email context
+  const generateWithEmailContext = useCallback(async (prompt) => {
+    if (!isAvailable || !emailContext) return null;
+
+    const contextPrompt = `Du hast Zugriff auf die folgende E-Mail:
+
+Von: ${emailContext.from}
+An: ${emailContext.to}
+Betreff: ${emailContext.subject}
+Datum: ${emailContext.date}
+${emailContext.hasAttachments ? '(Hat Anhänge)' : ''}
+
+Inhalt:
+${emailContext.content}
+
+---
+
+Benutzer-Anfrage: ${prompt}`;
+
+    return generate(contextPrompt, 'Du bist ein E-Mail-Assistent mit Zugriff auf die aktuelle E-Mail. Antworte hilfreich und präzise.');
+  }, [isAvailable, emailContext, generate]);
+
+  // v1.8.0: Compose email with AI help
+  const composeEmail = useCallback(async (instruction, context = null) => {
+    const contextInfo = context ? `
+
+Kontext:
+- Empfänger: ${context.to || 'Nicht angegeben'}
+- Betreff: ${context.subject || 'Nicht angegeben'}
+- Bisheriger Text: ${context.currentText || 'Leer'}
+${emailContext ? `
+- Bezug auf E-Mail von: ${emailContext.from}
+- Ursprünglicher Betreff: ${emailContext.subject}
+` : ''}` : '';
+
+    const prompt = `${instruction}${contextInfo}
+
+Erstelle eine professionelle E-Mail auf Deutsch.`;
+
+    return generate(prompt, 'Du bist ein E-Mail-Assistent. Erstelle professionelle, gut strukturierte E-Mails.');
+  }, [emailContext, generate]);
+
   // Pull/Download a model
   const pullModel = useCallback(async (modelName) => {
     if (!isAvailable) return false;
@@ -437,6 +497,7 @@ ${text}`;
     chatHistory,
     isGenerating,
     downloadProgress,
+    emailContext, // v1.8.0
     
     // Actions
     checkOllama,
@@ -449,7 +510,11 @@ ${text}`;
     pullModel,
     deleteModel,
     clearChat,
-    changeModel
+    changeModel,
+    // v1.8.0: Email context functions
+    setCurrentEmailContext,
+    generateWithEmailContext,
+    composeEmail
   };
 
   return (

@@ -17,9 +17,11 @@ import EmailView from './pages/EmailView';
 function AppContent() {
   const { currentTheme } = useTheme();
   const { setActiveAccountId } = useAccounts();
-  const { isAvailable, isChecking, checkOllama } = useOllama();
+  const { isAvailable, isChecking, checkOllama, setCurrentEmailContext } = useOllama();
   const [currentView, setCurrentView] = useState('dashboard');
   const [fullViewEmail, setFullViewEmail] = useState(null);
+  const [currentFolder, setCurrentFolder] = useState('INBOX');
+  const [composeData, setComposeData] = useState(null); // v1.8.0: For reply/forward
   const [showOllamaInstaller, setShowOllamaInstaller] = useState(false);
   const c = currentTheme.colors;
 
@@ -56,14 +58,34 @@ function AppContent() {
     checkOllama();
   };
 
-  const handleFullView = (email) => {
+  const handleFullView = (email, folder = 'INBOX') => {
     setFullViewEmail(email);
+    setCurrentFolder(folder);
+    setCurrentEmailContext(email); // v1.8.0: Set email context for AI
     setCurrentView('emailView');
   };
 
   const handleBackFromEmail = () => {
     setFullViewEmail(null);
+    setCurrentEmailContext(null); // v1.8.0: Clear email context
     setCurrentView('inbox');
+  };
+
+  // v1.8.0: Handle reply, reply all, forward
+  const handleReply = (email, options = {}) => {
+    setComposeData({
+      type: options.forward ? 'forward' : (options.replyAll ? 'replyAll' : 'reply'),
+      originalEmail: email
+    });
+    setCurrentView('compose');
+  };
+
+  const handleReplyAll = (email) => {
+    handleReply(email, { replyAll: true });
+  };
+
+  const handleForward = (email) => {
+    handleReply(email, { forward: true });
   };
 
   const renderContent = () => {
@@ -78,7 +100,12 @@ function AppContent() {
       case 'inbox':
         return <InboxSplitView onFullView={handleFullView} />;
       case 'compose':
-        return <ComposeEmail onBack={() => setCurrentView('inbox')} />;
+        return (
+          <ComposeEmail 
+            onBack={() => { setComposeData(null); setCurrentView('inbox'); }} 
+            composeData={composeData}
+          />
+        );
       case 'settings':
         return <SettingsV2 />;
       case 'accounts':
@@ -88,7 +115,10 @@ function AppContent() {
           <EmailView 
             email={fullViewEmail}
             onBack={handleBackFromEmail}
-            onReply={() => setCurrentView('compose')}
+            onReply={handleReply}
+            onReplyAll={handleReplyAll}
+            onForward={handleForward}
+            currentFolder={currentFolder}
           />
         );
       default:

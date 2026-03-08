@@ -1,6 +1,6 @@
-# 📧 CoreMail Desktop v1.7.2
+# 📧 CoreMail Desktop v1.8.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration und fortschrittlichen Funktionen.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, Ordner-Struktur und Microsoft Exchange-Support.
 
 <p align="center">
   <img src="assets/icon.png" width="128" height="128" alt="CoreMail Desktop">
@@ -189,47 +189,50 @@ ollama pull llama3.2:1b
 
 Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
 
-### v1.5.3 (aktuell)
-- 💬 **Professionelles Chat-Icon**
-  - Roboter-Emoji durch modernes Lucide Chat-Icon ersetzt
-  - Konsistentes Design in allen Komponenten
-- 🔧 **Automatische Ollama-Installation**
-  - Ollama wird automatisch bei Installation installiert
-  - Kein manuelles Nachfragen mehr
-  - Standard-Modell (llama3.2:1b) wird automatisch geladen
+### v1.8.0 (aktuell)
+- 🗑️ **E-Mail-Aktionen**
+  - Löschen, Als gelesen/ungelesen markieren
+  - Antworten, Allen antworten, Weiterleiten
+  - Aktions-Icons in E-Mail-Liste und Detailansicht
+- ⚡ **Performance-Verbesserungen**
+  - E-Mail-Caching für schnellere Ordnerwechsel
+  - Lazy Loading für große Postfächer
+  - Pagination mit "Mehr laden" Button
+- 📁 **Ordner-Struktur**
+  - IMAP-Ordner werden angezeigt (Posteingang, Gesendet, Entwürfe, Papierkorb, Spam)
+  - Ordner-Navigation in der E-Mail-Ansicht
+- 🏷️ **Kategorien-Verwaltung**
+  - Kategorien erstellen, bearbeiten, löschen
+  - Farbauswahl mit Preset-Palette
+  - Neue Einstellungsseite "Kategorien"
+- 🤖 **KI-Zugriff auf Postfächer**
+  - KI hat Kontext zur aktuellen E-Mail
+  - Bessere Antwortvorschläge
+  - E-Mail-Verfassen mit KI-Unterstützung
+- 🏢 **Microsoft Exchange/Office 365 Support**
+  - Server-Vorlagen für Exchange, Outlook, Gmail, etc.
+  - Automatische Server-Konfiguration
+- 🔧 **UI-Fixes**
+  - Update-Balken überläuft nicht mehr
+  - Verbesserte Responsive-Design
 
-### v1.5.0 - v1.5.2
+### v1.7.x
 - 💬 **Lokale KI-Integration mit Ollama**
-  - E-Mails mit einem Klick zusammenfassen
-  - Antwort-Vorschläge generieren lassen
-  - Texte verbessern, kürzen, förmlicher/freundlicher machen
-  - KI-Chatbot Widget (schwebendes Panel)
-  - Streaming-Antworten mit Typing-Animation
-- ⚙️ **KI-Einstellungen**
-  - Neue Einstellungsseite "KI-Assistent"
-  - Modelle installieren, verwalten und wechseln
-  - Download-Fortschrittsanzeige
-  - Empfohlene Modelle: llama3.2:1b, mistral:7b, etc.
+- ⚙️ **In-App Ollama-Installation**
+- 🔧 **Bugfixes für Ollama API**
 
-### v1.4.0
+### v1.4.0 - v1.6.0
 - 📐 **Individualisierbare Sidebar**
 - 📊 **Widget-Dashboard** mit Drag & Drop
+- 🎨 7 Themes (inkl. Foundations)
 
-### v1.3.0
-- 🎨 3 neue Themes: Morphismus, Glas, Retro
+### v1.1.0 - v1.3.0
+- Multi-Account-Support
+- 🎨 Themes: Morphismus, Glas, Retro
 - 📎 Drag & Drop für Anhänge
 - ✍️ 6 Signatur-Vorlagen
-
-### v1.2.0
-- 🔄 Auto-Update-Funktion
+- 🔄 Auto-Update
 - 🔔 Desktop-Benachrichtigungen
-
-### v1.1.0
-- Multi-Account-Support
-- Kategorien
-
-### v1.0.0
-- Erste Version
 
 ## 🤝 Beitragen
 

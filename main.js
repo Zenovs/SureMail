@@ -1225,3 +1225,256 @@ ipcMain.handle('smtp:test', async (event, settings) => {
     return { success: false, error: error.message };
   }
 });
+
+// ============ NEW v1.8.0 IMAP OPERATIONS ============
+
+// Delete email
+ipcMain.handle('imap:deleteEmail', async (event, accountId, uid, folder = 'INBOX') => {
+  const account = getAccountById(accountId);
+  
+  if (!account) {
+    return { success: false, error: 'Konto nicht gefunden' };
+  }
+
+  try {
+    const config = {
+      imap: {
+        user: account.imap.username,
+        password: account.imap.password,
+        host: account.imap.host,
+        port: parseInt(account.imap.port),
+        tls: account.imap.tls !== false,
+        authTimeout: 15000
+      }
+    };
+
+    const connection = await imapSimple.connect(config);
+    await connection.openBox(folder);
+    
+    // Add \Deleted flag and expunge
+    await connection.addFlags(uid, ['\\Deleted'], { uid: true });
+    await connection.imap.expunge();
+    
+    await connection.end();
+    return { success: true, message: 'E-Mail gelöscht' };
+  } catch (error) {
+    console.error('IMAP Delete Fehler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Mark email as read/unread
+ipcMain.handle('imap:markAsRead', async (event, accountId, uid, isRead = true, folder = 'INBOX') => {
+  const account = getAccountById(accountId);
+  
+  if (!account) {
+    return { success: false, error: 'Konto nicht gefunden' };
+  }
+
+  try {
+    const config = {
+      imap: {
+        user: account.imap.username,
+        password: account.imap.password,
+        host: account.imap.host,
+        port: parseInt(account.imap.port),
+        tls: account.imap.tls !== false,
+        authTimeout: 15000
+      }
+    };
+
+    const connection = await imapSimple.connect(config);
+    await connection.openBox(folder);
+    
+    if (isRead) {
+      await connection.addFlags(uid, ['\\Seen'], { uid: true });
+    } else {
+      await connection.delFlags(uid, ['\\Seen'], { uid: true });
+    }
+    
+    await connection.end();
+    return { success: true, message: isRead ? 'Als gelesen markiert' : 'Als ungelesen markiert' };
+  } catch (error) {
+    console.error('IMAP Mark Fehler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Move email to folder
+ipcMain.handle('imap:moveEmail', async (event, accountId, uid, sourceFolder, destFolder) => {
+  const account = getAccountById(accountId);
+  
+  if (!account) {
+    return { success: false, error: 'Konto nicht gefunden' };
+  }
+
+  try {
+    const config = {
+      imap: {
+        user: account.imap.username,
+        password: account.imap.password,
+        host: account.imap.host,
+        port: parseInt(account.imap.port),
+        tls: account.imap.tls !== false,
+        authTimeout: 15000
+      }
+    };
+
+    const connection = await imapSimple.connect(config);
+    await connection.openBox(sourceFolder);
+    
+    // Copy to destination folder
+    await connection.imap.copy(uid, destFolder, { uid: true });
+    
+    // Delete from source folder
+    await connection.addFlags(uid, ['\\Deleted'], { uid: true });
+    await connection.imap.expunge();
+    
+    await connection.end();
+    return { success: true, message: 'E-Mail verschoben' };
+  } catch (error) {
+    console.error('IMAP Move Fehler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// List folders for account
+ipcMain.handle('imap:listFolders', async (event, accountId) => {
+  const account = getAccountById(accountId);
+  
+  if (!account) {
+    return { success: false, error: 'Konto nicht gefunden' };
+  }
+
+  try {
+    const config = {
+      imap: {
+        user: account.imap.username,
+        password: account.imap.password,
+        host: account.imap.host,
+        port: parseInt(account.imap.port),
+        tls: account.imap.tls !== false,
+        authTimeout: 15000
+      }
+    };
+
+    const connection = await imapSimple.connect(config);
+    const boxes = await connection.getBoxes();
+    
+    // Convert boxes to flat array with folder info
+    const parseFolders = (boxes, prefix = '') => {
+      let folders = [];
+      for (const name in boxes) {
+        const box = boxes[name];
+        const fullPath = prefix ? `${prefix}${box.delimiter || '/'}${name}` : name;
+        
+        // Determine folder type
+        let type = 'folder';
+        const nameLower = name.toLowerCase();
+        if (nameLower === 'inbox') type = 'inbox';
+        else if (nameLower.includes('sent') || nameLower.includes('gesendet')) type = 'sent';
+        else if (nameLower.includes('draft') || nameLower.includes('entwu')) type = 'drafts';
+        else if (nameLower.includes('trash') || nameLower.includes('papierkorb') || nameLower.includes('deleted')) type = 'trash';
+        else if (nameLower.includes('spam') || nameLower.includes('junk')) type = 'spam';
+        else if (nameLower.includes('archive') || nameLower.includes('archiv')) type = 'archive';
+        
+        folders.push({
+          name,
+          path: fullPath,
+          type,
+          delimiter: box.delimiter || '/',
+          children: box.children ? parseFolders(box.children, fullPath) : []
+        });
+      }
+      return folders;
+    };
+    
+    const folders = parseFolders(boxes);
+    await connection.end();
+    
+    return { success: true, folders };
+  } catch (error) {
+    console.error('IMAP Folders Fehler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Fetch emails from specific folder
+ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, options = {}) => {
+  const account = getAccountById(accountId);
+  
+  if (!account) {
+    return { success: false, error: 'Konto nicht gefunden' };
+  }
+
+  const { limit = 50, offset = 0 } = options;
+
+  try {
+    const config = {
+      imap: {
+        user: account.imap.username,
+        password: account.imap.password,
+        host: account.imap.host,
+        port: parseInt(account.imap.port),
+        tls: account.imap.tls !== false,
+        authTimeout: 15000
+      }
+    };
+
+    const connection = await imapSimple.connect(config);
+    
+    try {
+      await connection.openBox(folder);
+    } catch (err) {
+      await connection.end();
+      return { success: false, error: `Ordner "${folder}" konnte nicht geöffnet werden` };
+    }
+
+    const searchCriteria = ['ALL'];
+    const fetchOptions = {
+      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
+      markSeen: false,
+      struct: true
+    };
+
+    const messages = await connection.search(searchCriteria, fetchOptions);
+    
+    // Sort by date descending and apply pagination
+    messages.sort((a, b) => {
+      const dateA = new Date(a.attributes?.date || 0);
+      const dateB = new Date(b.attributes?.date || 0);
+      return dateB - dateA;
+    });
+
+    const paginatedMessages = messages.slice(offset, offset + limit);
+    
+    const emails = paginatedMessages.map(msg => {
+      const header = msg.parts.find(p => p.which.includes('HEADER'));
+      const headerLines = header?.body || {};
+      
+      return {
+        uid: msg.attributes.uid,
+        subject: (headerLines.subject || ['(Kein Betreff)'])[0],
+        from: (headerLines.from || ['Unbekannt'])[0],
+        to: (headerLines.to || [''])[0],
+        date: msg.attributes.date || (headerLines.date || [new Date()])[0],
+        seen: msg.attributes.flags?.includes('\\Seen') || false,
+        hasAttachment: !!msg.attributes.struct?.find(p => p.disposition?.type === 'attachment'),
+        preview: ''
+      };
+    });
+
+    await connection.end();
+    
+    return { 
+      success: true, 
+      emails,
+      folder,
+      total: messages.length,
+      hasMore: offset + limit < messages.length
+    };
+  } catch (error) {
+    console.error('IMAP Fetch Folder Fehler:', error);
+    return { success: false, error: error.message };
+  }
+});

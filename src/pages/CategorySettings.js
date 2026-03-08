@@ -1,0 +1,325 @@
+import React, { useState } from 'react';
+import { Plus, Edit2, Trash2, X, Check, Palette } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { useAccounts } from '../context/AccountContext';
+
+const PRESET_COLORS = [
+  '#3b82f6', // Blue
+  '#22c55e', // Green
+  '#8b5cf6', // Purple
+  '#f59e0b', // Amber
+  '#ef4444', // Red
+  '#ec4899', // Pink
+  '#14b8a6', // Teal
+  '#6366f1', // Indigo
+  '#84cc16', // Lime
+  '#f97316', // Orange
+  '#06b6d4', // Cyan
+  '#a855f7', // Violet
+];
+
+function CategorySettings() {
+  const { currentTheme } = useTheme();
+  const { categories, addCategory, updateCategory, deleteCategory, getAccountsByCategory } = useAccounts();
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('');
+  const [showColorPicker, setShowColorPicker] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newColor, setNewColor] = useState('#3b82f6');
+  const [error, setError] = useState('');
+  const c = currentTheme.colors;
+
+  const handleStartEdit = (category) => {
+    setEditingId(category.id);
+    setEditName(category.name);
+    setEditColor(category.color);
+    setShowColorPicker(null);
+    setIsAdding(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim()) {
+      setError('Name darf nicht leer sein');
+      return;
+    }
+    
+    await updateCategory(editingId, {
+      name: editName.trim(),
+      color: editColor
+    });
+    
+    setEditingId(null);
+    setEditName('');
+    setEditColor('');
+    setError('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditName('');
+    setEditColor('');
+    setError('');
+  };
+
+  const handleDelete = async (categoryId) => {
+    const accounts = getAccountsByCategory(categoryId);
+    const confirmMessage = accounts.length > 0
+      ? `Diese Kategorie enthält ${accounts.length} Konto(en). Die Konten werden zur Kategorie "Sonstiges" verschoben. Fortfahren?`
+      : 'Diese Kategorie wirklich löschen?';
+    
+    if (window.confirm(confirmMessage)) {
+      await deleteCategory(categoryId);
+    }
+  };
+
+  const handleStartAdd = () => {
+    setIsAdding(true);
+    setNewName('');
+    setNewColor('#3b82f6');
+    setEditingId(null);
+    setError('');
+  };
+
+  const handleSaveAdd = async () => {
+    if (!newName.trim()) {
+      setError('Name darf nicht leer sein');
+      return;
+    }
+    
+    await addCategory({
+      name: newName.trim(),
+      color: newColor
+    });
+    
+    setIsAdding(false);
+    setNewName('');
+    setNewColor('#3b82f6');
+    setError('');
+  };
+
+  const handleCancelAdd = () => {
+    setIsAdding(false);
+    setNewName('');
+    setNewColor('#3b82f6');
+    setError('');
+  };
+
+  // Check if category is deletable (not default categories)
+  const isDeletable = (categoryId) => {
+    return !['work', 'personal', 'other'].includes(categoryId);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className={`text-lg font-semibold ${c.text}`}>Kategorien verwalten</h3>
+            <p className={`text-sm ${c.textSecondary} mt-1`}>
+              Organisiere deine E-Mail-Konten in Kategorien
+            </p>
+          </div>
+          <button
+            onClick={handleStartAdd}
+            disabled={isAdding}
+            className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50`}
+          >
+            <Plus className="w-4 h-4" />
+            Neue Kategorie
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/20 border border-red-600 rounded-lg text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Add New Category Form */}
+        {isAdding && (
+          <div className={`mb-4 p-4 ${c.bgSecondary} rounded-xl ${c.border} border`}>
+            <h4 className={`font-medium ${c.text} mb-3`}>Neue Kategorie erstellen</h4>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Kategoriename"
+                  className={`w-full px-4 py-2 ${c.bgTertiary} ${c.text} ${c.border} border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                  autoFocus
+                />
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setShowColorPicker(showColorPicker === 'new' ? null : 'new')}
+                  className={`w-10 h-10 rounded-lg border-2 ${c.border} flex items-center justify-center`}
+                  style={{ backgroundColor: newColor }}
+                  title="Farbe wählen"
+                >
+                  <Palette className="w-5 h-5 text-white drop-shadow" />
+                </button>
+                {showColorPicker === 'new' && (
+                  <div className={`absolute top-12 right-0 z-10 p-3 ${c.card} ${c.border} border rounded-xl shadow-xl`}>
+                    <div className="grid grid-cols-4 gap-2">
+                      {PRESET_COLORS.map(color => (
+                        <button
+                          key={color}
+                          onClick={() => { setNewColor(color); setShowColorPicker(null); }}
+                          className={`w-8 h-8 rounded-lg transition-transform hover:scale-110 ${newColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900' : ''}`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-700">
+                      <input
+                        type="color"
+                        value={newColor}
+                        onChange={(e) => setNewColor(e.target.value)}
+                        className="w-full h-8 rounded cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={handleSaveAdd}
+                className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                title="Speichern"
+              >
+                <Check className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleCancelAdd}
+                className={`p-2 ${c.bgTertiary} ${c.hover} ${c.text} rounded-lg transition-colors`}
+                title="Abbrechen"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Category List */}
+        <div className="space-y-2">
+          {categories.map(category => {
+            const accounts = getAccountsByCategory(category.id);
+            const isEditing = editingId === category.id;
+            
+            return (
+              <div
+                key={category.id}
+                className={`p-4 ${c.bgSecondary} rounded-xl ${c.border} border flex items-center gap-4`}
+              >
+                {isEditing ? (
+                  // Edit Mode
+                  <>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowColorPicker(showColorPicker === category.id ? null : category.id)}
+                        className={`w-10 h-10 rounded-lg border-2 ${c.border} flex items-center justify-center`}
+                        style={{ backgroundColor: editColor }}
+                        title="Farbe wählen"
+                      >
+                        <Palette className="w-5 h-5 text-white drop-shadow" />
+                      </button>
+                      {showColorPicker === category.id && (
+                        <div className={`absolute top-12 left-0 z-10 p-3 ${c.card} ${c.border} border rounded-xl shadow-xl`}>
+                          <div className="grid grid-cols-4 gap-2">
+                            {PRESET_COLORS.map(color => (
+                              <button
+                                key={color}
+                                onClick={() => { setEditColor(color); setShowColorPicker(null); }}
+                                className={`w-8 h-8 rounded-lg transition-transform hover:scale-110 ${editColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900' : ''}`}
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-gray-700">
+                            <input
+                              type="color"
+                              value={editColor}
+                              onChange={(e) => setEditColor(e.target.value)}
+                              className="w-full h-8 rounded cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className={`flex-1 px-4 py-2 ${c.bgTertiary} ${c.text} ${c.border} border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleSaveEdit}
+                      className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                      title="Speichern"
+                    >
+                      <Check className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={handleCancelEdit}
+                      className={`p-2 ${c.bgTertiary} ${c.hover} ${c.text} rounded-lg transition-colors`}
+                      title="Abbrechen"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </>
+                ) : (
+                  // View Mode
+                  <>
+                    <div
+                      className="w-10 h-10 rounded-lg flex-shrink-0"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    <div className="flex-1">
+                      <h4 className={`font-medium ${c.text}`}>{category.name}</h4>
+                      <p className={`text-sm ${c.textSecondary}`}>
+                        {accounts.length} Konto{accounts.length !== 1 ? 'en' : ''}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleStartEdit(category)}
+                      className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.text}`}
+                      title="Bearbeiten"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    {isDeletable(category.id) && (
+                      <button
+                        onClick={() => handleDelete(category.id)}
+                        className={`p-2 ${c.hover} rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
+                        title="Löschen"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tips */}
+      <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6`}>
+        <h4 className={`font-medium ${c.text} mb-3`}>💡 Tipps</h4>
+        <ul className={`text-sm ${c.textSecondary} space-y-2`}>
+          <li>• Kategorien helfen dir, deine E-Mail-Konten zu organisieren</li>
+          <li>• Die Standard-Kategorien (Arbeit, Privat, Sonstiges) können nicht gelöscht werden</li>
+          <li>• Beim Löschen einer Kategorie werden die Konten zu "Sonstiges" verschoben</li>
+          <li>• Wähle aussagekräftige Farben für eine bessere Übersicht</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+export default CategorySettings;

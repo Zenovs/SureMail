@@ -2,6 +2,73 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.8.0] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 🗑️ E-Mail-Funktions-Icons
+- **Löschen**: E-Mails direkt aus der Liste oder Detailansicht löschen
+- **Gelesen/Ungelesen**: Status schnell umschalten
+- **Antworten**: E-Mail beantworten
+- **Allen antworten**: An alle Empfänger antworten
+- **Weiterleiten**: E-Mail an andere weiterleiten
+- **Lucide Icons**: Moderne, konsistente Icons
+
+#### ⚡ Performance-Verbesserungen
+- **E-Mail-Caching**: 5-Minuten-Cache für schnellere Ordnerwechsel
+- **Lazy Loading**: Nur erste 50 E-Mails werden geladen
+- **Pagination**: "Mehr laden" Button für weitere E-Mails
+- **React.memo**: Optimierte E-Mail-Listen-Komponenten
+- **Ordner-Cache**: IMAP-Ordner werden gecacht
+
+#### 📁 Ordner-Struktur
+- **IMAP-Ordner anzeigen**: Posteingang, Gesendet, Entwürfe, Papierkorb, Spam, etc.
+- **Ordner-Navigation**: Klick auf Ordner lädt die E-Mails
+- **Ordner-Icons**: Passende Icons für jeden Ordnertyp
+- **Ordner-Liste vom Server**: IMAP LIST-Befehl für echte Ordner
+
+#### 🏷️ Kategorien bearbeiten
+- **Neue Einstellungsseite**: "Kategorien" in den Einstellungen
+- **Kategorie erstellen**: Name und Farbe wählen
+- **Kategorie bearbeiten**: Name und Farbe ändern
+- **Kategorie löschen**: Mit Bestätigung (Konten werden verschoben)
+- **Farb-Presets**: 12 vordefinierte Farben + Custom-Picker
+
+#### 🤖 KI-Zugriff auf Postfächer
+- **E-Mail-Kontext**: KI hat Zugriff auf aktuelle E-Mail
+- **Bessere Antworten**: KI kennt Absender, Betreff, Inhalt
+- **E-Mail verfassen**: KI-Unterstützung beim Schreiben
+- **Kontext-basiert**: Antworten beziehen sich auf die E-Mail
+
+#### 🏢 Microsoft Exchange-Support
+- **Server-Vorlagen**: 9 vordefinierte Anbieter
+- **Exchange/Office 365**: outlook.office365.com mit korrekten Ports
+- **Outlook.com/Hotmail**: Persönliche Microsoft-Konten
+- **Gmail, iCloud, Yahoo**: Mit Hinweis auf App-Passwörter
+- **GMX, WEB.DE, IONOS**: Deutsche Anbieter
+- **Auto-Fill**: Server-Einstellungen werden ausgefüllt
+
+### 🔧 UI-Fixes
+
+#### Update-Balken Fix
+- **max-width: 100%**: Update-Balken überläuft nicht mehr
+- **overflow: hidden**: Text wird abgeschnitten statt überlaufen
+- **break-words**: Lange URLs werden umgebrochen
+- **flex-shrink-0**: Icons behalten ihre Größe
+
+### 📦 Neue IMAP-Funktionen (Backend)
+
+- `imap:deleteEmail`: E-Mail löschen
+- `imap:markAsRead`: Als gelesen/ungelesen markieren
+- `imap:moveEmail`: E-Mail in anderen Ordner verschieben
+- `imap:listFolders`: Ordner-Liste abrufen
+- `imap:fetchEmailsFromFolder`: E-Mails aus bestimmtem Ordner
+
+### 📦 Version
+- Minor-Release: v1.7.2 → v1.8.0
+
+---
+
 ## [1.7.2] - 2026-03-08
 
 ### 🐛 Bugfixes
