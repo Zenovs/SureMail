@@ -2,6 +2,16 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.2.1] - 2026-03-08
+
+### 🐛 Bugfixes
+
+- **Scrolling in E-Mail-Liste**: Behoben - E-Mail-Liste scrollt jetzt korrekt wenn viele Mails vorhanden sind
+- **Scrolling in E-Mail-Vorschau**: Behoben - Lange E-Mails können jetzt in der Split-View gescrollt werden
+- **Layout-Optimierung**: overflow-hidden auf Container-Elementen für korrektes Flexbox-Scrolling
+
+---
+
 ## [1.2.0] - 2026-03-08
 
 ### ✨ Neue Features

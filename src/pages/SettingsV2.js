@@ -79,7 +79,7 @@ function SettingsV2() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className={c.textSecondary}>Version</span>
-                  <span className={`${c.accent} font-semibold`}>1.2.0</span>
+                  <span className={`${c.accent} font-semibold`}>1.2.1</span>
                 </div>
                 <div className="flex justify-between">
                   <span className={c.textSecondary}>Electron</span>

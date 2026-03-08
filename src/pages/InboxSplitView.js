@@ -116,14 +116,14 @@ function InboxSplitView({ onFullView }) {
   }
 
   return (
-    <div className={`flex-1 flex ${c.bg}`}>
+    <div className={`flex-1 flex overflow-hidden ${c.bg}`}>
       {/* Email List */}
-      <div className={`w-1/3 min-w-[300px] ${c.bgSecondary} ${c.border} border-r flex flex-col`}>
+      <div className={`w-1/3 min-w-[300px] ${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden`}>
         <div className={`p-4 ${c.border} border-b`}>
           <h2 className={`font-semibold ${c.text}`}>{account?.name || 'Posteingang'}</h2>
           <p className={`text-sm ${c.textSecondary}`}>{emails.length} E-Mails</p>
         </div>
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-y-auto">
           {emails.length === 0 ? (
             <div className={`p-8 text-center ${c.textSecondary}`}>
               Keine E-Mails
@@ -161,7 +161,7 @@ function InboxSplitView({ onFullView }) {
       </div>
 
       {/* Email Preview */}
-      <div className={`flex-1 flex flex-col ${c.bg}`}>
+      <div className={`flex-1 flex flex-col overflow-hidden ${c.bg}`}>
         {loadingPreview ? (
           <div className="flex-1 flex items-center justify-center">
             <LoadingSpinner />
