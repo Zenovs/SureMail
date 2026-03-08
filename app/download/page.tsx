@@ -11,10 +11,15 @@ import {
   CheckCircle,
   Terminal,
   HardDrive,
-  Cpu
+  Cpu,
+  ExternalLink,
+  Github,
+  Wrench
 } from 'lucide-react'
 
 export default function DownloadPage() {
+  const githubReleaseUrl = 'https://github.com/Zenovs/coremail/releases'
+  
   return (
     <main className="min-h-screen bg-dark-900 text-white">
       {/* Header */}
@@ -59,24 +64,62 @@ export default function DownloadPage() {
             <p className="text-gray-400 mb-6">AppImage – Keine Installation erforderlich</p>
             
             <a 
-              href="/downloads/coremail-desktop-v1.0.0.AppImage"
-              download
+              href={githubReleaseUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-dark-900 font-bold rounded-xl transition-all duration-300 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-400/40 hover:scale-105"
             >
-              <Download className="w-5 h-5" />
-              <span>CoreMail Desktop herunterladen</span>
+              <Github className="w-5 h-5" />
+              <span>Download auf GitHub Releases</span>
+              <ExternalLink className="w-4 h-4" />
             </a>
             
             <div className="flex items-center justify-center gap-6 mt-6 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <HardDrive className="w-4 h-4" />
-                130 MB
+                ~130 MB
               </span>
               <span className="flex items-center gap-1">
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
               <span>v1.0.0</span>
+            </div>
+
+            {/* Info Box */}
+            <div className="mt-8 p-4 bg-cyan-400/5 border border-cyan-400/20 rounded-xl text-left">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-cyan-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Github className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="font-mono text-cyan-400 text-sm mb-1">Warum GitHub Releases?</h3>
+                  <p className="text-gray-400 text-sm">
+                    Die AppImage-Datei ist mit ~130 MB zu groß für direktes Hosting. 
+                    GitHub Releases ist der Standard für Software-Downloads und garantiert schnelle, 
+                    sichere Downloads weltweit.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Build from Source */}
+          <div className="mt-6 bg-dark-800/50 border border-dark-700 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Wrench className="w-5 h-5 text-emerald-400" />
+              <h3 className="font-bold">Selbst bauen (für Entwickler)</h3>
+            </div>
+            <p className="text-gray-400 text-sm mb-4">
+              Du kannst den Desktop-Client auch selbst aus dem Quellcode bauen:
+            </p>
+            <div className="space-y-2">
+              <code className="block bg-dark-900 border border-dark-700 rounded-lg px-4 py-2 text-cyan-400 font-mono text-sm">
+                git clone https://github.com/Zenovs/coremail-desktop.git
+              </code>
+              <code className="block bg-dark-900 border border-dark-700 rounded-lg px-4 py-2 text-cyan-400 font-mono text-sm">
+                cd coremail-desktop && npm install && npm run build
+              </code>
             </div>
           </div>
         </div>
@@ -191,8 +234,11 @@ export default function DownloadPage() {
                   1
                 </div>
                 <div>
-                  <h3 className="font-bold mb-2">AppImage herunterladen</h3>
-                  <p className="text-gray-400 text-sm">Lade die AppImage-Datei über den Download-Button herunter.</p>
+                  <h3 className="font-bold mb-2">AppImage von GitHub herunterladen</h3>
+                  <p className="text-gray-400 text-sm">
+                    Gehe zu den <a href={githubReleaseUrl} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">GitHub Releases</a> und 
+                    lade die neueste AppImage-Datei herunter.
+                  </p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
@@ -203,7 +249,7 @@ export default function DownloadPage() {
                   <h3 className="font-bold mb-2">Ausführbar machen</h3>
                   <p className="text-gray-400 text-sm mb-2">Öffne ein Terminal und führe folgenden Befehl aus:</p>
                   <code className="block bg-dark-900 border border-dark-700 rounded-lg px-4 py-3 text-cyan-400 font-mono text-sm">
-                    chmod +x coremail-desktop-v1.0.0.AppImage
+                    chmod +x coremail-desktop-*.AppImage
                   </code>
                 </div>
               </div>
@@ -215,7 +261,7 @@ export default function DownloadPage() {
                   <h3 className="font-bold mb-2">Starten</h3>
                   <p className="text-gray-400 text-sm mb-2">Doppelklicke auf die AppImage-Datei oder starte sie im Terminal:</p>
                   <code className="block bg-dark-900 border border-dark-700 rounded-lg px-4 py-3 text-cyan-400 font-mono text-sm">
-                    ./coremail-desktop-v1.0.0.AppImage
+                    ./coremail-desktop-*.AppImage
                   </code>
                 </div>
               </div>
