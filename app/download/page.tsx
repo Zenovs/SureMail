@@ -22,7 +22,10 @@ import {
   Sparkles,
   RefreshCw,
   Paperclip,
-  PenTool
+  PenTool,
+  LayoutDashboard,
+  PanelLeft,
+  GripVertical
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -61,19 +64,19 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-400/20 to-cyan-400/20 border border-emerald-400/40 rounded-full text-emerald-400 text-sm font-mono mb-6 animate-pulse">
             <Sparkles className="w-4 h-4" />
-            <span>NEU: Desktop Client v1.3.1 - Bugfix Release!</span>
+            <span>NEU: Desktop Client v1.4.0 - Customizable UI!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
           </h1>
           <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-            Der native Desktop-Client für CoreMail. Mit automatischen Updates, 6 Themes, 
-            E-Mail-Signaturen und verbesserter Anhang-Verwaltung – jetzt noch produktiver!
+            Der native Desktop-Client für CoreMail. Mit individualisierbarer Sidebar, 
+            Widget-Dashboard, 6 Themes und E-Mail-Signaturen – jetzt noch produktiver!
           </p>
         </div>
       </section>
 
-      {/* NEW: Neu in v1.3.1 Section - Hero Position */}
+      {/* NEW: Neu in v1.4.0 Section - Hero Position */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="bg-gradient-to-r from-emerald-500/20 via-cyan-500/15 to-purple-500/20 border-2 border-emerald-400/50 rounded-2xl p-8 relative overflow-hidden">
@@ -86,38 +89,38 @@ export default function DownloadPage() {
                 <img src="/coremail-icon.png" alt="CoreMail Icon" className="w-20 h-20 rounded-2xl shadow-lg shadow-emerald-400/20" />
                 <div>
                   <h2 className="text-3xl font-bold">
-                    <span className="font-mono text-emerald-400">// </span>Neu in v1.3.1
+                    <span className="font-mono text-emerald-400">// </span>Neu in v1.4.0
                   </h2>
-                  <p className="text-gray-400 font-mono text-sm">Bugfix: Version wird jetzt korrekt angezeigt</p>
+                  <p className="text-gray-400 font-mono text-sm">Customizable UI – Dein CoreMail, dein Style!</p>
                 </div>
               </div>
               
               <div className="grid md:grid-cols-2 gap-4 mb-6">
                 <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-emerald-400/20">
                   <div className="w-10 h-10 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <RefreshCw className="w-5 h-5 text-emerald-400" />
+                    <PanelLeft className="w-5 h-5 text-emerald-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">Update-Funktion (in der App)</h4>
-                    <p className="text-gray-400 text-sm">Prüfe und installiere Updates direkt in der App – kein manueller Download mehr nötig.</p>
+                    <h4 className="font-bold text-white">Individualisierbare Sidebar</h4>
+                    <p className="text-gray-400 text-sm">Breite anpassen, Auto-Collapse, Icons-Only Modus – die Sidebar passt sich deinem Workflow an.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-cyan-400/20">
                   <div className="w-10 h-10 bg-cyan-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Paperclip className="w-5 h-5 text-cyan-400" />
+                    <LayoutDashboard className="w-5 h-5 text-cyan-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">Bessere Anhang-Verwaltung</h4>
-                    <p className="text-gray-400 text-sm">Drag & Drop, Vorschau und Fortschrittsanzeige für alle Anhänge.</p>
+                    <h4 className="font-bold text-white">Widget-Dashboard</h4>
+                    <p className="text-gray-400 text-sm">Drag & Drop Widgets, verschiedene Größen und Widget-Typen für dein persönliches Dashboard.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-purple-400/20">
                   <div className="w-10 h-10 bg-purple-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <PenTool className="w-5 h-5 text-purple-400" />
+                    <GripVertical className="w-5 h-5 text-purple-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">E-Mail-Signaturen</h4>
-                    <p className="text-gray-400 text-sm">Rich-Text-Editor mit 6 Vorlagen und Platzhaltern für professionelle Signaturen.</p>
+                    <h4 className="font-bold text-white">Drag & Drop Layout</h4>
+                    <p className="text-gray-400 text-sm">Ordne Widgets frei an und speichere dein individuelles Layout.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-yellow-400/20">
@@ -125,39 +128,33 @@ export default function DownloadPage() {
                     <Palette className="w-5 h-5 text-yellow-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">3 neue Themes</h4>
-                    <p className="text-gray-400 text-sm">Morphismus, Glas und Retro – jetzt insgesamt 6 Themes zur Auswahl!</p>
+                    <h4 className="font-bold text-white">Vollständig anpassbar</h4>
+                    <p className="text-gray-400 text-sm">Kombiniere Sidebar- und Dashboard-Einstellungen mit deinem Lieblings-Theme.</p>
                   </div>
                 </div>
               </div>
 
-              {/* 6 Themes Showcase */}
+              {/* Widget Dashboard Preview */}
               <div className="bg-dark-800/50 rounded-xl p-6 border border-dark-700">
-                <h4 className="font-mono text-cyan-400 text-sm mb-4 text-center">// Alle 6 Themes</h4>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  <div className="text-center">
-                    <div className="w-full aspect-square bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border border-gray-700 mb-2"></div>
-                    <span className="text-xs text-gray-400">Dark</span>
+                <h4 className="font-mono text-cyan-400 text-sm mb-4 text-center">// Widget Dashboard Vorschau</h4>
+                <div className="grid grid-cols-4 gap-3">
+                  <div className="col-span-2 bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 rounded-lg border border-cyan-400/30 p-4 h-24 flex items-center justify-center">
+                    <span className="text-xs text-cyan-400 font-mono">E-Mail Stats</span>
                   </div>
-                  <div className="text-center">
-                    <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg border border-gray-300 mb-2"></div>
-                    <span className="text-xs text-gray-400">Light</span>
+                  <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-400/30 p-4 h-24 flex items-center justify-center">
+                    <span className="text-xs text-purple-400 font-mono">Kalender</span>
                   </div>
-                  <div className="text-center">
-                    <div className="w-full aspect-square bg-gradient-to-br from-gray-950 to-black rounded-lg border border-gray-800 mb-2"></div>
-                    <span className="text-xs text-gray-400">Minimal</span>
+                  <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-lg border border-amber-400/30 p-4 h-24 flex items-center justify-center">
+                    <span className="text-xs text-amber-400 font-mono">Tasks</span>
                   </div>
-                  <div className="text-center">
-                    <div className="w-full aspect-square bg-gradient-to-br from-purple-900/80 to-blue-900/80 rounded-lg border border-purple-500/30 mb-2 shadow-lg shadow-purple-500/20"></div>
-                    <span className="text-xs text-emerald-400 font-bold">Morphismus ✨</span>
+                  <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg border border-emerald-400/30 p-4 h-24 flex items-center justify-center">
+                    <span className="text-xs text-emerald-400 font-mono">Quick Send</span>
                   </div>
-                  <div className="text-center">
-                    <div className="w-full aspect-square bg-gradient-to-br from-cyan-400/20 to-emerald-400/20 rounded-lg border border-cyan-400/30 mb-2 backdrop-blur"></div>
-                    <span className="text-xs text-emerald-400 font-bold">Glas ✨</span>
+                  <div className="col-span-2 bg-gradient-to-br from-rose-500/20 to-red-500/20 rounded-lg border border-rose-400/30 p-4 h-24 flex items-center justify-center">
+                    <span className="text-xs text-rose-400 font-mono">Kampagnen</span>
                   </div>
-                  <div className="text-center">
-                    <div className="w-full aspect-square bg-gradient-to-br from-amber-900 to-orange-800 rounded-lg border border-amber-600 mb-2"></div>
-                    <span className="text-xs text-emerald-400 font-bold">Retro ✨</span>
+                  <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-lg border border-blue-400/30 p-4 h-24 flex items-center justify-center">
+                    <span className="text-xs text-blue-400 font-mono">Kontakte</span>
                   </div>
                 </div>
               </div>
