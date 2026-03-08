@@ -1,14 +1,19 @@
 import React from 'react';
+import { useTheme } from '../context/ThemeContext';
 
-const LoadingSpinner = ({ message = 'Lädt...' }) => {
+function LoadingSpinner({ message = 'Laden...' }) {
+  const { currentTheme } = useTheme();
+  const c = currentTheme.colors;
+
   return (
     <div className="flex flex-col items-center justify-center p-8">
-      <div className="relative">
-        <div className="w-12 h-12 border-4 border-dark-600 border-t-cyan-400 rounded-full animate-spin"></div>
+      <div className="relative w-12 h-12 mb-4">
+        <div className="absolute inset-0 border-4 border-cyan-400/20 rounded-full"></div>
+        <div className="absolute inset-0 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
       </div>
-      <p className="mt-4 text-gray-400 text-sm">{message}</p>
+      <p className={c.textSecondary}>{message}</p>
     </div>
   );
-};
+}
 
 export default LoadingSpinner;

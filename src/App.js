@@ -1,106 +1,78 @@
-import React, { useState, useEffect } from 'react';
-import Sidebar from './components/Sidebar';
-import Inbox from './pages/Inbox';
+import React, { useState } from 'react';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { AccountProvider, useAccounts } from './context/AccountContext';
+import SidebarV2 from './components/SidebarV2';
+import Dashboard from './pages/Dashboard';
+import InboxSplitView from './pages/InboxSplitView';
 import ComposeEmail from './pages/ComposeEmail';
-import Settings from './pages/Settings';
+import SettingsV2 from './pages/SettingsV2';
+import AccountManager from './pages/AccountManager';
 import EmailView from './pages/EmailView';
 
-function App() {
-  const [currentView, setCurrentView] = useState('inbox');
-  const [selectedEmail, setSelectedEmail] = useState(null);
-  const [settings, setSettings] = useState({ imap: {}, smtp: {} });
-  const [isConfigured, setIsConfigured] = useState(false);
+function AppContent() {
+  const { currentTheme } = useTheme();
+  const { setActiveAccountId } = useAccounts();
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [fullViewEmail, setFullViewEmail] = useState(null);
+  const c = currentTheme.colors;
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    if (window.electronAPI) {
-      const result = await window.electronAPI.loadSettings();
-      if (result.success && result.data) {
-        setSettings(result.data);
-        setIsConfigured(
-          result.data.imap?.host && 
-          result.data.imap?.username && 
-          result.data.imap?.password
-        );
-      }
-    }
-  };
-
-  const handleEmailSelect = (email) => {
-    setSelectedEmail(email);
+  const handleFullView = (email) => {
+    setFullViewEmail(email);
     setCurrentView('emailView');
   };
 
-  const handleBack = () => {
-    setSelectedEmail(null);
+  const handleBackFromEmail = () => {
+    setFullViewEmail(null);
     setCurrentView('inbox');
   };
 
   const renderContent = () => {
-    if (!isConfigured && currentView !== 'settings') {
-      return (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center p-8 bg-dark-800 rounded-lg border border-dark-600 max-w-md">
-            <div className="text-cyan-400 text-6xl mb-4">⚙️</div>
-            <h2 className="text-xl font-semibold text-gray-100 mb-2">
-              Willkommen bei CoreMail
-            </h2>
-            <p className="text-gray-400 mb-6">
-              Bitte konfiguriere zuerst deine IMAP- und SMTP-Einstellungen, um E-Mails zu empfangen und zu senden.
-            </p>
-            <button
-              onClick={() => setCurrentView('settings')}
-              className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors"
-            >
-              Einstellungen öffnen
-            </button>
-          </div>
-        </div>
-      );
-    }
-
     switch (currentView) {
+      case 'dashboard':
+        return (
+          <Dashboard 
+            onNavigate={setCurrentView} 
+            onSelectAccount={setActiveAccountId}
+          />
+        );
       case 'inbox':
-        return <Inbox onEmailSelect={handleEmailSelect} />;
+        return <InboxSplitView onFullView={handleFullView} />;
       case 'compose':
         return <ComposeEmail onBack={() => setCurrentView('inbox')} />;
       case 'settings':
-        return (
-          <Settings 
-            settings={settings} 
-            onSave={(newSettings) => {
-              setSettings(newSettings);
-              setIsConfigured(true);
-            }} 
-          />
-        );
+        return <SettingsV2 />;
+      case 'accounts':
+        return <AccountManager />;
       case 'emailView':
         return (
           <EmailView 
-            email={selectedEmail} 
-            onBack={handleBack}
+            email={fullViewEmail}
+            onBack={handleBackFromEmail}
             onReply={() => setCurrentView('compose')}
           />
         );
       default:
-        return <Inbox onEmailSelect={handleEmailSelect} />;
+        return <Dashboard onNavigate={setCurrentView} onSelectAccount={setActiveAccountId} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-dark-900">
-      <Sidebar 
-        currentView={currentView} 
-        onNavigate={setCurrentView}
-        isConfigured={isConfigured}
-      />
+    <div className={`flex h-screen ${c.bg}`}>
+      <SidebarV2 currentView={currentView} onNavigate={setCurrentView} />
       <main className="flex-1 flex flex-col overflow-hidden">
         {renderContent()}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AccountProvider>
+        <AppContent />
+      </AccountProvider>
+    </ThemeProvider>
   );
 }
 

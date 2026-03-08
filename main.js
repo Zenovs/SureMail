@@ -28,7 +28,6 @@ function createWindow() {
     icon: path.join(__dirname, 'assets/icon.png')
   });
 
-  // In Entwicklung: localhost, in Produktion: build-Ordner
   const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
   
   if (isDev) {
@@ -57,9 +56,45 @@ app.on('activate', () => {
   }
 });
 
+// ============ HELPER FUNCTIONS ============
+
+function getAccountById(accountId) {
+  const accounts = store.get('accounts', []);
+  return accounts.find(acc => acc.id === accountId);
+}
+
 // ============ IPC HANDLERS ============
 
-// Einstellungen speichern
+// === ACCOUNTS & CATEGORIES ===
+
+ipcMain.handle('accounts:save', async (event, data) => {
+  try {
+    store.set('accounts', data.accounts);
+    store.set('categories', data.categories);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('accounts:load', async () => {
+  try {
+    return {
+      success: true,
+      accounts: store.get('accounts', []),
+      categories: store.get('categories', [
+        { id: 'work', name: 'Arbeit', color: '#3b82f6' },
+        { id: 'personal', name: 'Privat', color: '#22c55e' },
+        { id: 'other', name: 'Sonstiges', color: '#8b5cf6' }
+      ])
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// === LEGACY SETTINGS (for backward compatibility) ===
+
 ipcMain.handle('settings:save', async (event, settings) => {
   try {
     store.set('imapSettings', settings.imap);
@@ -70,7 +105,6 @@ ipcMain.handle('settings:save', async (event, settings) => {
   }
 });
 
-// Einstellungen laden
 ipcMain.handle('settings:load', async () => {
   try {
     return {
@@ -85,7 +119,8 @@ ipcMain.handle('settings:load', async () => {
   }
 });
 
-// IMAP Verbindung testen
+// === IMAP OPERATIONS ===
+
 ipcMain.handle('imap:test', async (event, settings) => {
   try {
     const config = {
@@ -107,22 +142,24 @@ ipcMain.handle('imap:test', async (event, settings) => {
   }
 });
 
-// E-Mails abrufen
-ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 50 }) => {
-  const imapSettings = store.get('imapSettings');
+// Fetch emails for specific account
+ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = {}) => {
+  const account = getAccountById(accountId);
   
-  if (!imapSettings) {
-    return { success: false, error: 'Keine IMAP-Einstellungen konfiguriert' };
+  if (!account) {
+    return { success: false, error: 'Konto nicht gefunden' };
   }
+
+  const { folder = 'INBOX', limit = 50 } = options;
 
   try {
     const config = {
       imap: {
-        user: imapSettings.username,
-        password: imapSettings.password,
-        host: imapSettings.host,
-        port: parseInt(imapSettings.port),
-        tls: imapSettings.tls !== false,
+        user: account.imap.username,
+        password: account.imap.password,
+        host: account.imap.host,
+        port: parseInt(account.imap.port),
+        tls: account.imap.tls !== false,
         authTimeout: 15000
       }
     };
@@ -130,7 +167,6 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 50 
     const connection = await imapSimple.connect(config);
     await connection.openBox(folder);
 
-    // Letzte X E-Mails abrufen
     const searchCriteria = ['ALL'];
     const fetchOptions = {
       bodies: ['HEADER', 'TEXT', ''],
@@ -139,8 +175,6 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 50 
     };
 
     const messages = await connection.search(searchCriteria, fetchOptions);
-    
-    // Nach Datum sortieren (neueste zuerst)
     const emails = [];
     
     for (const message of messages.slice(-limit).reverse()) {
@@ -171,7 +205,137 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 50 
   }
 });
 
-// Einzelne E-Mail abrufen
+// Fetch single email for specific account
+ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid) => {
+  const account = getAccountById(accountId);
+  
+  if (!account) {
+    return { success: false, error: 'Konto nicht gefunden' };
+  }
+
+  try {
+    const config = {
+      imap: {
+        user: account.imap.username,
+        password: account.imap.password,
+        host: account.imap.host,
+        port: parseInt(account.imap.port),
+        tls: account.imap.tls !== false,
+        authTimeout: 15000
+      }
+    };
+
+    const connection = await imapSimple.connect(config);
+    await connection.openBox('INBOX');
+
+    const searchCriteria = [['UID', uid]];
+    const fetchOptions = {
+      bodies: [''],
+      markSeen: true,
+      struct: true
+    };
+
+    const messages = await connection.search(searchCriteria, fetchOptions);
+    
+    if (messages.length === 0) {
+      await connection.end();
+      return { success: false, error: 'E-Mail nicht gefunden' };
+    }
+
+    const message = messages[0];
+    const all = message.parts.find(p => p.which === '');
+    const parsed = await simpleParser(all.body);
+
+    const attachments = parsed.attachments.map(att => ({
+      filename: att.filename,
+      contentType: att.contentType,
+      size: att.size,
+      content: att.content.toString('base64')
+    }));
+
+    await connection.end();
+    
+    return {
+      success: true,
+      email: {
+        uid: uid,
+        subject: parsed.subject || '(Kein Betreff)',
+        from: parsed.from?.text || 'Unbekannt',
+        to: parsed.to?.text || '',
+        cc: parsed.cc?.text || '',
+        date: parsed.date || new Date(),
+        html: parsed.html || null,
+        text: parsed.text || '',
+        attachments
+      }
+    };
+  } catch (error) {
+    console.error('IMAP Fehler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Legacy fetch emails (for backward compatibility)
+ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 50 }) => {
+  const imapSettings = store.get('imapSettings');
+  
+  if (!imapSettings) {
+    return { success: false, error: 'Keine IMAP-Einstellungen konfiguriert' };
+  }
+
+  try {
+    const config = {
+      imap: {
+        user: imapSettings.username,
+        password: imapSettings.password,
+        host: imapSettings.host,
+        port: parseInt(imapSettings.port),
+        tls: imapSettings.tls !== false,
+        authTimeout: 15000
+      }
+    };
+
+    const connection = await imapSimple.connect(config);
+    await connection.openBox(folder);
+
+    const searchCriteria = ['ALL'];
+    const fetchOptions = {
+      bodies: ['HEADER', 'TEXT', ''],
+      markSeen: false,
+      struct: true
+    };
+
+    const messages = await connection.search(searchCriteria, fetchOptions);
+    const emails = [];
+    
+    for (const message of messages.slice(-limit).reverse()) {
+      try {
+        const all = message.parts.find(p => p.which === '');
+        const parsed = await simpleParser(all.body);
+        
+        emails.push({
+          uid: message.attributes.uid,
+          subject: parsed.subject || '(Kein Betreff)',
+          from: parsed.from?.text || 'Unbekannt',
+          to: parsed.to?.text || '',
+          date: parsed.date || new Date(),
+          seen: message.attributes.flags.includes('\\Seen'),
+          hasAttachments: parsed.attachments && parsed.attachments.length > 0,
+          preview: parsed.text ? parsed.text.substring(0, 100) + '...' : ''
+        });
+      } catch (e) {
+        console.error('Fehler beim Parsen einer E-Mail:', e);
+      }
+    }
+
+    await connection.end();
+    return { success: true, emails };
+  } catch (error) {
+    console.error('IMAP Fehler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle('imap:fetchEmail', async (event, uid) => {
   const imapSettings = store.get('imapSettings');
   
@@ -241,7 +405,8 @@ ipcMain.handle('imap:fetchEmail', async (event, uid) => {
   }
 });
 
-// E-Mail senden
+// === SMTP OPERATIONS ===
+
 ipcMain.handle('smtp:send', async (event, emailData) => {
   const smtpSettings = store.get('smtpSettings');
   
@@ -276,7 +441,41 @@ ipcMain.handle('smtp:send', async (event, emailData) => {
   }
 });
 
-// SMTP Verbindung testen
+// Send email for specific account
+ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
+  const account = getAccountById(accountId);
+  
+  if (!account) {
+    return { success: false, error: 'Konto nicht gefunden' };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: account.smtp.host,
+      port: parseInt(account.smtp.port),
+      secure: account.smtp.secure !== false,
+      auth: {
+        user: account.smtp.username,
+        pass: account.smtp.password
+      }
+    });
+
+    const mailOptions = {
+      from: account.smtp.fromEmail || account.smtp.username,
+      to: emailData.to,
+      subject: emailData.subject,
+      text: emailData.text,
+      html: emailData.html
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { success: true, message: 'E-Mail erfolgreich gesendet!' };
+  } catch (error) {
+    console.error('SMTP Fehler:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 ipcMain.handle('smtp:test', async (event, settings) => {
   try {
     const transporter = nodemailer.createTransport({

@@ -1,176 +1,136 @@
-# 📧 CoreMail Desktop v1.0
+# 📧 CoreMail Desktop v1.1
 
-Ein minimaler, sicherer E-Mail-Client für Linux/Ubuntu mit Darknet-Design.
+Ein moderner, schlanker Desktop-E-Mail-Client für Linux mit Multi-Account-Unterstützung.
 
-![CoreMail Desktop](https://img.shields.io/badge/Version-1.0.0-cyan)
-![Electron](https://img.shields.io/badge/Electron-28.x-blue)
-![React](https://img.shields.io/badge/React-18.x-61dafb)
+![CoreMail](https://img.shields.io/badge/version-1.1.0-cyan)
+![Electron](https://img.shields.io/badge/electron-28.x-blue)
+![Platform](https://img.shields.io/badge/platform-Linux-green)
 
-## ✨ Features
+## ✨ Features v1.1
 
-- **📥 Posteingang**: E-Mails anzeigen, sortiert nach Datum
-- **📖 E-Mails lesen**: HTML und Plain-Text, mit Anhängen
-- **✉️ E-Mails senden**: Neue E-Mails verfassen und versenden
-- **⚙️ IMAP/SMTP-Konfiguration**: Sichere, verschlüsselte Speicherung
-- **🎨 Darknet-Design**: Schwarzer Hintergrund, Cyan-Akzente, JetBrains Mono
+### 🆕 Neu in v1.1
+- **Mehrere E-Mail-Konten** - Unbegrenzte IMAP/SMTP-Konten verwalten
+- **Kategorien/Gruppen** - Konten organisieren (Arbeit, Privat, Sonstiges, eigene...)
+- **Dashboard** - Übersicht über alle Konten mit Statistiken
+- **Split-View Inbox** - E-Mail-Liste und Vorschau nebeneinander
+- **3 Themes** - Dark, Light, Minimal
+- **Verbesserte Sidebar** - Mit Kategorien und Konten-Übersicht
 
-## 🛠️ Technologie-Stack
+### 📬 Basis-Features
+- IMAP E-Mail-Empfang
+- SMTP E-Mail-Versand
+- E-Mail-Vorschau und Vollansicht
+- Anhänge anzeigen und herunterladen
+- Verschlüsselte Passwortspeicherung
 
-- **Electron** - Desktop-Framework
-- **React** - UI-Framework
-- **Tailwind CSS** - Styling
-- **imap-simple** - IMAP-Bibliothek
-- **Nodemailer** - SMTP/E-Mail-Versand
-- **electron-store** - Verschlüsselte lokale Speicherung
+## 🖥️ Systemanforderungen
+
+| Komponente | Anforderung |
+|------------|-------------|
+| OS | Ubuntu 20.04+, Debian 11+, Fedora 35+ |
+| Architektur | x86_64 (64-bit) |
+| RAM | Mindestens 512 MB |
+| Speicher | 200 MB |
 
 ## 📦 Installation
 
-### AppImage (Empfohlen für Endnutzer)
-
-1. **AppImage herunterladen:**
-   ```
-   CoreMail Desktop-1.0.0.AppImage
-   ```
-
-2. **Ausführbar machen:**
-   ```bash
-   chmod +x "CoreMail Desktop-1.0.0.AppImage"
-   ```
-
-3. **Starten:**
-   ```bash
-   ./"CoreMail Desktop-1.0.0.AppImage"
-   ```
-
-> 💡 **Tipp:** Das AppImage ist eigenständig - keine Installation erforderlich!
-
-### Systemanforderungen
-
-| Anforderung | Minimum |
-|-------------|---------|
-| **OS** | Ubuntu 20.04+ / Debian 11+ / Fedora 35+ |
-| **Architektur** | x86_64 (64-bit) |
-| **RAM** | 512 MB |
-| **Speicher** | 200 MB |
-| **GLIBC** | 2.31+ |
-
-### Development Setup (Für Entwickler)
-
+### AppImage (empfohlen)
 ```bash
-# Repository klonen / In Projektordner wechseln
-cd /home/ubuntu/coremail-desktop
+# Download der AppImage-Datei
+chmod +x CoreMail-Desktop-1.1.0.AppImage
+./CoreMail-Desktop-1.1.0.AppImage
+```
 
-# Dependencies installieren
+### Aus Quellcode
+```bash
+git clone https://github.com/your-repo/coremail-desktop.git
+cd coremail-desktop
 npm install
-
-# Entwicklungsserver starten
-npm run dev
-```
-
-### Produktion Build
-
-```bash
-# React Build erstellen und Electron packen
 npm run build
-
-# Nur Electron packen (ohne AppImage)
-npm run pack
-
-# AppImage/DEB erstellen
-npm run dist
 ```
 
-## 🚀 Verwendung
+## 🎨 Themes
 
-### 1. IMAP/SMTP einrichten
+| Theme | Beschreibung |
+|-------|--------------|
+| **Dark** | Dunkles Design mit Cyan-Akzenten (Standard) |
+| **Light** | Helles Design mit blauen Akzenten |
+| **Minimal** | Schwarz/Weiß, reduziert und fokussiert |
 
-Nach dem Start der App:
-1. Gehe zu **Einstellungen** ⚙️
-2. Gib deine IMAP-Daten ein (Host, Port, Username, Password)
-3. Gib deine SMTP-Daten ein
-4. Teste die Verbindungen
-5. Speichere die Einstellungen
+Theme wechseln: Einstellungen → Design
 
-### Beispiel-Konfiguration (Gmail)
+## ⌨️ Tastenkürzel
 
-**IMAP:**
-- Host: `imap.gmail.com`
-- Port: `993`
-- TLS: ✅
+| Kürzel | Aktion |
+|--------|--------|
+| `↑` / `↓` | E-Mail-Navigation in der Liste |
+| `Enter` | E-Mail in Vollansicht öffnen |
 
-**SMTP:**
-- Host: `smtp.gmail.com`
-- Port: `465`
-- SSL: ✅
+## 🔧 Konto einrichten
 
-> ⚠️ Für Gmail benötigst du ein [App-Passwort](https://support.google.com/accounts/answer/185833)
+1. **Konten** in der Sidebar öffnen
+2. **+ Neues Konto** klicken
+3. IMAP- und SMTP-Einstellungen eingeben
+4. Verbindung testen
+5. Speichern
 
-### 2. E-Mails empfangen
+### Gmail-Nutzer
+- Aktiviere "Zugriff durch weniger sichere Apps" oder
+- Erstelle ein [App-Passwort](https://myaccount.google.com/apppasswords)
+- IMAP: `imap.gmail.com:993`
+- SMTP: `smtp.gmail.com:465`
 
-- Klicke auf **Posteingang** 📥
-- E-Mails werden automatisch geladen
-- Klicke auf eine E-Mail zum Lesen
+## 🔒 Sicherheit
 
-### 3. E-Mails senden
-
-- Klicke auf **Neue E-Mail** ✏️
-- Fülle An, Betreff und Nachricht aus
-- Klicke auf **Senden** 📨
+- Passwörter werden mit AES-256 verschlüsselt gespeichert
+- Lokale Speicherung (keine Cloud)
+- TLS/SSL für alle Verbindungen
 
 ## 📁 Projektstruktur
 
 ```
 coremail-desktop/
-├── main.js              # Electron Main Process
-├── preload.js           # Preload Script (IPC Bridge)
-├── package.json         # Dependencies & Scripts
-├── tailwind.config.js   # Tailwind Konfiguration
-├── public/
-│   └── index.html       # HTML Template
 ├── src/
-│   ├── App.js           # Haupt-App-Komponente
-│   ├── index.js         # React Entry Point
-│   ├── components/      # UI-Komponenten
-│   │   ├── Sidebar.js
-│   │   ├── EmailListItem.js
-│   │   └── LoadingSpinner.js
-│   ├── pages/           # Seiten-Komponenten
-│   │   ├── Inbox.js
-│   │   ├── EmailView.js
-│   │   ├── ComposeEmail.js
-│   │   └── Settings.js
-│   └── styles/
-│       └── index.css    # Tailwind + Custom Styles
-└── assets/
-    └── icon.png         # App Icon
+│   ├── context/          # React Contexts (Theme, Accounts)
+│   ├── components/       # UI-Komponenten
+│   └── pages/            # Seiten (Dashboard, Inbox, etc.)
+├── main.js               # Electron Main Process
+├── preload.js            # IPC Bridge
+└── tailwind.config.js    # Styling
 ```
 
-## 🔒 Sicherheit
+## 🚀 Entwicklung
 
-- **Verschlüsselte Speicherung**: IMAP/SMTP-Credentials werden mit `electron-store` verschlüsselt gespeichert
-- **Context Isolation**: Electron's Context Isolation ist aktiviert
-- **Keine Cloud**: Alle Daten bleiben lokal auf deinem Computer
+```bash
+# Entwicklungsmodus
+npm run dev
 
-## 🐛 Bekannte Einschränkungen (v1.0)
+# Nur React starten
+npm run react-start
 
-- Nur ein E-Mail-Konto unterstützt
-- Keine Ordner-Navigation (nur INBOX)
-- Keine Anhänge beim Senden
-- Keine E-Mail-Suche
+# Build erstellen
+npm run build
+```
 
-## 🔮 Geplante Features (v2.0+)
+## 📝 Changelog
 
-- [ ] Mehrere E-Mail-Konten
-- [ ] Ordner-Navigation (Gesendet, Entwürfe, etc.)
-- [ ] Anhänge beim Senden
-- [ ] E-Mail-Suche
-- [ ] Signatur-Unterstützung
-- [ ] HTML-Editor für E-Mails
+### v1.1.0 (März 2026)
+- Multi-Account-Unterstützung
+- Kategorien für Konten
+- Dashboard mit Statistiken
+- Split-View Inbox
+- Theme-System (Dark/Light/Minimal)
+- Verbesserte Sidebar
+
+### v1.0.0
+- Erste Version
+- Basis IMAP/SMTP-Funktionalität
+- Dunkles Design
 
 ## 📄 Lizenz
 
-MIT License - Frei verwendbar und anpassbar.
+MIT License
 
 ---
 
-Made with 💙 by CoreMail Team
+**Made with ❤️ for Linux**

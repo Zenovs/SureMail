@@ -38,10 +38,12 @@
 {"_type": "tag", "name": "0", "path": "package-lock.json", "pattern": "/^        {$/", "line": 7562, "kind": "object", "scope": "packages.node_modules/cssdb.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "0", "path": "package-lock.json", "pattern": "/^        {$/", "line": 8241, "kind": "object", "scope": "packages.node_modules/domelementtype.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "0", "path": "package-lock.json", "pattern": "/^        {$/", "line": 9834, "kind": "object", "scope": "packages.node_modules/fast-uri.funding", "scopeKind": "array"}
-{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^      \">0.2%\",$/", "line": 54, "kind": "string", "scope": "browserslist.production", "scopeKind": "array"}
-{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^      \"build\\/**\\/*\",$/", "line": 26, "kind": "string", "scope": "build.files", "scopeKind": "array"}
-{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^      \"last 1 chrome version\",$/", "line": 59, "kind": "string", "scope": "browserslist.development", "scopeKind": "array"}
-{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^      \"target\": [\"AppImage\", \"deb\"],$/", "line": 22, "kind": "string", "scope": "build.linux.target", "scopeKind": "array"}
+{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^          \"arch\": [\"x64\"]$/", "line": 27, "kind": "string", "scope": "build.linux.target.0.arch", "scopeKind": "array"}
+{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^        {$/", "line": 25, "kind": "object", "scope": "build.linux.target", "scopeKind": "array"}
+{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^      \">0.2%\",$/", "line": 76, "kind": "string", "scope": "browserslist.production", "scopeKind": "array"}
+{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^      \"build\\/**\\/*\",$/", "line": 40, "kind": "string", "scope": "build.files", "scopeKind": "array"}
+{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^      \"last 1 chrome version\",$/", "line": 81, "kind": "string", "scope": "browserslist.development", "scopeKind": "array"}
+{"_type": "tag", "name": "0", "path": "package.json", "pattern": "/^      {$/", "line": 48, "kind": "object", "scope": "build.extraResources", "scopeKind": "array"}
 {"_type": "tag", "name": "1", "path": "package-lock.json", "pattern": "/^        {$/", "line": 10990, "kind": "object", "scope": "packages.node_modules/html-entities.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "1", "path": "package-lock.json", "pattern": "/^        {$/", "line": 11087, "kind": "object", "scope": "packages.node_modules/htmlparser2.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "1", "path": "package-lock.json", "pattern": "/^        {$/", "line": 11296, "kind": "object", "scope": "packages.node_modules/ieee754.funding", "scopeKind": "array"}
@@ -63,11 +65,10 @@
 {"_type": "tag", "name": "1", "path": "package-lock.json", "pattern": "/^        {$/", "line": 6512, "kind": "object", "scope": "packages.node_modules/caniuse-lite.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "1", "path": "package-lock.json", "pattern": "/^        {$/", "line": 7566, "kind": "object", "scope": "packages.node_modules/cssdb.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "1", "path": "package-lock.json", "pattern": "/^        {$/", "line": 9838, "kind": "object", "scope": "packages.node_modules/fast-uri.funding", "scopeKind": "array"}
-{"_type": "tag", "name": "1", "path": "package.json", "pattern": "/^      \"last 1 firefox version\",$/", "line": 60, "kind": "string", "scope": "browserslist.development", "scopeKind": "array"}
-{"_type": "tag", "name": "1", "path": "package.json", "pattern": "/^      \"main.js\",$/", "line": 27, "kind": "string", "scope": "build.files", "scopeKind": "array"}
-{"_type": "tag", "name": "1", "path": "package.json", "pattern": "/^      \"not dead\",$/", "line": 55, "kind": "string", "scope": "browserslist.production", "scopeKind": "array"}
-{"_type": "tag", "name": "1", "path": "package.json", "pattern": "/^      \"target\": [\"AppImage\", \"deb\"],$/", "line": 22, "kind": "string", "scope": "build.linux.target", "scopeKind": "array"}
-{"_type": "tag", "name": "1. IMAP/SMTP einrichten", "path": "README.md", "pattern": "/^### 1. IMAP\\/SMTP einrichten$/", "line": 62, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"🚀 Verwendung", "scopeKind": "section"}
+{"_type": "tag", "name": "1", "path": "package.json", "pattern": "/^      \"last 1 firefox version\",$/", "line": 82, "kind": "string", "scope": "browserslist.development", "scopeKind": "array"}
+{"_type": "tag", "name": "1", "path": "package.json", "pattern": "/^      \"main.js\",$/", "line": 41, "kind": "string", "scope": "build.files", "scopeKind": "array"}
+{"_type": "tag", "name": "1", "path": "package.json", "pattern": "/^      \"not dead\",$/", "line": 77, "kind": "string", "scope": "browserslist.production", "scopeKind": "array"}
+{"_type": "tag", "name": "1. IMAP/SMTP einrichten", "path": "README.md", "pattern": "/^### 1. IMAP\\/SMTP einrichten$/", "line": 85, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"🚀 Verwendung", "scopeKind": "section"}
 {"_type": "tag", "name": "12", "path": "src/pages/ComposeEmail.js", "pattern": "/^              rows={12}$/", "line": 124, "kind": "field", "scope": "required", "scopeKind": "class"}
 {"_type": "tag", "name": "2", "path": "package-lock.json", "pattern": "/^        {$/", "line": 11300, "kind": "object", "scope": "packages.node_modules/ieee754.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "2", "path": "package-lock.json", "pattern": "/^        {$/", "line": 14919, "kind": "object", "scope": "packages.node_modules/postcss.funding", "scopeKind": "array"}
@@ -80,13 +81,15 @@
 {"_type": "tag", "name": "2", "path": "package-lock.json", "pattern": "/^        {$/", "line": 6197, "kind": "object", "scope": "packages.node_modules/browserslist.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "2", "path": "package-lock.json", "pattern": "/^        {$/", "line": 6240, "kind": "object", "scope": "packages.node_modules/buffer.funding", "scopeKind": "array"}
 {"_type": "tag", "name": "2", "path": "package-lock.json", "pattern": "/^        {$/", "line": 6516, "kind": "object", "scope": "packages.node_modules/caniuse-lite.funding", "scopeKind": "array"}
-{"_type": "tag", "name": "2", "path": "package.json", "pattern": "/^      \"last 1 safari version\"$/", "line": 61, "kind": "string", "scope": "browserslist.development", "scopeKind": "array"}
-{"_type": "tag", "name": "2", "path": "package.json", "pattern": "/^      \"not op_mini all\"$/", "line": 56, "kind": "string", "scope": "browserslist.production", "scopeKind": "array"}
-{"_type": "tag", "name": "2", "path": "package.json", "pattern": "/^      \"preload.js\",$/", "line": 28, "kind": "string", "scope": "build.files", "scopeKind": "array"}
-{"_type": "tag", "name": "2. E-Mails empfangen", "path": "README.md", "pattern": "/^### 2. E-Mails empfangen$/", "line": 85, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"🚀 Verwendung", "scopeKind": "section"}
-{"_type": "tag", "name": "3", "path": "package.json", "pattern": "/^      \"node_modules\\/**\\/*\"$/", "line": 29, "kind": "string", "scope": "build.files", "scopeKind": "array"}
-{"_type": "tag", "name": "3. E-Mails senden", "path": "README.md", "pattern": "/^### 3. E-Mails senden$/", "line": 91, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"🚀 Verwendung", "scopeKind": "section"}
+{"_type": "tag", "name": "2", "path": "package.json", "pattern": "/^      \"last 1 safari version\"$/", "line": 83, "kind": "string", "scope": "browserslist.development", "scopeKind": "array"}
+{"_type": "tag", "name": "2", "path": "package.json", "pattern": "/^      \"not op_mini all\"$/", "line": 78, "kind": "string", "scope": "browserslist.production", "scopeKind": "array"}
+{"_type": "tag", "name": "2", "path": "package.json", "pattern": "/^      \"preload.js\",$/", "line": 42, "kind": "string", "scope": "build.files", "scopeKind": "array"}
+{"_type": "tag", "name": "2. E-Mails empfangen", "path": "README.md", "pattern": "/^### 2. E-Mails empfangen$/", "line": 108, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"🚀 Verwendung", "scopeKind": "section"}
+{"_type": "tag", "name": "3", "path": "package.json", "pattern": "/^      \"node_modules\\/**\\/*\",$/", "line": 43, "kind": "string", "scope": "build.files", "scopeKind": "array"}
+{"_type": "tag", "name": "3. E-Mails senden", "path": "README.md", "pattern": "/^### 3. E-Mails senden$/", "line": 114, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"🚀 Verwendung", "scopeKind": "section"}
+{"_type": "tag", "name": "4", "path": "package.json", "pattern": "/^      \"!node_modules\\/*\\/{CHANGELOG.md,README.md,readme.md,readme,test,__tests__,tests,powered-t/", "line": 44, "kind": "string", "scope": "build.files", "scopeKind": "array"}
 {"_type": "tag", "name": "400", "path": "tailwind.config.js", "pattern": "/^          '400': '#22d3ee',$/", "line": 18, "kind": "property", "scope": "module.exports.theme.extend.colors.cyan", "scopeKind": "class"}
+{"_type": "tag", "name": "5", "path": "package.json", "pattern": "/^      \"!node_modules\\/.bin\"$/", "line": 45, "kind": "string", "scope": "build.files", "scopeKind": "array"}
 {"_type": "tag", "name": "500", "path": "tailwind.config.js", "pattern": "/^          '500': '#06b6d4',$/", "line": 19, "kind": "property", "scope": "module.exports.theme.extend.colors.cyan", "scopeKind": "class"}
 {"_type": "tag", "name": "500", "path": "tailwind.config.js", "pattern": "/^          '500': '#2a2a2a'$/", "line": 15, "kind": "property", "scope": "module.exports.theme.extend.colors.dark", "scopeKind": "class"}
 {"_type": "tag", "name": "600", "path": "tailwind.config.js", "pattern": "/^          '600': '#0891b2'$/", "line": 20, "kind": "property", "scope": "module.exports.theme.extend.colors.cyan", "scopeKind": "class"}
@@ -611,7 +614,7 @@
 {"_type": "tag", "name": "@electron/notarize", "path": "package-lock.json", "pattern": "/^        \"@electron\\/notarize\": \"2.2.1\",$/", "line": 5179, "kind": "string", "scope": "packages.node_modules/app-builder-lib.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "@electron/osx-sign", "path": "package-lock.json", "pattern": "/^        \"@electron\\/osx-sign\": \"1.0.5\",$/", "line": 5180, "kind": "string", "scope": "packages.node_modules/app-builder-lib.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "@electron/remote", "path": "package-lock.json", "pattern": "/^        \"@electron\\/remote\": \"^2.1.2\",$/", "line": 11, "kind": "string", "scope": "packages..dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "@electron/remote", "path": "package.json", "pattern": "/^    \"@electron\\/remote\": \"^2.1.2\",$/", "line": 34, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "@electron/remote", "path": "package.json", "pattern": "/^    \"@electron\\/remote\": \"^2.1.2\",$/", "line": 56, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "@electron/universal", "path": "package-lock.json", "pattern": "/^        \"@electron\\/universal\": \"1.5.1\",$/", "line": 5181, "kind": "string", "scope": "packages.node_modules/app-builder-lib.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "@eslint-community/eslint-utils", "path": "package-lock.json", "pattern": "/^        \"@eslint-community\\/eslint-utils\": \"^4.2.0\",$/", "line": 4616, "kind": "string", "scope": "packages.node_modules/@typescript-eslint/utils.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "@eslint-community/eslint-utils", "path": "package-lock.json", "pattern": "/^        \"@eslint-community\\/eslint-utils\": \"^4.2.0\",$/", "line": 8964, "kind": "string", "scope": "packages.node_modules/eslint.dependencies", "scopeKind": "object"}
@@ -975,18 +978,19 @@
 {"_type": "tag", "name": "@xtuc/long", "path": "package-lock.json", "pattern": "/^        \"@xtuc\\/long\": \"4.2.2\"$/", "line": 4836, "kind": "string", "scope": "packages.node_modules/@webassemblyjs/wast-printer.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "@zone-eu/mailsplit", "path": "package-lock.json", "pattern": "/^        \"@zone-eu\\/mailsplit\": \"5.4.8\",$/", "line": 13769, "kind": "string", "scope": "packages.node_modules/mailparser.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "App", "path": "src/App.js", "pattern": "/^function App() {$/", "line": 8, "kind": "function"}
-{"_type": "tag", "name": "Beispiel-Konfiguration (Gmail)", "path": "README.md", "pattern": "/^### Beispiel-Konfiguration (Gmail)$/", "line": 71, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"🚀 Verwendung", "scopeKind": "section"}
+{"_type": "tag", "name": "AppImage (Empfohlen für Endnutzer)", "path": "README.md", "pattern": "/^### AppImage (Empfohlen für Endnutzer)$/", "line": 28, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"📦 Installation", "scopeKind": "section"}
+{"_type": "tag", "name": "Beispiel-Konfiguration (Gmail)", "path": "README.md", "pattern": "/^### Beispiel-Konfiguration (Gmail)$/", "line": 94, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"🚀 Verwendung", "scopeKind": "section"}
 {"_type": "tag", "name": "ComposeEmail", "path": "src/pages/ComposeEmail.js", "pattern": "/^const ComposeEmail = ({ onBack }) => {$/", "line": 3, "kind": "constant"}
-{"_type": "tag", "name": "Development Setup", "path": "README.md", "pattern": "/^### Development Setup$/", "line": 34, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"📦 Installation", "scopeKind": "section"}
+{"_type": "tag", "name": "Development Setup (Für Entwickler)", "path": "README.md", "pattern": "/^### Development Setup (Für Entwickler)$/", "line": 57, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"📦 Installation", "scopeKind": "section"}
 {"_type": "tag", "name": "EmailListItem", "path": "src/components/EmailListItem.js", "pattern": "/^const EmailListItem = ({ email, isSelected, onClick }) => {$/", "line": 3, "kind": "constant"}
 {"_type": "tag", "name": "EmailView", "path": "src/pages/EmailView.js", "pattern": "/^const EmailView = ({ email, onBack, onReply }) => {$/", "line": 4, "kind": "constant"}
 {"_type": "tag", "name": "Inbox", "path": "src/pages/Inbox.js", "pattern": "/^const Inbox = ({ onEmailSelect }) => {$/", "line": 5, "kind": "constant"}
 {"_type": "tag", "name": "LoadingSpinner", "path": "src/components/LoadingSpinner.js", "pattern": "/^const LoadingSpinner = ({ message = 'Lädt...' }) => {$/", "line": 3, "kind": "class"}
-{"_type": "tag", "name": "Produktion Build", "path": "README.md", "pattern": "/^### Produktion Build$/", "line": 47, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"📦 Installation", "scopeKind": "section"}
+{"_type": "tag", "name": "Produktion Build", "path": "README.md", "pattern": "/^### Produktion Build$/", "line": 70, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"📦 Installation", "scopeKind": "section"}
 {"_type": "tag", "name": "Settings", "path": "src/pages/Settings.js", "pattern": "/^const Settings = ({ settings: initialSettings, onSave }) => {$/", "line": 3, "kind": "class"}
 {"_type": "tag", "name": "Sidebar", "path": "src/components/Sidebar.js", "pattern": "/^const Sidebar = ({ currentView, onNavigate, isConfigured }) => {$/", "line": 3, "kind": "constant"}
 {"_type": "tag", "name": "Store", "path": "main.js", "pattern": "/^const Store = require('electron-store');$/", "line": 3, "kind": "constant"}
-{"_type": "tag", "name": "Voraussetzungen", "path": "README.md", "pattern": "/^### Voraussetzungen$/", "line": 28, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"📦 Installation", "scopeKind": "section"}
+{"_type": "tag", "name": "Systemanforderungen", "path": "README.md", "pattern": "/^### Systemanforderungen$/", "line": 47, "kind": "subsection", "scope": "📧 CoreMail Desktop v1.0\"\"📦 Installation", "scopeKind": "section"}
 {"_type": "tag", "name": "abab", "path": "package-lock.json", "pattern": "/^        \"abab\": \"^2.0.3\",$/", "line": 7737, "kind": "string", "scope": "packages.node_modules/data-urls.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "abab", "path": "package-lock.json", "pattern": "/^        \"abab\": \"^2.0.5\",$/", "line": 13185, "kind": "string", "scope": "packages.node_modules/jsdom.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "abab", "path": "package-lock.json", "pattern": "/^        \"abab\": \"^2.0.5\",$/", "line": 18133, "kind": "string", "scope": "packages.node_modules/source-map-loader.dependencies", "scopeKind": "object"}
@@ -1068,6 +1072,8 @@
 {"_type": "tag", "name": "app-builder-lib", "path": "package-lock.json", "pattern": "/^        \"app-builder-lib\": \"24.13.3\",$/", "line": 8412, "kind": "string", "scope": "packages.node_modules/electron-builder.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "app-builder-lib", "path": "package-lock.json", "pattern": "/^        \"app-builder-lib\": \"24.13.3\",$/", "line": 8440, "kind": "string", "scope": "packages.node_modules/electron-builder-squirrel-windows.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "appId", "path": "package.json", "pattern": "/^    \"appId\": \"com.coremail.desktop\",$/", "line": 16, "kind": "string", "scope": "build", "scopeKind": "object"}
+{"_type": "tag", "name": "appImage", "path": "package.json", "pattern": "/^    \"appImage\": {$/", "line": 36, "kind": "object", "scope": "build", "scopeKind": "object"}
+{"_type": "tag", "name": "arch", "path": "package.json", "pattern": "/^          \"arch\": [\"x64\"]$/", "line": 27, "kind": "array", "scope": "build.linux.target.0", "scopeKind": "object"}
 {"_type": "tag", "name": "archiver", "path": "package-lock.json", "pattern": "/^        \"archiver\": \"^5.3.1\",$/", "line": 8441, "kind": "string", "scope": "packages.node_modules/electron-builder-squirrel-windows.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "archiver-utils", "path": "package-lock.json", "pattern": "/^        \"archiver-utils\": \"^2.1.0\",$/", "line": 5273, "kind": "string", "scope": "packages.node_modules/archiver.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "archiver-utils", "path": "package-lock.json", "pattern": "/^        \"archiver-utils\": \"^3.0.4\",$/", "line": 20980, "kind": "string", "scope": "packages.node_modules/zip-stream.dependencies", "scopeKind": "object"}
@@ -1095,6 +1101,8 @@
 {"_type": "tag", "name": "array.prototype.reduce", "path": "package-lock.json", "pattern": "/^        \"array.prototype.reduce\": \"^1.0.8\",$/", "line": 14373, "kind": "string", "scope": "packages.node_modules/object.getownpropertydescriptors.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "array.prototype.tosorted", "path": "package-lock.json", "pattern": "/^        \"array.prototype.tosorted\": \"^1.1.4\",$/", "line": 9265, "kind": "string", "scope": "packages.node_modules/eslint-plugin-react.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "arraybuffer.prototype.slice", "path": "package-lock.json", "pattern": "/^        \"arraybuffer.prototype.slice\": \"^1.0.4\",$/", "line": 8718, "kind": "string", "scope": "packages.node_modules/es-abstract.dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "artifactName", "path": "package.json", "pattern": "/^      \"artifactName\": \"${productName}-${version}.AppImage\"$/", "line": 37, "kind": "string", "scope": "build.appImage", "scopeKind": "object"}
+{"_type": "tag", "name": "artifactName", "path": "package.json", "pattern": "/^    \"artifactName\": \"${productName}-${version}-${arch}.${ext}\",$/", "line": 18, "kind": "string", "scope": "build", "scopeKind": "object"}
 {"_type": "tag", "name": "asap", "path": "package-lock.json", "pattern": "/^        \"asap\": \"~2.0.6\"$/", "line": 16533, "kind": "string", "scope": "packages.node_modules/react-app-polyfill/node_modules/promise.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "asar", "path": "package-lock.json", "pattern": "/^        \"asar\": \"bin\\/asar.js\"$/", "line": 2367, "kind": "string", "scope": "packages.node_modules/@electron/asar.bin", "scopeKind": "object"}
 {"_type": "tag", "name": "assert-plus", "path": "package-lock.json", "pattern": "/^        \"assert-plus\": \"^1.0.0\",$/", "line": 19964, "kind": "string", "scope": "packages.node_modules/verror.dependencies", "scopeKind": "object"}
@@ -1116,7 +1124,7 @@
 {"_type": "tag", "name": "autoprefixer", "path": "package-lock.json", "pattern": "/^        \"autoprefixer\": \"^10.4.13\",$/", "line": 15941, "kind": "string", "scope": "packages.node_modules/postcss-preset-env.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "autoprefixer", "path": "package-lock.json", "pattern": "/^        \"autoprefixer\": \"^10.4.17\",$/", "line": 21, "kind": "string", "scope": "packages..devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "autoprefixer", "path": "package-lock.json", "pattern": "/^        \"autoprefixer\": \"bin\\/autoprefixer\"$/", "line": 5672, "kind": "string", "scope": "packages.node_modules/autoprefixer.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "autoprefixer", "path": "package.json", "pattern": "/^    \"autoprefixer\": \"^10.4.17\",$/", "line": 44, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "autoprefixer", "path": "package.json", "pattern": "/^    \"autoprefixer\": \"^10.4.17\",$/", "line": 66, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "autoprefixer", "path": "postcss.config.js", "pattern": "/^    autoprefixer: {},$/", "line": 4, "kind": "property", "scope": "module.exports.plugins", "scopeKind": "class"}
 {"_type": "tag", "name": "available-typed-arrays", "path": "package-lock.json", "pattern": "/^        \"available-typed-arrays\": \"^1.0.7\",$/", "line": 19619, "kind": "string", "scope": "packages.node_modules/typed-array-byte-offset.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "available-typed-arrays", "path": "package-lock.json", "pattern": "/^        \"available-typed-arrays\": \"^1.0.7\",$/", "line": 20430, "kind": "string", "scope": "packages.node_modules/which-typed-array.dependencies", "scopeKind": "object"}
@@ -1304,7 +1312,7 @@
 {"_type": "tag", "name": "browserslist", "path": "package-lock.json", "pattern": "/^        \"browserslist\": \"^4.28.1\",$/", "line": 20068, "kind": "string", "scope": "packages.node_modules/webpack.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "browserslist", "path": "package-lock.json", "pattern": "/^        \"browserslist\": \"^4.28.1\",$/", "line": 5665, "kind": "string", "scope": "packages.node_modules/autoprefixer.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "browserslist", "path": "package-lock.json", "pattern": "/^        \"browserslist\": \"cli.js\"$/", "line": 6211, "kind": "string", "scope": "packages.node_modules/browserslist.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "browserslist", "path": "package.json", "pattern": "/^  \"browserslist\": {$/", "line": 52, "kind": "object"}
+{"_type": "tag", "name": "browserslist", "path": "package.json", "pattern": "/^  \"browserslist\": {$/", "line": 74, "kind": "object"}
 {"_type": "tag", "name": "bser", "path": "package-lock.json", "pattern": "/^        \"bser\": \"2.1.1\"$/", "line": 9872, "kind": "string", "scope": "packages.node_modules/fb-watchman.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "buffer", "path": "package-lock.json", "pattern": "/^        \"buffer\": \"^5.1.0\"$/", "line": 7237, "kind": "string", "scope": "packages.node_modules/crc.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "buffer", "path": "package-lock.json", "pattern": "/^        \"buffer\": \"^5.5.0\",$/", "line": 6061, "kind": "string", "scope": "packages.node_modules/bl.dependencies", "scopeKind": "object"}
@@ -1425,7 +1433,7 @@
 {"_type": "tag", "name": "canvas", "path": "package-lock.json", "pattern": "/^        \"canvas\": \"^2.5.0\"$/", "line": 13217, "kind": "string", "scope": "packages.node_modules/jsdom.peerDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "canvas", "path": "package-lock.json", "pattern": "/^        \"canvas\": {$/", "line": 13220, "kind": "object", "scope": "packages.node_modules/jsdom.peerDependenciesMeta", "scopeKind": "object"}
 {"_type": "tag", "name": "case-sensitive-paths-webpack-plugin", "path": "package-lock.json", "pattern": "/^        \"case-sensitive-paths-webpack-plugin\": \"^2.4.0\",$/", "line": 16700, "kind": "string", "scope": "packages.node_modules/react-scripts.dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "category", "path": "package.json", "pattern": "/^      \"category\": \"Office\"$/", "line": 23, "kind": "string", "scope": "build.linux", "scopeKind": "object"}
+{"_type": "tag", "name": "category", "path": "package.json", "pattern": "/^      \"category\": \"Network;Email\",$/", "line": 31, "kind": "string", "scope": "build.linux", "scopeKind": "object"}
 {"_type": "tag", "name": "chalk", "path": "package-lock.json", "pattern": "/^        \"chalk\": \"^2.4.1\",$/", "line": 18698, "kind": "string", "scope": "packages.node_modules/svgo.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "chalk", "path": "package-lock.json", "pattern": "/^        \"chalk\": \"^2.4.1\",$/", "line": 6741, "kind": "string", "scope": "packages.node_modules/coa.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "chalk", "path": "package-lock.json", "pattern": "/^        \"chalk\": \"^4.0.0\"$/", "line": 12883, "kind": "string", "scope": "packages.node_modules/jest-watch-typeahead/node_modules/@jest/types.dependencies", "scopeKind": "object"}
@@ -1530,7 +1538,7 @@
 {"_type": "tag", "name": "concat-map", "path": "package-lock.json", "pattern": "/^        \"concat-map\": \"0.0.1\"$/", "line": 9446, "kind": "string", "scope": "packages.node_modules/eslint/node_modules/brace-expansion.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "concurrently", "path": "package-lock.json", "pattern": "/^        \"concurrently\": \"^8.2.2\",$/", "line": 22, "kind": "string", "scope": "packages..devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "concurrently", "path": "package-lock.json", "pattern": "/^        \"concurrently\": \"dist\\/bin\\/concurrently.js\"$/", "line": 6989, "kind": "string", "scope": "packages.node_modules/concurrently.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "concurrently", "path": "package.json", "pattern": "/^    \"concurrently\": \"^8.2.2\",$/", "line": 45, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "concurrently", "path": "package.json", "pattern": "/^    \"concurrently\": \"^8.2.2\",$/", "line": 67, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "conf", "path": "package-lock.json", "pattern": "/^        \"conf\": \"^10.2.0\",$/", "line": 8585, "kind": "string", "scope": "packages.node_modules/electron-store.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "config-file-ts", "path": "package-lock.json", "pattern": "/^        \"config-file-ts\": \"^0.2.4\",$/", "line": 16820, "kind": "string", "scope": "packages.node_modules/read-config-file.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "confusing-browser-globals", "path": "package-lock.json", "pattern": "/^        \"confusing-browser-globals\": \"^1.0.11\",$/", "line": 9025, "kind": "string", "scope": "packages.node_modules/eslint-config-react-app.dependencies", "scopeKind": "object"}
@@ -2664,7 +2672,7 @@
 {"_type": "tag", "name": "dependencies", "path": "package-lock.json", "pattern": "/^      \"dependencies\": {$/", "line": 9957, "kind": "object", "scope": "packages.node_modules/fill-range", "scopeKind": "object"}
 {"_type": "tag", "name": "dependencies", "path": "package-lock.json", "pattern": "/^      \"dependencies\": {$/", "line": 9969, "kind": "object", "scope": "packages.node_modules/finalhandler", "scopeKind": "object"}
 {"_type": "tag", "name": "dependencies", "path": "package-lock.json", "pattern": "/^      \"dependencies\": {$/", "line": 9987, "kind": "object", "scope": "packages.node_modules/finalhandler/node_modules/debug", "scopeKind": "object"}
-{"_type": "tag", "name": "dependencies", "path": "package.json", "pattern": "/^  \"dependencies\": {$/", "line": 33, "kind": "object"}
+{"_type": "tag", "name": "dependencies", "path": "package.json", "pattern": "/^  \"dependencies\": {$/", "line": 55, "kind": "object"}
 {"_type": "tag", "name": "deprecated", "path": "package-lock.json", "pattern": "/^      \"deprecated\": \"It is not compatible with newer versions of GA starting with v4, as long as/", "line": 20665, "kind": "string", "scope": "packages.node_modules/workbox-google-analytics", "scopeKind": "object"}
 {"_type": "tag", "name": "deprecated", "path": "package-lock.json", "pattern": "/^      \"deprecated\": \"Modern JS already guarantees Array#sort() is a stable sort, so this library/", "line": 18221, "kind": "string", "scope": "packages.node_modules/stable", "scopeKind": "object"}
 {"_type": "tag", "name": "deprecated", "path": "package-lock.json", "pattern": "/^      \"deprecated\": \"Old versions of glob are not supported, and contain widely publicized secur/", "line": 10538, "kind": "string", "scope": "packages.node_modules/glob", "scopeKind": "object"}
@@ -2692,6 +2700,7 @@
 {"_type": "tag", "name": "deprecated", "path": "package-lock.json", "pattern": "/^      \"deprecated\": \"Use your platform's native performance.now() and performance.timeOrigin.\",$/", "line": 19976, "kind": "string", "scope": "packages.node_modules/w3c-hr-time", "scopeKind": "object"}
 {"_type": "tag", "name": "deprecated", "path": "package-lock.json", "pattern": "/^      \"deprecated\": \"You or someone you depend on is using Q, the JavaScript Promise library tha/", "line": 16372, "kind": "string", "scope": "packages.node_modules/q", "scopeKind": "object"}
 {"_type": "tag", "name": "deprecated", "path": "package-lock.json", "pattern": "/^      \"deprecated\": \"workbox-background-sync@6.6.0\",$/", "line": 20639, "kind": "string", "scope": "packages.node_modules/workbox-cacheable-response", "scopeKind": "object"}
+{"_type": "tag", "name": "description", "path": "package.json", "pattern": "/^      \"description\": \"CoreMail Desktop - Ein schlanker IMAP\\/SMTP E-Mail-Client mit dunklem Desi/", "line": 33, "kind": "string", "scope": "build.linux", "scopeKind": "object"}
 {"_type": "tag", "name": "description", "path": "package.json", "pattern": "/^  \"description\": \"CoreMail Desktop Client - Minimaler E-Mail-Client für Linux\",$/", "line": 4, "kind": "string"}
 {"_type": "tag", "name": "destroy", "path": "package-lock.json", "pattern": "/^        \"destroy\": \"1.2.0\",$/", "line": 17693, "kind": "string", "scope": "packages.node_modules/send.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "destroy", "path": "package-lock.json", "pattern": "/^        \"destroy\": \"~1.2.0\",$/", "line": 6092, "kind": "string", "scope": "packages.node_modules/body-parser.dependencies", "scopeKind": "object"}
@@ -2885,13 +2894,13 @@
 {"_type": "tag", "name": "dev", "path": "package-lock.json", "pattern": "/^      \"dev\": true,$/", "line": 9776, "kind": "boolean", "scope": "packages.node_modules/extsprintf", "scopeKind": "object"}
 {"_type": "tag", "name": "dev", "path": "package.json", "pattern": "/^    \"dev\": \"concurrently \\\\\"npm run react-start\\\\\" \\\\\"wait-on http:\\/\\/localhost:3000 && electro/", "line": 8, "kind": "string", "scope": "scripts", "scopeKind": "object"}
 {"_type": "tag", "name": "devDependencies", "path": "package-lock.json", "pattern": "/^      \"devDependencies\": {$/", "line": 20, "kind": "object", "scope": "packages.", "scopeKind": "object"}
-{"_type": "tag", "name": "devDependencies", "path": "package.json", "pattern": "/^  \"devDependencies\": {$/", "line": 43, "kind": "object"}
-{"_type": "tag", "name": "development", "path": "package.json", "pattern": "/^    \"development\": [$/", "line": 58, "kind": "array", "scope": "browserslist", "scopeKind": "object"}
+{"_type": "tag", "name": "devDependencies", "path": "package.json", "pattern": "/^  \"devDependencies\": {$/", "line": 65, "kind": "object"}
+{"_type": "tag", "name": "development", "path": "package.json", "pattern": "/^    \"development\": [$/", "line": 80, "kind": "array", "scope": "browserslist", "scopeKind": "object"}
 {"_type": "tag", "name": "didyoumean", "path": "package-lock.json", "pattern": "/^        \"didyoumean\": \"^1.2.2\",$/", "line": 18907, "kind": "string", "scope": "packages.node_modules/tailwindcss.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "diff-sequences", "path": "package-lock.json", "pattern": "/^        \"diff-sequences\": \"^27.5.1\",$/", "line": 12397, "kind": "string", "scope": "packages.node_modules/jest-diff.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "dir-compare", "path": "package-lock.json", "pattern": "/^        \"dir-compare\": \"^3.0.0\",$/", "line": 2564, "kind": "string", "scope": "packages.node_modules/@electron/universal.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "dir-glob", "path": "package-lock.json", "pattern": "/^        \"dir-glob\": \"^3.0.1\",$/", "line": 10714, "kind": "string", "scope": "packages.node_modules/globby.dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "directories", "path": "package.json", "pattern": "/^    \"directories\": {$/", "line": 18, "kind": "object", "scope": "build", "scopeKind": "object"}
+{"_type": "tag", "name": "directories", "path": "package.json", "pattern": "/^    \"directories\": {$/", "line": 20, "kind": "object", "scope": "build", "scopeKind": "object"}
 {"_type": "tag", "name": "dist", "path": "package.json", "pattern": "/^    \"dist\": \"electron-builder\"$/", "line": 13, "kind": "string", "scope": "scripts", "scopeKind": "object"}
 {"_type": "tag", "name": "dlv", "path": "package-lock.json", "pattern": "/^        \"dlv\": \"^1.1.3\",$/", "line": 18908, "kind": "string", "scope": "packages.node_modules/tailwindcss.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "dmg-builder", "path": "package-lock.json", "pattern": "/^        \"dmg-builder\": \"24.13.3\",$/", "line": 5210, "kind": "string", "scope": "packages.node_modules/app-builder-lib.peerDependencies", "scopeKind": "object"}
@@ -2955,16 +2964,16 @@
 {"_type": "tag", "name": "electron", "path": "package-lock.json", "pattern": "/^        \"electron\": \">= 13.0.0\"$/", "line": 2551, "kind": "string", "scope": "packages.node_modules/@electron/remote.peerDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "electron", "path": "package-lock.json", "pattern": "/^        \"electron\": \"^28.2.0\",$/", "line": 23, "kind": "string", "scope": "packages..devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "electron", "path": "package-lock.json", "pattern": "/^        \"electron\": \"cli.js\"$/", "line": 8399, "kind": "string", "scope": "packages.node_modules/electron.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "electron", "path": "package.json", "pattern": "/^    \"electron\": \"^28.2.0\",$/", "line": 46, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "electron", "path": "package.json", "pattern": "/^    \"electron\": \"^28.2.0\",$/", "line": 68, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "electron-builder", "path": "package-lock.json", "pattern": "/^        \"electron-builder\": \"^24.9.1\",$/", "line": 24, "kind": "string", "scope": "packages..devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "electron-builder", "path": "package-lock.json", "pattern": "/^        \"electron-builder\": \"cli.js\",$/", "line": 8425, "kind": "string", "scope": "packages.node_modules/electron-builder.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "electron-builder", "path": "package.json", "pattern": "/^    \"electron-builder\": \"^24.9.1\",$/", "line": 47, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "electron-builder", "path": "package.json", "pattern": "/^    \"electron-builder\": \"^24.9.1\",$/", "line": 69, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "electron-builder-squirrel-windows", "path": "package-lock.json", "pattern": "/^        \"electron-builder-squirrel-windows\": \"24.13.3\"$/", "line": 5211, "kind": "string", "scope": "packages.node_modules/app-builder-lib.peerDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "electron-osx-flat", "path": "package-lock.json", "pattern": "/^        \"electron-osx-flat\": \"bin\\/electron-osx-flat.js\",$/", "line": 2487, "kind": "string", "scope": "packages.node_modules/@electron/osx-sign.bin", "scopeKind": "object"}
 {"_type": "tag", "name": "electron-osx-sign", "path": "package-lock.json", "pattern": "/^        \"electron-osx-sign\": \"bin\\/electron-osx-sign.js\"$/", "line": 2488, "kind": "string", "scope": "packages.node_modules/@electron/osx-sign.bin", "scopeKind": "object"}
 {"_type": "tag", "name": "electron-publish", "path": "package-lock.json", "pattern": "/^        \"electron-publish\": \"24.13.1\",$/", "line": 5191, "kind": "string", "scope": "packages.node_modules/app-builder-lib.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "electron-store", "path": "package-lock.json", "pattern": "/^        \"electron-store\": \"^8.1.0\",$/", "line": 12, "kind": "string", "scope": "packages..dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "electron-store", "path": "package.json", "pattern": "/^    \"electron-store\": \"^8.1.0\",$/", "line": 35, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "electron-store", "path": "package.json", "pattern": "/^    \"electron-store\": \"^8.1.0\",$/", "line": 57, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "electron-to-chromium", "path": "package-lock.json", "pattern": "/^        \"electron-to-chromium\": \"^1.5.263\",$/", "line": 6206, "kind": "string", "scope": "packages.node_modules/browserslist.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "email", "path": "src/components/EmailListItem.js", "pattern": "/^const EmailListItem = ({ email, isSelected, onClick }) => {$/", "line": 3, "kind": "field", "scope": "EmailListItem", "scopeKind": "class"}
 {"_type": "tag", "name": "email", "path": "src/pages/EmailView.js", "pattern": "/^const EmailView = ({ email, onBack, onReply }) => {$/", "line": 4, "kind": "field", "scope": "EmailView", "scopeKind": "class"}
@@ -4238,6 +4247,8 @@
 {"_type": "tag", "name": "exports", "path": "tailwind.config.js", "pattern": "/^module.exports = {$/", "line": 2, "kind": "class", "scope": "module", "scopeKind": "class"}
 {"_type": "tag", "name": "express", "path": "package-lock.json", "pattern": "/^        \"express\": \"^4.17.3\",$/", "line": 20145, "kind": "string", "scope": "packages.node_modules/webpack-dev-server.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "extend", "path": "tailwind.config.js", "pattern": "/^    extend: {$/", "line": 8, "kind": "class", "scope": "module.exports.theme", "scopeKind": "class"}
+{"_type": "tag", "name": "extends", "path": "package.json", "pattern": "/^    \"extends\": null,$/", "line": 19, "kind": "null", "scope": "build", "scopeKind": "object"}
+{"_type": "tag", "name": "extraResources", "path": "package.json", "pattern": "/^    \"extraResources\": [$/", "line": 47, "kind": "array", "scope": "build", "scopeKind": "object"}
 {"_type": "tag", "name": "extract-zip", "path": "package-lock.json", "pattern": "/^        \"extract-zip\": \"^2.0.1\"$/", "line": 8396, "kind": "string", "scope": "packages.node_modules/electron.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "extract-zip", "path": "package-lock.json", "pattern": "/^        \"extract-zip\": \"cli.js\"$/", "line": 9763, "kind": "string", "scope": "packages.node_modules/extract-zip.bin", "scopeKind": "object"}
 {"_type": "tag", "name": "extsprintf", "path": "package-lock.json", "pattern": "/^        \"extsprintf\": \"^1.2.0\"$/", "line": 19966, "kind": "string", "scope": "packages.node_modules/verror.dependencies", "scopeKind": "object"}
@@ -4272,7 +4283,7 @@
 {"_type": "tag", "name": "file-entry-cache", "path": "package-lock.json", "pattern": "/^        \"file-entry-cache\": \"^6.0.1\",$/", "line": 8984, "kind": "string", "scope": "packages.node_modules/eslint.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "file-loader", "path": "package-lock.json", "pattern": "/^        \"file-loader\": \"^6.2.0\",$/", "line": 16708, "kind": "string", "scope": "packages.node_modules/react-scripts.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "filelist", "path": "package-lock.json", "pattern": "/^        \"filelist\": \"^1.0.4\",$/", "line": 12196, "kind": "string", "scope": "packages.node_modules/jake.dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "files", "path": "package.json", "pattern": "/^    \"files\": [$/", "line": 25, "kind": "array", "scope": "build", "scopeKind": "object"}
+{"_type": "tag", "name": "files", "path": "package.json", "pattern": "/^    \"files\": [$/", "line": 39, "kind": "array", "scope": "build", "scopeKind": "object"}
 {"_type": "tag", "name": "filesize", "path": "package-lock.json", "pattern": "/^        \"filesize\": \"^8.0.6\",$/", "line": 16549, "kind": "string", "scope": "packages.node_modules/react-dev-utils.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "fill-range", "path": "package-lock.json", "pattern": "/^        \"fill-range\": \"^7.1.1\"$/", "line": 6172, "kind": "string", "scope": "packages.node_modules/braces.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "finalhandler", "path": "package-lock.json", "pattern": "/^        \"finalhandler\": \"~1.3.1\",$/", "line": 9709, "kind": "string", "scope": "packages.node_modules/express.dependencies", "scopeKind": "object"}
@@ -4306,6 +4317,7 @@
 {"_type": "tag", "name": "fraction.js", "path": "package-lock.json", "pattern": "/^        \"fraction.js\": \"^5.3.4\",$/", "line": 5667, "kind": "string", "scope": "packages.node_modules/autoprefixer.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "fresh", "path": "package-lock.json", "pattern": "/^        \"fresh\": \"~0.5.2\",$/", "line": 17697, "kind": "string", "scope": "packages.node_modules/send.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "fresh", "path": "package-lock.json", "pattern": "/^        \"fresh\": \"~0.5.2\",$/", "line": 9710, "kind": "string", "scope": "packages.node_modules/express.dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "from", "path": "package.json", "pattern": "/^        \"from\": \"assets\\/icon.png\",$/", "line": 49, "kind": "string", "scope": "build.extraResources.0", "scopeKind": "object"}
 {"_type": "tag", "name": "fs-constants", "path": "package-lock.json", "pattern": "/^        \"fs-constants\": \"^1.0.0\",$/", "line": 19048, "kind": "string", "scope": "packages.node_modules/tar-stream.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "fs-extra", "path": "package-lock.json", "pattern": "/^        \"fs-extra\": \"^10.0.0\"$/", "line": 19086, "kind": "string", "scope": "packages.node_modules/temp-file.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "fs-extra", "path": "package-lock.json", "pattern": "/^        \"fs-extra\": \"^10.0.0\",$/", "line": 16709, "kind": "string", "scope": "packages.node_modules/react-scripts.dependencies", "scopeKind": "object"}
@@ -4892,7 +4904,7 @@
 {"_type": "tag", "name": "he", "path": "package-lock.json", "pattern": "/^        \"he\": \"1.2.0\",$/", "line": 13771, "kind": "string", "scope": "packages.node_modules/mailparser.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "he", "path": "package-lock.json", "pattern": "/^        \"he\": \"^1.2.0\",$/", "line": 11012, "kind": "string", "scope": "packages.node_modules/html-minifier-terser.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "he", "path": "package-lock.json", "pattern": "/^        \"he\": \"bin\\/he\"$/", "line": 10896, "kind": "string", "scope": "packages.node_modules/he.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "homepage", "path": "package.json", "pattern": "/^  \"homepage\": \".\\/\",$/", "line": 32, "kind": "string"}
+{"_type": "tag", "name": "homepage", "path": "package.json", "pattern": "/^  \"homepage\": \".\\/\",$/", "line": 54, "kind": "string"}
 {"_type": "tag", "name": "hoopy", "path": "package-lock.json", "pattern": "/^        \"hoopy\": \"^0.1.4\",$/", "line": 6024, "kind": "string", "scope": "packages.node_modules/bfj.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "hosted-git-info", "path": "package-lock.json", "pattern": "/^        \"hosted-git-info\": \"^4.1.0\",$/", "line": 5194, "kind": "string", "scope": "packages.node_modules/app-builder-lib.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "hpack.js", "path": "package-lock.json", "pattern": "/^        \"hpack.js\": \"^2.1.6\",$/", "line": 18204, "kind": "string", "scope": "packages.node_modules/spdy-transport.dependencies", "scopeKind": "object"}
@@ -4922,6 +4934,7 @@
 {"_type": "tag", "name": "https-proxy-agent", "path": "package-lock.json", "pattern": "/^        \"https-proxy-agent\": \"^5.0.0\",$/", "line": 13197, "kind": "string", "scope": "packages.node_modules/jsdom.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "https-proxy-agent", "path": "package-lock.json", "pattern": "/^        \"https-proxy-agent\": \"^5.0.1\",$/", "line": 6296, "kind": "string", "scope": "packages.node_modules/builder-util.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "human-signals", "path": "package-lock.json", "pattern": "/^        \"human-signals\": \"^2.1.0\",$/", "line": 9641, "kind": "string", "scope": "packages.node_modules/execa.dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "icon", "path": "package.json", "pattern": "/^      \"icon\": \"assets\\/icon.png\",$/", "line": 30, "kind": "string", "scope": "build.linux", "scopeKind": "object"}
 {"_type": "tag", "name": "iconv-corefoundation", "path": "package-lock.json", "pattern": "/^        \"iconv-corefoundation\": \"^1.1.7\",$/", "line": 8177, "kind": "string", "scope": "packages.node_modules/dmg-license.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "iconv-lite", "path": "package-lock.json", "pattern": "/^        \"iconv-lite\": \"0.4.24\"$/", "line": 20304, "kind": "string", "scope": "packages.node_modules/whatwg-encoding.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "iconv-lite", "path": "package-lock.json", "pattern": "/^        \"iconv-lite\": \"0.6.3\",$/", "line": 13560, "kind": "string", "scope": "packages.node_modules/libmime.dependencies", "scopeKind": "object"}
@@ -4944,7 +4957,7 @@
 {"_type": "tag", "name": "ignore", "path": "package-lock.json", "pattern": "/^        \"ignore\": \"^5.2.0\",$/", "line": 8989, "kind": "string", "scope": "packages.node_modules/eslint.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "imap", "path": "package-lock.json", "pattern": "/^        \"imap\": \"^0.8.18\",$/", "line": 11335, "kind": "string", "scope": "packages.node_modules/imap-simple.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "imap-simple", "path": "package-lock.json", "pattern": "/^        \"imap-simple\": \"^5.1.0\",$/", "line": 13, "kind": "string", "scope": "packages..dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "imap-simple", "path": "package.json", "pattern": "/^    \"imap-simple\": \"^5.1.0\",$/", "line": 36, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "imap-simple", "path": "package.json", "pattern": "/^    \"imap-simple\": \"^5.1.0\",$/", "line": 58, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "imapSettings", "path": "src/pages/Settings.js", "pattern": "/^                    checked={imapSettings.tls}$/", "line": 214, "kind": "field", "scope": "checked", "scopeKind": "class"}
 {"_type": "tag", "name": "imapSettings", "path": "src/pages/Settings.js", "pattern": "/^                    value={imapSettings.host}$/", "line": 166, "kind": "field", "scope": "value", "scopeKind": "class"}
 {"_type": "tag", "name": "imapSettings", "path": "src/pages/Settings.js", "pattern": "/^                    value={imapSettings.port}$/", "line": 177, "kind": "field", "scope": "value", "scopeKind": "class"}
@@ -8535,7 +8548,7 @@
 {"_type": "tag", "name": "lines-and-columns", "path": "package-lock.json", "pattern": "/^        \"lines-and-columns\": \"^1.1.6\",$/", "line": 18598, "kind": "string", "scope": "packages.node_modules/sucrase.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "link", "path": "src/pages/EmailView.js", "pattern": "/^    const link = document.createElement('a');$/", "line": 58, "kind": "constant"}
 {"_type": "tag", "name": "linkify-it", "path": "package-lock.json", "pattern": "/^        \"linkify-it\": \"5.0.0\",$/", "line": 13775, "kind": "string", "scope": "packages.node_modules/mailparser.dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "linux", "path": "package.json", "pattern": "/^    \"linux\": {$/", "line": 21, "kind": "object", "scope": "build", "scopeKind": "object"}
+{"_type": "tag", "name": "linux", "path": "package.json", "pattern": "/^    \"linux\": {$/", "line": 23, "kind": "object", "scope": "build", "scopeKind": "object"}
 {"_type": "tag", "name": "loader-runner", "path": "package-lock.json", "pattern": "/^        \"loader-runner\": \"^4.3.1\",$/", "line": 20077, "kind": "string", "scope": "packages.node_modules/webpack.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "loader-utils", "path": "package-lock.json", "pattern": "/^        \"loader-utils\": \"^2.0.0\"$/", "line": 3931, "kind": "string", "scope": "packages.node_modules/@svgr/webpack.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "loader-utils", "path": "package-lock.json", "pattern": "/^        \"loader-utils\": \"^2.0.0\",$/", "line": 17191, "kind": "string", "scope": "packages.node_modules/resolve-url-loader.dependencies", "scopeKind": "object"}
@@ -8590,9 +8603,10 @@
 {"_type": "tag", "name": "magic-string", "path": "package-lock.json", "pattern": "/^        \"magic-string\": \"^0.25.0\",$/", "line": 3716, "kind": "string", "scope": "packages.node_modules/@surma/rollup-plugin-off-main-thread.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "magic-string", "path": "package-lock.json", "pattern": "/^        \"magic-string\": \"^0.25.7\"$/", "line": 3594, "kind": "string", "scope": "packages.node_modules/@rollup/plugin-replace.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "mailparser", "path": "package-lock.json", "pattern": "/^        \"mailparser\": \"^3.6.6\",$/", "line": 14, "kind": "string", "scope": "packages..dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "mailparser", "path": "package.json", "pattern": "/^    \"mailparser\": \"^3.6.6\",$/", "line": 37, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "mailparser", "path": "package.json", "pattern": "/^    \"mailparser\": \"^3.6.6\",$/", "line": 59, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "main", "path": "package.json", "pattern": "/^  \"main\": \"main.js\",$/", "line": 5, "kind": "string"}
 {"_type": "tag", "name": "mainWindow", "path": "main.js", "pattern": "/^let mainWindow;$/", "line": 14, "kind": "variable"}
+{"_type": "tag", "name": "maintainer", "path": "package.json", "pattern": "/^      \"maintainer\": \"CoreMail Team\"$/", "line": 34, "kind": "string", "scope": "build.linux", "scopeKind": "object"}
 {"_type": "tag", "name": "make-dir", "path": "package-lock.json", "pattern": "/^        \"make-dir\": \"^3.0.2\",$/", "line": 10004, "kind": "string", "scope": "packages.node_modules/find-cache-dir.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "make-dir", "path": "package-lock.json", "pattern": "/^        \"make-dir\": \"^3.1.0\",$/", "line": 5756, "kind": "string", "scope": "packages.node_modules/babel-loader.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "make-dir", "path": "package-lock.json", "pattern": "/^        \"make-dir\": \"^4.0.0\",$/", "line": 12074, "kind": "string", "scope": "packages.node_modules/istanbul-lib-report.dependencies", "scopeKind": "object"}
@@ -11382,7 +11396,7 @@
 {"_type": "tag", "name": "nodemailer", "path": "main.js", "pattern": "/^const nodemailer = require('nodemailer');$/", "line": 6, "kind": "constant"}
 {"_type": "tag", "name": "nodemailer", "path": "package-lock.json", "pattern": "/^        \"nodemailer\": \"7.0.13\",$/", "line": 13776, "kind": "string", "scope": "packages.node_modules/mailparser.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "nodemailer", "path": "package-lock.json", "pattern": "/^        \"nodemailer\": \"^6.9.9\",$/", "line": 15, "kind": "string", "scope": "packages..dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "nodemailer", "path": "package.json", "pattern": "/^    \"nodemailer\": \"^6.9.9\",$/", "line": 38, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "nodemailer", "path": "package.json", "pattern": "/^    \"nodemailer\": \"^6.9.9\",$/", "line": 60, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "normalize-path", "path": "package-lock.json", "pattern": "/^        \"normalize-path\": \"^3.0.0\",$/", "line": 18915, "kind": "string", "scope": "packages.node_modules/tailwindcss.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "normalize-path", "path": "package-lock.json", "pattern": "/^        \"normalize-path\": \"^3.0.0\",$/", "line": 21004, "kind": "string", "scope": "packages.node_modules/zip-stream/node_modules/archiver-utils.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "normalize-path", "path": "package-lock.json", "pattern": "/^        \"normalize-path\": \"^3.0.0\",$/", "line": 5157, "kind": "string", "scope": "packages.node_modules/anymatch.dependencies", "scopeKind": "object"}
@@ -11567,7 +11581,7 @@
 {"_type": "tag", "name": "os", "path": "package-lock.json", "pattern": "/^      \"os\": [$/", "line": 10378, "kind": "array", "scope": "packages.node_modules/fsevents", "scopeKind": "object"}
 {"_type": "tag", "name": "os", "path": "package-lock.json", "pattern": "/^      \"os\": [$/", "line": 11233, "kind": "array", "scope": "packages.node_modules/iconv-corefoundation", "scopeKind": "object"}
 {"_type": "tag", "name": "os", "path": "package-lock.json", "pattern": "/^      \"os\": [$/", "line": 8169, "kind": "array", "scope": "packages.node_modules/dmg-license", "scopeKind": "object"}
-{"_type": "tag", "name": "output", "path": "package.json", "pattern": "/^      \"output\": \"dist\"$/", "line": 19, "kind": "string", "scope": "build.directories", "scopeKind": "object"}
+{"_type": "tag", "name": "output", "path": "package.json", "pattern": "/^      \"output\": \"dist\"$/", "line": 21, "kind": "string", "scope": "build.directories", "scopeKind": "object"}
 {"_type": "tag", "name": "own-keys", "path": "package-lock.json", "pattern": "/^        \"own-keys\": \"^1.0.1\",$/", "line": 8755, "kind": "string", "scope": "packages.node_modules/es-abstract.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "p-cancelable", "path": "package-lock.json", "pattern": "/^        \"p-cancelable\": \"^2.0.0\",$/", "line": 10754, "kind": "string", "scope": "packages.node_modules/got.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "p-limit", "path": "package-lock.json", "pattern": "/^        \"p-limit\": \"^2.0.0\"$/", "line": 14561, "kind": "string", "scope": "packages.node_modules/p-locate.dependencies", "scopeKind": "object"}
@@ -12077,7 +12091,7 @@
 {"_type": "tag", "name": "postcss", "path": "package-lock.json", "pattern": "/^        \"postcss\": \"^8.4\"$/", "line": 7446, "kind": "string", "scope": "packages.node_modules/css-prefers-color-scheme.peerDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "postcss", "path": "package-lock.json", "pattern": "/^        \"postcss\": \"^8\"$/", "line": 15899, "kind": "string", "scope": "packages.node_modules/postcss-page-break.peerDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "postcss", "path": "package-lock.json", "pattern": "/^        \"postcss\": {$/", "line": 18978, "kind": "object", "scope": "packages.node_modules/tailwindcss/node_modules/postcss-load-config.peerDependenciesMeta", "scopeKind": "object"}
-{"_type": "tag", "name": "postcss", "path": "package.json", "pattern": "/^    \"postcss\": \"^8.4.35\",$/", "line": 48, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "postcss", "path": "package.json", "pattern": "/^    \"postcss\": \"^8.4.35\",$/", "line": 70, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "postcss-attribute-case-insensitive", "path": "package-lock.json", "pattern": "/^        \"postcss-attribute-case-insensitive\": \"^5.0.2\",$/", "line": 15947, "kind": "string", "scope": "packages.node_modules/postcss-preset-env.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "postcss-browser-comments", "path": "package-lock.json", "pattern": "/^        \"postcss-browser-comments\": \"^4\",$/", "line": 15691, "kind": "string", "scope": "packages.node_modules/postcss-normalize.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "postcss-calc", "path": "package-lock.json", "pattern": "/^        \"postcss-calc\": \"^8.2.3\",$/", "line": 7614, "kind": "string", "scope": "packages.node_modules/cssnano-preset-default.dependencies", "scopeKind": "object"}
@@ -12235,7 +12249,7 @@
 {"_type": "tag", "name": "process-nextick-args", "path": "package-lock.json", "pattern": "/^        \"process-nextick-args\": \"~2.0.0\",$/", "line": 13491, "kind": "string", "scope": "packages.node_modules/lazystream/node_modules/readable-stream.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "process-nextick-args", "path": "package-lock.json", "pattern": "/^        \"process-nextick-args\": \"~2.0.0\",$/", "line": 5327, "kind": "string", "scope": "packages.node_modules/archiver-utils/node_modules/readable-stream.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "productName", "path": "package.json", "pattern": "/^    \"productName\": \"CoreMail Desktop\",$/", "line": 17, "kind": "string", "scope": "build", "scopeKind": "object"}
-{"_type": "tag", "name": "production", "path": "package.json", "pattern": "/^    \"production\": [$/", "line": 53, "kind": "array", "scope": "browserslist", "scopeKind": "object"}
+{"_type": "tag", "name": "production", "path": "package.json", "pattern": "/^    \"production\": [$/", "line": 75, "kind": "array", "scope": "browserslist", "scopeKind": "object"}
 {"_type": "tag", "name": "progress", "path": "package-lock.json", "pattern": "/^        \"progress\": \"^2.0.3\",$/", "line": 2407, "kind": "string", "scope": "packages.node_modules/@electron/get.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "promise", "path": "package-lock.json", "pattern": "/^        \"promise\": \"^8.1.0\",$/", "line": 16518, "kind": "string", "scope": "packages.node_modules/react-app-polyfill.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "promise", "path": "package-lock.json", "pattern": "/^        \"promise\": \"~1.3.0\"$/", "line": 14212, "kind": "string", "scope": "packages.node_modules/nodeify.dependencies", "scopeKind": "object"}
@@ -12272,12 +12286,12 @@
 {"_type": "tag", "name": "react", "path": "package-lock.json", "pattern": "/^        \"react\": \">= 16\",$/", "line": 16748, "kind": "string", "scope": "packages.node_modules/react-scripts.peerDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react", "path": "package-lock.json", "pattern": "/^        \"react\": \"^18.2.0\",$/", "line": 16, "kind": "string", "scope": "packages..dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react", "path": "package-lock.json", "pattern": "/^        \"react\": \"^18.3.1\"$/", "line": 16660, "kind": "string", "scope": "packages.node_modules/react-dom.peerDependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "react", "path": "package.json", "pattern": "/^    \"react\": \"^18.2.0\",$/", "line": 39, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "react", "path": "package.json", "pattern": "/^    \"react\": \"^18.2.0\",$/", "line": 61, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-app-polyfill", "path": "package-lock.json", "pattern": "/^        \"react-app-polyfill\": \"^3.0.0\",$/", "line": 16722, "kind": "string", "scope": "packages.node_modules/react-scripts.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-build", "path": "package.json", "pattern": "/^    \"react-build\": \"react-scripts build\",$/", "line": 10, "kind": "string", "scope": "scripts", "scopeKind": "object"}
 {"_type": "tag", "name": "react-dev-utils", "path": "package-lock.json", "pattern": "/^        \"react-dev-utils\": \"^12.0.1\",$/", "line": 16723, "kind": "string", "scope": "packages.node_modules/react-scripts.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-dom", "path": "package-lock.json", "pattern": "/^        \"react-dom\": \"^18.2.0\",$/", "line": 17, "kind": "string", "scope": "packages..dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "react-dom", "path": "package.json", "pattern": "/^    \"react-dom\": \"^18.2.0\",$/", "line": 40, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "react-dom", "path": "package.json", "pattern": "/^    \"react-dom\": \"^18.2.0\",$/", "line": 62, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-error-overlay", "path": "package-lock.json", "pattern": "/^        \"react-error-overlay\": \"^6.0.11\",$/", "line": 16561, "kind": "string", "scope": "packages.node_modules/react-dev-utils.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-is", "path": "package-lock.json", "pattern": "/^        \"react-is\": \"^16.13.1\"$/", "line": 16290, "kind": "string", "scope": "packages.node_modules/prop-types.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-is", "path": "package-lock.json", "pattern": "/^        \"react-is\": \"^17.0.1\"$/", "line": 16213, "kind": "string", "scope": "packages.node_modules/pretty-format.dependencies", "scopeKind": "object"}
@@ -12286,7 +12300,7 @@
 {"_type": "tag", "name": "react-refresh", "path": "package-lock.json", "pattern": "/^        \"react-refresh\": \"^0.11.0\",$/", "line": 16724, "kind": "string", "scope": "packages.node_modules/react-scripts.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-scripts", "path": "package-lock.json", "pattern": "/^        \"react-scripts\": \"5.0.1\"$/", "line": 18, "kind": "string", "scope": "packages..dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-scripts", "path": "package-lock.json", "pattern": "/^        \"react-scripts\": \"bin\\/react-scripts.js\"$/", "line": 16739, "kind": "string", "scope": "packages.node_modules/react-scripts.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "react-scripts", "path": "package.json", "pattern": "/^    \"react-scripts\": \"5.0.1\"$/", "line": 41, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "react-scripts", "path": "package.json", "pattern": "/^    \"react-scripts\": \"5.0.1\"$/", "line": 63, "kind": "string", "scope": "dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "react-start", "path": "package.json", "pattern": "/^    \"react-start\": \"react-scripts start\",$/", "line": 9, "kind": "string", "scope": "scripts", "scopeKind": "object"}
 {"_type": "tag", "name": "read-cache", "path": "package-lock.json", "pattern": "/^        \"read-cache\": \"^1.0.0\",$/", "line": 15334, "kind": "string", "scope": "packages.node_modules/postcss-import.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "read-config-file", "path": "package-lock.json", "pattern": "/^        \"read-config-file\": \"6.3.2\",$/", "line": 5200, "kind": "string", "scope": "packages.node_modules/app-builder-lib.dependencies", "scopeKind": "object"}
@@ -14294,11 +14308,12 @@
 {"_type": "tag", "name": "svgo", "path": "package-lock.json", "pattern": "/^        \"svgo\": \"bin\\/svgo\"$/", "line": 16147, "kind": "string", "scope": "packages.node_modules/postcss-svgo/node_modules/svgo.bin", "scopeKind": "object"}
 {"_type": "tag", "name": "svgo", "path": "package-lock.json", "pattern": "/^        \"svgo\": \"bin\\/svgo\"$/", "line": 18713, "kind": "string", "scope": "packages.node_modules/svgo.bin", "scopeKind": "object"}
 {"_type": "tag", "name": "symbol-tree", "path": "package-lock.json", "pattern": "/^        \"symbol-tree\": \"^3.2.4\",$/", "line": 13202, "kind": "string", "scope": "packages.node_modules/jsdom.dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "synopsis", "path": "package.json", "pattern": "/^      \"synopsis\": \"Minimaler E-Mail-Client für Linux\",$/", "line": 32, "kind": "string", "scope": "build.linux", "scopeKind": "object"}
 {"_type": "tag", "name": "tailwind", "path": "package-lock.json", "pattern": "/^        \"tailwind\": \"lib\\/cli.js\",$/", "line": 18928, "kind": "string", "scope": "packages.node_modules/tailwindcss.bin", "scopeKind": "object"}
 {"_type": "tag", "name": "tailwindcss", "path": "package-lock.json", "pattern": "/^        \"tailwindcss\": \"^3.0.2\",$/", "line": 16731, "kind": "string", "scope": "packages.node_modules/react-scripts.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "tailwindcss", "path": "package-lock.json", "pattern": "/^        \"tailwindcss\": \"^3.4.1\",$/", "line": 26, "kind": "string", "scope": "packages..devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "tailwindcss", "path": "package-lock.json", "pattern": "/^        \"tailwindcss\": \"lib\\/cli.js\"$/", "line": 18929, "kind": "string", "scope": "packages.node_modules/tailwindcss.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "tailwindcss", "path": "package.json", "pattern": "/^    \"tailwindcss\": \"^3.4.1\",$/", "line": 49, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "tailwindcss", "path": "package.json", "pattern": "/^    \"tailwindcss\": \"^3.4.1\",$/", "line": 71, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "tailwindcss", "path": "postcss.config.js", "pattern": "/^    tailwindcss: {},$/", "line": 3, "kind": "property", "scope": "module.exports.plugins", "scopeKind": "class"}
 {"_type": "tag", "name": "tapable", "path": "package-lock.json", "pattern": "/^        \"tapable\": \"^1.0.0\"$/", "line": 10129, "kind": "string", "scope": "packages.node_modules/fork-ts-checker-webpack-plugin.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "tapable", "path": "package-lock.json", "pattern": "/^        \"tapable\": \"^2.0.0\"$/", "line": 11059, "kind": "string", "scope": "packages.node_modules/html-webpack-plugin.dependencies", "scopeKind": "object"}
@@ -14308,7 +14323,8 @@
 {"_type": "tag", "name": "tapable", "path": "package-lock.json", "pattern": "/^        \"tapable\": \"^2.3.0\",$/", "line": 20081, "kind": "string", "scope": "packages.node_modules/webpack.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "tar", "path": "package-lock.json", "pattern": "/^        \"tar\": \"^6.1.12\",$/", "line": 5203, "kind": "string", "scope": "packages.node_modules/app-builder-lib.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "tar-stream", "path": "package-lock.json", "pattern": "/^        \"tar-stream\": \"^2.2.0\",$/", "line": 5278, "kind": "string", "scope": "packages.node_modules/archiver.dependencies", "scopeKind": "object"}
-{"_type": "tag", "name": "target", "path": "package.json", "pattern": "/^      \"target\": [\"AppImage\", \"deb\"],$/", "line": 22, "kind": "array", "scope": "build.linux", "scopeKind": "object"}
+{"_type": "tag", "name": "target", "path": "package.json", "pattern": "/^          \"target\": \"AppImage\",$/", "line": 26, "kind": "string", "scope": "build.linux.target.0", "scopeKind": "object"}
+{"_type": "tag", "name": "target", "path": "package.json", "pattern": "/^      \"target\": [$/", "line": 24, "kind": "array", "scope": "build.linux", "scopeKind": "object"}
 {"_type": "tag", "name": "teleport", "path": "package-lock.json", "pattern": "/^        \"teleport\": \">=0.2.0\"$/", "line": 16376, "kind": "string", "scope": "packages.node_modules/q.engines", "scopeKind": "object"}
 {"_type": "tag", "name": "temp-dir", "path": "package-lock.json", "pattern": "/^        \"temp-dir\": \"^2.0.0\",$/", "line": 19134, "kind": "string", "scope": "packages.node_modules/tempy.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "temp-file", "path": "package-lock.json", "pattern": "/^        \"temp-file\": \"^3.4.0\"$/", "line": 5204, "kind": "string", "scope": "packages.node_modules/app-builder-lib.dependencies", "scopeKind": "object"}
@@ -14344,6 +14360,7 @@
 {"_type": "tag", "name": "tmp", "path": "package-lock.json", "pattern": "/^        \"tmp\": \"^0.2.0\"$/", "line": 19376, "kind": "string", "scope": "packages.node_modules/tmp-promise.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "tmp-promise", "path": "package-lock.json", "pattern": "/^        \"tmp-promise\": \"^3.0.2\"$/", "line": 3374, "kind": "string", "scope": "packages.node_modules/@malept/flatpak-bundler.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "tmpl", "path": "package-lock.json", "pattern": "/^        \"tmpl\": \"1.0.5\"$/", "line": 13827, "kind": "string", "scope": "packages.node_modules/makeerror.dependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "to", "path": "package.json", "pattern": "/^        \"to\": \"icon.png\"$/", "line": 50, "kind": "string", "scope": "build.extraResources.0", "scopeKind": "object"}
 {"_type": "tag", "name": "to-regex-range", "path": "package-lock.json", "pattern": "/^        \"to-regex-range\": \"^5.0.1\"$/", "line": 9958, "kind": "string", "scope": "packages.node_modules/fill-range.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "toidentifier", "path": "package-lock.json", "pattern": "/^        \"toidentifier\": \"1.0.1\"$/", "line": 17824, "kind": "string", "scope": "packages.node_modules/serve-index/node_modules/http-errors.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "toidentifier", "path": "package-lock.json", "pattern": "/^        \"toidentifier\": \"~1.0.1\"$/", "line": 11122, "kind": "string", "scope": "packages.node_modules/http-errors.dependencies", "scopeKind": "object"}
@@ -16606,7 +16623,7 @@
 {"_type": "tag", "name": "w3c-xmlserializer", "path": "package-lock.json", "pattern": "/^        \"w3c-xmlserializer\": \"^2.0.0\",$/", "line": 13205, "kind": "string", "scope": "packages.node_modules/jsdom.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "wait-on", "path": "package-lock.json", "pattern": "/^        \"wait-on\": \"^7.2.0\"$/", "line": 27, "kind": "string", "scope": "packages..devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "wait-on", "path": "package-lock.json", "pattern": "/^        \"wait-on\": \"bin\\/wait-on\"$/", "line": 20008, "kind": "string", "scope": "packages.node_modules/wait-on.bin", "scopeKind": "object"}
-{"_type": "tag", "name": "wait-on", "path": "package.json", "pattern": "/^    \"wait-on\": \"^7.2.0\"$/", "line": 50, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
+{"_type": "tag", "name": "wait-on", "path": "package.json", "pattern": "/^    \"wait-on\": \"^7.2.0\"$/", "line": 72, "kind": "string", "scope": "devDependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "walker", "path": "package-lock.json", "pattern": "/^        \"walker\": \"^1.0.7\"$/", "line": 12494, "kind": "string", "scope": "packages.node_modules/jest-haste-map.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "watchpack", "path": "package-lock.json", "pattern": "/^        \"watchpack\": \"^2.5.1\",$/", "line": 20083, "kind": "string", "scope": "packages.node_modules/webpack.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "wbuf", "path": "package-lock.json", "pattern": "/^        \"wbuf\": \"^1.1.0\"$/", "line": 10930, "kind": "string", "scope": "packages.node_modules/hpack.js.dependencies", "scopeKind": "object"}
@@ -16756,12 +16773,12 @@
 {"_type": "tag", "name": "yocto-queue", "path": "package-lock.json", "pattern": "/^        \"yocto-queue\": \"^0.1.0\"$/", "line": 9498, "kind": "string", "scope": "packages.node_modules/eslint/node_modules/p-limit.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "zip-stream", "path": "package-lock.json", "pattern": "/^        \"zip-stream\": \"^4.1.0\"$/", "line": 5279, "kind": "string", "scope": "packages.node_modules/archiver.dependencies", "scopeKind": "object"}
 {"_type": "tag", "name": "✨ Features", "path": "README.md", "pattern": "/^## ✨ Features$/", "line": 9, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
-{"_type": "tag", "name": "🐛 Bekannte Einschränkungen (v1.0)", "path": "README.md", "pattern": "/^## 🐛 Bekannte Einschränkungen (v1.0)$/", "line": 131, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
-{"_type": "tag", "name": "📁 Projektstruktur", "path": "README.md", "pattern": "/^## 📁 Projektstruktur$/", "line": 97, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
-{"_type": "tag", "name": "📄 Lizenz", "path": "README.md", "pattern": "/^## 📄 Lizenz$/", "line": 147, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
+{"_type": "tag", "name": "🐛 Bekannte Einschränkungen (v1.0)", "path": "README.md", "pattern": "/^## 🐛 Bekannte Einschränkungen (v1.0)$/", "line": 154, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
+{"_type": "tag", "name": "📁 Projektstruktur", "path": "README.md", "pattern": "/^## 📁 Projektstruktur$/", "line": 120, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
+{"_type": "tag", "name": "📄 Lizenz", "path": "README.md", "pattern": "/^## 📄 Lizenz$/", "line": 170, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
 {"_type": "tag", "name": "📦 Installation", "path": "README.md", "pattern": "/^## 📦 Installation$/", "line": 26, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
 {"_type": "tag", "name": "📧 CoreMail Desktop v1.0", "path": "README.md", "pattern": "/^# 📧 CoreMail Desktop v1.0$/", "line": 1, "kind": "chapter"}
-{"_type": "tag", "name": "🔒 Sicherheit", "path": "README.md", "pattern": "/^## 🔒 Sicherheit$/", "line": 125, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
-{"_type": "tag", "name": "🔮 Geplante Features (v2.0+)", "path": "README.md", "pattern": "/^## 🔮 Geplante Features (v2.0+)$/", "line": 138, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
-{"_type": "tag", "name": "🚀 Verwendung", "path": "README.md", "pattern": "/^## 🚀 Verwendung$/", "line": 60, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
+{"_type": "tag", "name": "🔒 Sicherheit", "path": "README.md", "pattern": "/^## 🔒 Sicherheit$/", "line": 148, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
+{"_type": "tag", "name": "🔮 Geplante Features (v2.0+)", "path": "README.md", "pattern": "/^## 🔮 Geplante Features (v2.0+)$/", "line": 161, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
+{"_type": "tag", "name": "🚀 Verwendung", "path": "README.md", "pattern": "/^## 🚀 Verwendung$/", "line": 83, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
 {"_type": "tag", "name": "🛠️ Technologie-Stack", "path": "README.md", "pattern": "/^## 🛠️ Technologie-Stack$/", "line": 17, "kind": "section", "scope": "📧 CoreMail Desktop v1.0", "scopeKind": "chapter"}
