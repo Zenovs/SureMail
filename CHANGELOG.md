@@ -2,6 +2,31 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.5.4] - 2026-03-08
+
+### 🐛 Bugfixes
+
+#### 🔧 Robustere Ollama-Installation
+- **Voraussetzungen-Prüfung**: Prüft ob curl verfügbar ist
+- **Internet-Verbindung**: Prüft ob ollama.com erreichbar ist vor Installation
+- **Verifikation**: Prüft ob Ollama nach Installation wirklich verfügbar ist
+- **sudo-Unterstützung**: Installiert mit sudo falls nötig
+- **Bessere Fehlermeldungen**: Klare Anleitung bei fehlgeschlagener Installation
+- **systemd-Integration**: Versucht zuerst systemd-Service zu starten
+- **Logging**: Alle Schritte werden in /tmp/coremail-install.log protokolliert
+
+#### 📐 Verbesserte Einstellungs-UI
+- **Breitere Sidebar**: Einstellungs-Sidebar von 224px auf 256px verbreitert
+- **Scrolling**: overflow-y-auto in Sidebar für Scrolling bei vielen Tabs
+- **Flex-Shrink**: Sidebar behält ihre Breite auch bei schmalem Fenster
+- **Bessere Lesbarkeit**: Keine abgeschnittenen Texte mehr
+
+### 🔧 Technische Änderungen
+- **install.sh**: Komplett überarbeitet mit Logging-Funktionen
+- **SettingsV2.js**: Layout-Verbesserungen für bessere UX
+
+---
+
 ## [1.5.3] - 2026-03-08
 
 ### ✨ Neue Features

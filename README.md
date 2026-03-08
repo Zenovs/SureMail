@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.5.3
+# 📧 CoreMail Desktop v1.5.4
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration und fortschrittlichen Funktionen.
 

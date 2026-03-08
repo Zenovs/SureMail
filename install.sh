@@ -1,70 +1,148 @@
 #!/bin/bash
 
-# CoreMail Desktop Installer
+# CoreMail Desktop Installer v1.5.4
 # Installiert CoreMail Desktop als AppImage mit Desktop-Integration
-# Inklusive automatischer Ollama KI-Integration (v1.5.3+)
+# Inklusive verbesserter Ollama KI-Integration mit robuster Fehlerbehandlung
 
 set -e
 
-VERSION="1.5.3"
+VERSION="1.5.4"
 APP_NAME="CoreMail Desktop"
 APPIMAGE_NAME="CoreMail.Desktop-${VERSION}.AppImage"
 INSTALL_DIR="$HOME/.local/share/coremail"
 DESKTOP_FILE="$HOME/.local/share/applications/coremail.desktop"
 ICON_DIR="$HOME/.local/share/icons"
 ICON_FILE="$ICON_DIR/coremail.png"
+LOG_FILE="/tmp/coremail-install.log"
 
+# ============ LOGGING FUNKTIONEN ============
+
+log() {
+    local message="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$message" | tee -a "$LOG_FILE"
+}
+
+log_success() {
+    log "✅ $1"
+}
+
+log_warning() {
+    log "⚠️  $1"
+}
+
+log_error() {
+    log "❌ $1"
+}
+
+log_info() {
+    log "ℹ️  $1"
+}
+
+# ============ HILFSFUNKTIONEN ============
+
+check_curl() {
+    if ! command -v curl &> /dev/null; then
+        log_error "curl ist nicht installiert!"
+        log_info "Bitte installiere curl mit: sudo apt install curl"
+        return 1
+    fi
+    log_success "curl ist verfügbar"
+    return 0
+}
+
+check_internet() {
+    log_info "Prüfe Internet-Verbindung..."
+    if curl -s --connect-timeout 5 https://ollama.com > /dev/null 2>&1; then
+        log_success "Internet-Verbindung vorhanden"
+        return 0
+    else
+        log_warning "Keine Internet-Verbindung zu ollama.com"
+        return 1
+    fi
+}
+
+verify_ollama_installation() {
+    # Warte kurz, damit sich alles initialisiert
+    sleep 2
+    
+    if command -v ollama &> /dev/null; then
+        local version=$(ollama --version 2>/dev/null || echo "unbekannt")
+        log_success "Ollama ist installiert (Version: $version)"
+        return 0
+    else
+        log_error "Ollama wurde nicht korrekt installiert"
+        return 1
+    fi
+}
+
+# ============ BEGINN INSTALLATION ============
+
+# Initialisiere Log-Datei
+echo "============================================" > "$LOG_FILE"
+echo "CoreMail Desktop v${VERSION} Installation" >> "$LOG_FILE"
+echo "Gestartet: $(date)" >> "$LOG_FILE"
+echo "============================================" >> "$LOG_FILE"
+
+echo ""
 echo "🚀 CoreMail Desktop v${VERSION} Installer"
 echo "==========================================="
+echo "📋 Log-Datei: $LOG_FILE"
+echo ""
+
+log "Installation gestartet"
 
 # Erstelle Verzeichnisse
+log_info "Erstelle Verzeichnisse..."
 mkdir -p "$INSTALL_DIR"
 mkdir -p "$ICON_DIR"
 mkdir -p "$(dirname "$DESKTOP_FILE")"
+log_success "Verzeichnisse erstellt"
 
 # Prüfe ob AppImage existiert
+log_info "Suche AppImage..."
 if [ -f "$APPIMAGE_NAME" ]; then
-    echo "📦 AppImage gefunden: $APPIMAGE_NAME"
+    log_success "AppImage gefunden: $APPIMAGE_NAME"
 elif [ -f "dist/$APPIMAGE_NAME" ]; then
     APPIMAGE_NAME="dist/$APPIMAGE_NAME"
-    echo "📦 AppImage gefunden: $APPIMAGE_NAME"
+    log_success "AppImage gefunden: $APPIMAGE_NAME"
 else
-    echo "❌ Fehler: $APPIMAGE_NAME nicht gefunden!"
-    echo "   Bitte zuerst mit 'npm run build' erstellen."
+    log_error "Fehler: $APPIMAGE_NAME nicht gefunden!"
+    log_info "Bitte zuerst mit 'npm run build' erstellen."
     exit 1
 fi
 
 # Kopiere AppImage
-echo "📁 Kopiere AppImage nach $INSTALL_DIR..."
+log_info "Kopiere AppImage nach $INSTALL_DIR..."
 cp "$APPIMAGE_NAME" "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR/$APPIMAGE_NAME"
+chmod +x "$INSTALL_DIR/$(basename $APPIMAGE_NAME)"
+log_success "AppImage installiert"
 
 # Extrahiere Icon aus AppImage oder verwende assets
-echo "🎨 Installiere Icon..."
+log_info "Installiere Icon..."
 if [ -f "assets/icon.png" ]; then
     cp "assets/icon.png" "$ICON_FILE"
-    echo "   Icon aus assets/icon.png kopiert"
+    log_success "Icon aus assets/icon.png kopiert"
 else
     # Extrahiere Icon aus AppImage
     cd "$INSTALL_DIR"
-    ./"$APPIMAGE_NAME" --appimage-extract usr/share/icons/hicolor/256x256/apps/*.png 2>/dev/null || true
+    ./$(basename "$APPIMAGE_NAME") --appimage-extract usr/share/icons/hicolor/256x256/apps/*.png 2>/dev/null || true
     if [ -f "squashfs-root/usr/share/icons/hicolor/256x256/apps/"*.png ]; then
         cp "squashfs-root/usr/share/icons/hicolor/256x256/apps/"*.png "$ICON_FILE"
         rm -rf squashfs-root
-        echo "   Icon aus AppImage extrahiert"
+        log_success "Icon aus AppImage extrahiert"
     else
-        echo "⚠️  Kein Icon gefunden, verwende Fallback"
+        log_warning "Kein Icon gefunden, verwende Fallback"
     fi
     cd - > /dev/null
 fi
 
 # Erstelle Desktop-Entry
-echo "📝 Erstelle Desktop-Eintrag..."
+log_info "Erstelle Desktop-Eintrag..."
 cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
 Name=CoreMail Desktop
 Comment=Schlanker E-Mail-Client für Linux
-Exec=$INSTALL_DIR/$APPIMAGE_NAME
+Exec=$INSTALL_DIR/$(basename $APPIMAGE_NAME)
 Icon=$ICON_FILE
 Terminal=false
 Type=Application
@@ -72,99 +150,183 @@ Categories=Network;Email;Office;
 Keywords=email;mail;imap;smtp;
 StartupWMClass=coremail-desktop
 EOF
+log_success "Desktop-Eintrag erstellt"
 
 # Update Desktop-Datenbank
-echo "🔄 Aktualisiere Desktop-Datenbank..."
+log_info "Aktualisiere Desktop-Datenbank..."
 if command -v update-desktop-database &> /dev/null; then
     update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+    log_success "Desktop-Datenbank aktualisiert"
 fi
 
 echo ""
-echo "✅ CoreMail Desktop Installation abgeschlossen!"
+log_success "CoreMail Desktop Installation abgeschlossen!"
 echo ""
-echo "📍 App installiert in: $INSTALL_DIR/$APPIMAGE_NAME"
+echo "📍 App installiert in: $INSTALL_DIR/$(basename $APPIMAGE_NAME)"
 echo "📍 Icon installiert in: $ICON_FILE"
 echo "📍 Desktop-Eintrag: $DESKTOP_FILE"
 echo ""
 
-# ============ OLLAMA KI-INTEGRATION (AUTOMATISCH) ============
+# ============ OLLAMA KI-INTEGRATION (VERBESSERT) ============
 
 echo ""
 echo "💬 KI-Integration (Ollama)"
 echo "=========================="
+log "Starte Ollama-Integration"
 
 install_ollama_automatic() {
-    echo "⬇️  Installiere Ollama..."
+    log_info "Versuche Ollama zu installieren..."
     
-    if curl -fsSL https://ollama.com/install.sh | sh; then
-        echo "✅ Ollama erfolgreich installiert!"
+    # Prüfe Voraussetzungen
+    if ! check_curl; then
+        return 1
+    fi
+    
+    if ! check_internet; then
+        log_warning "Kann Ollama ohne Internet-Verbindung nicht installieren"
+        return 1
+    fi
+    
+    log_info "Lade Ollama-Installationsskript herunter..."
+    
+    # Versuche Installation
+    local install_result=0
+    
+    # Prüfe ob sudo verfügbar/nötig ist
+    if [ "$(id -u)" = "0" ]; then
+        # Bereits root
+        log_info "Installiere als root..."
+        curl -fsSL https://ollama.com/install.sh | sh >> "$LOG_FILE" 2>&1 || install_result=$?
+    else
+        # Versuche mit sudo
+        log_info "Installiere mit sudo (Passwort könnte benötigt werden)..."
+        echo ""
+        curl -fsSL https://ollama.com/install.sh | sudo sh >> "$LOG_FILE" 2>&1 || install_result=$?
+    fi
+    
+    if [ $install_result -ne 0 ]; then
+        log_error "Ollama-Installation fehlgeschlagen (Exit-Code: $install_result)"
+        log_info "Mögliche Ursachen:"
+        log_info "  - Keine sudo-Berechtigung"
+        log_info "  - Firewall blockiert Download"
+        log_info "  - Nicht unterstütztes System"
+        echo ""
+        echo "📋 Manuelle Installation:"
+        echo "   curl -fsSL https://ollama.com/install.sh | sh"
+        echo ""
+        return 1
+    fi
+    
+    # Verifiziere Installation
+    if verify_ollama_installation; then
+        log_success "Ollama erfolgreich installiert!"
         return 0
     else
-        echo "⚠️  Ollama-Installation fehlgeschlagen."
-        echo "   CoreMail funktioniert trotzdem, aber ohne KI-Features."
-        echo "   Du kannst Ollama später manuell installieren mit:"
-        echo "   curl -fsSL https://ollama.com/install.sh | sh"
+        log_error "Ollama-Installation konnte nicht verifiziert werden"
         return 1
     fi
 }
 
 start_ollama_service() {
-    echo "🚀 Starte Ollama Service..."
+    log_info "Starte Ollama Service..."
     
-    # Prüfe ob Service bereits läuft
-    if pgrep -x "ollama" > /dev/null; then
-        echo "   Ollama Service läuft bereits."
-        return 0
-    fi
-    
-    # Starte im Hintergrund
-    nohup ollama serve &>/dev/null &
-    sleep 3
-    
-    # Prüfe ob erfolgreich gestartet
-    if pgrep -x "ollama" > /dev/null; then
-        echo "   Ollama Service gestartet."
-        return 0
-    else
-        echo "   Konnte Ollama Service nicht starten."
+    # Prüfe ob Ollama verfügbar
+    if ! command -v ollama &> /dev/null; then
+        log_error "Ollama nicht gefunden - kann Service nicht starten"
         return 1
     fi
+    
+    # Prüfe ob Service bereits läuft
+    if pgrep -x "ollama" > /dev/null 2>&1; then
+        log_success "Ollama Service läuft bereits"
+        return 0
+    fi
+    
+    # Prüfe ob systemd Service existiert
+    if systemctl list-unit-files ollama.service &>/dev/null 2>&1; then
+        log_info "Versuche systemd Service zu starten..."
+        if sudo systemctl start ollama 2>/dev/null; then
+            sleep 2
+            if pgrep -x "ollama" > /dev/null 2>&1; then
+                log_success "Ollama Service über systemd gestartet"
+                return 0
+            fi
+        fi
+    fi
+    
+    # Fallback: Manuell starten
+    log_info "Starte Ollama manuell im Hintergrund..."
+    nohup ollama serve >> "$LOG_FILE" 2>&1 &
+    
+    # Warte und prüfe
+    local max_attempts=10
+    local attempt=0
+    while [ $attempt -lt $max_attempts ]; do
+        sleep 1
+        if pgrep -x "ollama" > /dev/null 2>&1; then
+            log_success "Ollama Service gestartet"
+            return 0
+        fi
+        attempt=$((attempt + 1))
+    done
+    
+    log_warning "Konnte Ollama Service nicht starten"
+    log_info "Versuche 'ollama serve' manuell auszuführen"
+    return 1
 }
 
 download_default_model() {
-    echo "📥 Lade Standard-Modell (llama3.2:1b, ~1.3GB)..."
+    log_info "Lade Standard-Modell (llama3.2:1b, ~1.3GB)..."
     echo "   Dies kann einige Minuten dauern..."
     
-    if ollama pull llama3.2:1b 2>&1; then
-        echo "✅ KI-Modell erfolgreich installiert!"
+    # Prüfe ob Ollama läuft
+    if ! pgrep -x "ollama" > /dev/null 2>&1; then
+        log_warning "Ollama Service läuft nicht - starte ihn zuerst"
+        start_ollama_service
+        sleep 2
+    fi
+    
+    # Versuche Modell herunterzuladen
+    local pull_result=0
+    ollama pull llama3.2:1b 2>&1 | tee -a "$LOG_FILE" || pull_result=$?
+    
+    if [ $pull_result -ne 0 ]; then
+        log_warning "Modell-Download fehlgeschlagen"
+        log_info "Du kannst es später in CoreMail unter Einstellungen → KI-Assistent herunterladen"
+        return 1
+    fi
+    
+    # Verifiziere Download
+    if ollama list 2>/dev/null | grep -q "llama3.2:1b"; then
+        log_success "KI-Modell erfolgreich installiert!"
         return 0
     else
-        echo "⚠️  Modell-Download fehlgeschlagen."
-        echo "   Du kannst es später in CoreMail unter Einstellungen → KI-Assistent herunterladen."
+        log_warning "Modell wurde heruntergeladen, aber konnte nicht verifiziert werden"
         return 1
     fi
 }
 
-# Hauptlogik für Ollama-Installation
-echo "🔍 Prüfe Ollama-Installation..."
+# ============ HAUPTLOGIK FÜR OLLAMA-INSTALLATION ============
+
+log_info "Prüfe Ollama-Installation..."
 
 if command -v ollama &> /dev/null; then
     OLLAMA_VERSION=$(ollama --version 2>/dev/null || echo "unbekannt")
-    echo "✅ Ollama ist bereits installiert (Version: $OLLAMA_VERSION)"
+    log_success "Ollama ist bereits installiert (Version: $OLLAMA_VERSION)"
     
     # Starte Service falls nicht läuft
     start_ollama_service
     
     # Prüfe ob Standard-Modell vorhanden
-    echo "🔍 Prüfe installierte Modelle..."
+    log_info "Prüfe installierte Modelle..."
     if ollama list 2>/dev/null | grep -q "llama3.2:1b"; then
-        echo "✅ Standard-Modell (llama3.2:1b) ist installiert."
+        log_success "Standard-Modell (llama3.2:1b) ist installiert"
     else
-        echo "📦 Standard-Modell nicht gefunden."
+        log_info "Standard-Modell nicht gefunden"
         download_default_model
     fi
 else
-    echo "📦 Ollama ist nicht installiert."
+    log_info "Ollama ist nicht installiert"
     echo ""
     echo "   Ollama ermöglicht lokale KI-Funktionen in CoreMail:"
     echo "   • E-Mails zusammenfassen"
@@ -172,12 +334,25 @@ else
     echo "   • Texte verbessern"
     echo ""
     
-    # Automatische Installation
+    # Automatische Installation versuchen
     if install_ollama_automatic; then
         start_ollama_service
         download_default_model
+    else
+        echo ""
+        log_warning "CoreMail funktioniert trotzdem, aber ohne KI-Features"
+        echo ""
+        echo "💡 Ollama manuell installieren:"
+        echo "   curl -fsSL https://ollama.com/install.sh | sh"
+        echo ""
+        echo "   Nach der Installation:"
+        echo "   ollama serve &"
+        echo "   ollama pull llama3.2:1b"
+        echo ""
     fi
 fi
+
+# ============ ABSCHLUSS ============
 
 echo ""
 echo "════════════════════════════════════════════════════════════"
@@ -186,8 +361,13 @@ echo "════════════════════════�
 echo ""
 echo "🚀 CoreMail kann jetzt gestartet werden:"
 echo "   • Über das Anwendungsmenü"
-echo "   • Oder direkt mit: $INSTALL_DIR/$APPIMAGE_NAME"
+echo "   • Oder direkt mit: $INSTALL_DIR/$(basename $APPIMAGE_NAME)"
 echo ""
 echo "💡 Tipps für die KI-Integration:"
 echo "   • Ollama startet automatisch mit: ollama serve"
 echo "   • Verwalte Modelle in CoreMail unter Einstellungen → KI-Assistent"
+echo ""
+echo "📋 Installation-Log: $LOG_FILE"
+echo ""
+
+log "Installation beendet"

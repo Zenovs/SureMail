@@ -149,23 +149,23 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.5.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.5.4</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
+                  <span className="text-green-400">🔧</span>
+                  <span>Robustere Ollama-Installation mit besserem Logging</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400">📐</span>
+                  <span>Breitere Einstellungs-Sidebar für bessere Lesbarkeit</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400">📜</span>
+                  <span>Scrolling in Einstellungen ermöglicht</span>
+                </li>
+                <li className="flex items-start gap-2">
                   <MessageCircle className="w-4 h-4 text-cyan-400 mt-0.5" />
-                  <span>Lokale KI-Integration mit Ollama für E-Mail-Assistenz</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">💬</span>
-                  <span>KI-Chatbot Widget zum Stellen von Fragen</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📧</span>
-                  <span>E-Mails zusammenfassen und Antworten generieren lassen</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">⚡</span>
-                  <span>Textverbesserung direkt beim Verfassen von E-Mails</span>
+                  <span>Verbesserte Fehlerbehandlung bei KI-Installation</span>
                 </li>
               </ul>
             </div>
@@ -238,9 +238,9 @@ function SettingsV2() {
   };
 
   return (
-    <div className={`flex-1 flex ${c.bg}`}>
-      {/* Sidebar */}
-      <div className={`w-56 ${c.bgSecondary} ${c.border} border-r p-4`}>
+    <div className={`flex-1 flex overflow-hidden ${c.bg}`}>
+      {/* Sidebar - breiter und scrollbar */}
+      <div className={`w-64 min-w-[256px] ${c.bgSecondary} ${c.border} border-r p-4 overflow-y-auto flex-shrink-0`}>
         <h2 className={`text-lg font-bold ${c.text} mb-4 px-3`}>Einstellungen</h2>
         <nav className="space-y-1">
           {tabs.map(tab => (
