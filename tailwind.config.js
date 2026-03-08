@@ -24,7 +24,32 @@ module.exports = {
           cyan: '#00ffff',
           yellow: '#ffff00',
           green: '#00ff00'
+        },
+        // Foundations Design-System Farben
+        foundations: {
+          // Hintergrundfarben (dunkel)
+          950: '#0f0f0f',
+          900: '#1a1a1a',
+          800: '#242424',
+          700: '#2e2e2e',
+          600: '#3a3a3a',
+          500: '#4a4a4a',
+          // Primäre Akzentfarbe: Orange
+          orange: '#d97706',
+          'orange-light': '#f59e0b',
+          'orange-dark': '#b45309',
+          // Sekundäre Akzentfarbe: Grün
+          green: '#10b981',
+          'green-light': '#34d399',
+          'green-dark': '#059669'
         }
+      },
+      // Foundations Border-Radius
+      borderRadius: {
+        'foundations-sm': '4px',
+        'foundations-md': '8px',
+        'foundations-lg': '12px',
+        'foundations-full': '999px'
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'monospace'],
@@ -71,7 +96,12 @@ module.exports = {
         'neon-cyan': '0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 20px #00ffff',
         'neon-yellow': '0 0 5px #ffff00, 0 0 10px #ffff00, 0 0 20px #ffff00',
         'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-        'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)'
+        'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
+        // Foundations Design-System Schatten
+        'foundations-raised': '0 2px 8px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2)',
+        'foundations-inset': 'inset 0 2px 4px rgba(0, 0, 0, 0.4)',
+        'foundations-pressed': 'inset 0 1px 3px rgba(0, 0, 0, 0.6)',
+        'foundations-subtle': '0 1px 2px rgba(0, 0, 0, 0.2)'
       },
       backgroundImage: {
         'grid-pattern': 'linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px)',

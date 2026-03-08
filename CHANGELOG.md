@@ -2,6 +2,46 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.7.0] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 🎨 Neues "Foundations" Theme
+- **Design-System basiert**: Professionelles Theme basierend auf modernem Design-System
+- **Farbpalette**:
+  - Dunkler Hintergrund: #1a1a1a bis #2e2e2e
+  - Primäre Akzentfarbe: Orange (#d97706)
+  - Sekundäre Akzentfarbe: Grün (#10b981)
+- **Border-Radius-System**:
+  - Small: 4px (für kleine Elemente)
+  - Medium: 8px (Standard)
+  - Large: 12px (für große Elemente)
+  - Full: 999px (Pill-Form für Buttons)
+- **Schatten-Effekte**:
+  - Raised: Erhöhte Oberflächen mit Tiefeneffekt
+  - Inset: Eingedrückte Oberflächen
+  - Pressed: Gedrückte Buttons
+  - Subtle: Dezente Schatten
+- **Button-Stile**:
+  - Primary: Orange mit Pill-Form
+  - Secondary: Grau mit mittlerem Radius
+  - Subtle: Transparent mit Border
+  - Success: Grün mit Pill-Form
+- **7 Themes verfügbar**: Dark, Light, Minimal, Morphismus, Glas, Retro, Foundations
+
+### 🔧 Technische Änderungen
+- **ThemeContext.js**: Neues "foundations" Theme mit customStyles
+- **tailwind.config.js**: Neue Farben, Border-Radius und Schatten für Foundations
+  - `foundations-900/800/700/600/500` Hintergrundfarben
+  - `foundations-orange`, `foundations-green` Akzentfarben
+  - `rounded-foundations-sm/md/lg/full` Border-Radius
+  - `shadow-foundations-raised/inset/pressed` Schatten
+
+### 📦 Version
+- Minor-Release: v1.6.0 → v1.7.0
+
+---
+
 ## [1.6.0] - 2026-03-08
 
 ### ✨ Neue Features

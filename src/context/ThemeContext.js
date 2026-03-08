@@ -133,6 +133,49 @@ export const themes = {
       gridPattern: 'bg-grid-pattern',
       borderNeon: 'border-2 border-cyan-500 shadow-lg shadow-cyan-500/50'
     }
+  },
+  foundations: {
+    name: 'Foundations',
+    description: 'Professionelles Design-System mit Orange & Grün',
+    colors: {
+      bg: 'bg-foundations-900',
+      bgSecondary: 'bg-foundations-800',
+      bgTertiary: 'bg-foundations-700',
+      border: 'border-foundations-600',
+      text: 'text-gray-100',
+      textSecondary: 'text-gray-400',
+      accent: 'text-foundations-orange',
+      accentBg: 'bg-foundations-orange',
+      accentHover: 'hover:bg-foundations-orange-light',
+      sidebar: 'bg-foundations-800',
+      card: 'bg-foundations-800 shadow-foundations-raised',
+      input: 'bg-foundations-700 border-foundations-600 text-gray-100 placeholder-gray-500',
+      hover: 'hover:bg-foundations-700'
+    },
+    customStyles: {
+      // Oberflächen-Stile
+      surfaceBase: 'bg-foundations-800',
+      surfaceRaised: 'bg-foundations-700 shadow-foundations-raised',
+      surfaceInset: 'bg-foundations-900 shadow-foundations-inset',
+      surfacePressed: 'bg-foundations-950 shadow-foundations-pressed',
+      // Button-Stile
+      buttonPrimary: 'bg-foundations-orange text-white border-2 border-foundations-orange-dark hover:bg-foundations-orange-light rounded-foundations-full',
+      buttonSecondary: 'bg-foundations-600 text-white border border-foundations-500 hover:bg-foundations-500 rounded-foundations-md',
+      buttonSubtle: 'bg-transparent text-gray-300 border border-foundations-600 hover:bg-foundations-700 rounded-foundations-md',
+      buttonSuccess: 'bg-foundations-green text-white border-2 border-foundations-green-dark hover:bg-foundations-green-light rounded-foundations-full',
+      // Akzent-Farben
+      accentOrange: 'text-foundations-orange',
+      accentGreen: 'text-foundations-green',
+      // Schatten
+      shadowRaised: 'shadow-foundations-raised',
+      shadowInset: 'shadow-foundations-inset',
+      shadowPressed: 'shadow-foundations-pressed',
+      // Border-Radius
+      radiusSm: 'rounded-foundations-sm',
+      radiusMd: 'rounded-foundations-md',
+      radiusLg: 'rounded-foundations-lg',
+      radiusFull: 'rounded-foundations-full'
+    }
   }
 };
 

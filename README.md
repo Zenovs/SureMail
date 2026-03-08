@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.6.0
+# 📧 CoreMail Desktop v1.7.0
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration und fortschrittlichen Funktionen.
 
@@ -8,7 +8,7 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 
 ## ✨ Features
 
-### 🤖 In-App Ollama-Installation (NEU in v1.6.0)
+### 🤖 In-App Ollama-Installation (NEU in v1.7.0)
 - **Automatische Installation**: Ollama direkt in der App installieren
 - **Erster-Start-Dialog**: Einrichtungsassistent beim ersten Öffnen
 - **Progress-Anzeige**: Fortschrittsbalken während der Installation

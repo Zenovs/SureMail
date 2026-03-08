@@ -149,27 +149,27 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.6.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.7.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">🤖</span>
-                  <span>In-App Ollama-Installation - kein Terminal mehr nötig</span>
+                  <span className="text-orange-400">🎨</span>
+                  <span>Neues "Foundations" Theme mit professionellem Design-System</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🚀</span>
-                  <span>Automatische KI-Einrichtung beim ersten Start</span>
+                  <span className="text-orange-400">🟠</span>
+                  <span>Orange & Grün als Akzentfarben im neuen Theme</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-400">📦</span>
-                  <span>Automatischer Download des KI-Modells</span>
+                  <span className="text-green-400">📐</span>
+                  <span>Modernes Border-Radius-System (4px, 8px, 12px, Pill)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <MessageCircle className="w-4 h-4 text-cyan-400 mt-0.5" />
-                  <span>Verbesserte Installation mit Progress-Anzeige</span>
+                  <span className="text-cyan-400">💡</span>
+                  <span>Raised, Inset & Pressed Schatten-Effekte</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-yellow-400">🎨</span>
-                  <span>Alle 6 Themes verifiziert und optimiert</span>
+                  <span className="text-purple-400">✨</span>
+                  <span>Jetzt 7 Themes verfügbar</span>
                 </li>
               </ul>
             </div>
