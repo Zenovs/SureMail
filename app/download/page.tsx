@@ -69,7 +69,7 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400/20 to-cyan-400/20 border border-purple-400/40 rounded-full text-purple-400 text-sm font-mono mb-6 animate-pulse">
             <Bot className="w-4 h-4" />
-            <span>🚀 Desktop Client v1.7.0 - Neues Foundations Theme!</span>
+            <span>🚀 Desktop Client v1.7.1 - Bugfix Release!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
@@ -96,9 +96,9 @@ export default function DownloadPage() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold">
-                    <span className="font-mono text-purple-400">// </span>Neu in v1.7.0
+                    <span className="font-mono text-purple-400">// </span>Neu in v1.7.1
                   </h2>
-                  <p className="text-gray-400 font-mono text-sm">Neues Foundations Theme - Professionelles Design-System!</p>
+                  <p className="text-gray-400 font-mono text-sm">Bugfix: Ollama Auto-Start und Foundations Theme jetzt sichtbar</p>
                 </div>
               </div>
 

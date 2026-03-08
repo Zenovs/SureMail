@@ -40,12 +40,16 @@ CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 CoreMail ist auch als Desktop-App für Linux verfügbar!
 
-### 🚀 v1.7.0 – Foundations Theme!
+### 🚀 v1.7.1 – Bugfix Release!
 
-**Neu: Professionelles Design-System!**
+- **Ollama Auto-Start**: Ollama startet jetzt automatisch beim App-Start
+- **Automatischer Modell-Download**: Modell wird automatisch nach Ollama-Installation heruntergeladen
+- **Foundations Theme sichtbar**: Das Foundations Theme ist jetzt korrekt sichtbar (7 Themes verfügbar)
 
-- **Neues Foundations Theme**: Basiert auf professionellem Design-System für ein modernes, konsistentes Erscheinungsbild
-- **7 Themes verfügbar**: Dark, Light, Minimal, Morphismus, Glas, Retro und neu: Foundations
+### 🔧 v1.7.0 – Foundations Theme
+
+- **Neues Foundations Theme**: Basiert auf professionellem Design-System
+- **7 Themes verfügbar**: Dark, Light, Minimal, Morphismus, Glas, Retro und Foundations
 - **Professionelles UI-Design**: Sorgfältig abgestimmte Farben, Abstände und Komponenten
 
 ### 🔧 v1.6.0 – In-App Ollama Installation
