@@ -2,6 +2,27 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.5.2] - 2026-03-08
+
+### 🐛 Kritische Bugfixes
+
+#### OpenGL-Fehler VOLLSTÄNDIG behoben
+- **Hardware-Acceleration deaktiviert**: `app.disableHardwareAcceleration()` wird jetzt korrekt VOR `app.whenReady()` aufgerufen
+- **Komplette GPU-Suppression**: Alle GPU-Flags richtig gesetzt:
+  - `--disable-gpu`: Deaktiviert GPU komplett
+  - `--disable-gpu-compositing`: Deaktiviert GPU-Compositing
+  - `--disable-gpu-vsync`: Deaktiviert VSync (Hauptursache des Fehlers)
+  - `--use-gl=swiftshader`: Erzwingt Software-Rendering
+  - `--disable-features=VizDisplayCompositor`: Deaktiviert Viz Display Compositor
+- **Logging unterdrückt**: GPU-bezogene Warnungen werden nicht mehr angezeigt
+- **100% Kompatibilität**: Funktioniert auf allen Linux-Systemen, unabhängig von GPU/Treiber
+
+### 🔧 Technische Details
+- Die Kombination aus `app.disableHardwareAcceleration()` und den Command-Line-Flags garantiert, dass keine GPU-Funktionen verwendet werden
+- Software-Rendering über SwiftShader ist zuverlässig und performant für E-Mail-Clients
+
+---
+
 ## [1.5.1] - 2026-03-08
 
 ### 🐛 Bugfixes

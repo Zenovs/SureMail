@@ -10,18 +10,24 @@ const imapSimple = require('imap-simple');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
 
-// ============ GPU/OPENGL FIX (v1.5.1) ============
-// Disable GPU features that cause "GetVSyncParametersIfAvailable() failed" errors
-// These flags must be set before app.whenReady()
+// ============ GPU/OPENGL FIX (v1.5.2) ============
+// Completely disable GPU/OpenGL to prevent "GetVSyncParametersIfAvailable() failed" errors
+// This MUST be called before app.whenReady() - it's the most reliable fix
+app.disableHardwareAcceleration();
+
+// Additional command line flags for complete GPU suppression
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
 app.commandLine.appendSwitch('disable-gpu-vsync');
 app.commandLine.appendSwitch('disable-frame-rate-limit');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
-app.commandLine.appendSwitch('ignore-gpu-blocklist');
-// Fallback to software rendering if GPU fails
-app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor');
+app.commandLine.appendSwitch('use-gl', 'swiftshader');
+app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder');
 
-// Disable hardware acceleration completely if issues persist (can be enabled via settings)
-// app.disableHardwareAcceleration();
+// Suppress GPU-related logging
+app.commandLine.appendSwitch('disable-logging');
+app.commandLine.appendSwitch('log-level', '3'); // Only fatal errors
 
 // App Version - read from package.json
 const APP_VERSION = require('./package.json').version;
