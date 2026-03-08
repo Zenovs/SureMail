@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.2.2",
-  "description": "CoreMail Desktop Client v1.2 - Multi-Account E-Mail-Client für Linux",
+  "version": "1.3.0",
+  "description": "CoreMail Desktop Client v1.3 - Multi-Account E-Mail-Client für Linux",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -2,6 +2,50 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.3.0] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 🎨 3 Neue Themes
+- **Morphismus Theme**: Glasmorphismus-Effekte mit weichen Schatten, Backdrop-Blur, transparente Karten und Cyan/Lila Farbverläufe
+- **Glas Theme**: Starke Transparenz- und Blur-Effekte, minimalistisch mit hellen Akzenten
+- **Retro Theme**: 80er/90er Neon-Design mit Pink, Cyan und Gelb, Glow-Effekte und optionale Scanlines
+
+#### 📎 Verbesserte Anhang-Verwaltung
+- **Drag & Drop**: Dateien direkt ins Compose-Fenster ziehen
+- **Upload-Fortschrittsanzeige**: Animierter Fortschrittsbalken für jeden Anhang
+- **Mehrere Anhänge gleichzeitig**: Unterstützung für Batch-Uploads
+- **Visuelle Feedback**: Drop-Zone-Overlay beim Ziehen von Dateien
+- **CC/BCC-Felder**: Erweiterte Empfänger-Felder im Compose
+
+#### ✍️ Erweiterte Signatur-Verwaltung
+- **6 Vorlagen**: Einfach, Professionell, Business, Freundlich, Minimal, Modern
+- **Platzhalter-System**: Name, E-Mail, Datum, Firma, Telefon automatisch einfügen
+- **Verbesserte Toolbar**: Mehr Formatierungsoptionen
+- **Statusanzeige**: Grüner Haken bei Konten mit aktiver Signatur
+
+#### 🔄 Verbesserte Update-Funktion
+- Automatische tägliche Update-Prüfung
+- Benachrichtigung bei verfügbarem Update beim App-Start
+- Verbesserte Fehlerbehandlung
+
+### 🎨 Verbesserungen
+
+- **Theme-Auswahl**: Alle 6 Themes mit Vorschau in Einstellungen
+- **Changelog in App**: Aktualisiert mit v1.3.0 Features
+- **CSS-Erweiterungen**: Neue Utility-Klassen für Glow- und Neon-Effekte
+- **Tailwind-Konfiguration**: Erweitert um Neon-Farben und Animationen
+
+### 🔧 Technisch
+
+- Version auf 1.3.0 erhöht
+- ThemeContext mit 6 Themes erweitert
+- Neue CSS-Klassen für Theme-Effekte
+- Verbesserte Drag & Drop API Integration
+- Erweiterte Attachment-State-Verwaltung
+
+---
+
 ## [1.2.2] - 2026-03-08
 
 ### 🎨 Verbesserungen

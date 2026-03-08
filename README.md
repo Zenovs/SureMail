@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.2.2
+# 📧 CoreMail Desktop v1.3.0
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design und fortschrittlichen Funktionen.
 
@@ -14,35 +14,44 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 - **IMAP/SMTP**: Volle Unterstützung für IMAP und SMTP-Protokolle
 - **Split-View**: E-Mail-Liste und Vorschau nebeneinander
 
-### 🔔 Benachrichtigungen (NEU in v1.2)
+### 🎨 6 Themes (NEU in v1.3)
+- **Dark**: Klassisches dunkles Design mit Cyan-Akzenten
+- **Light**: Helles, klassisches Design
+- **Minimal**: Minimalistisch in Schwarz-Weiß
+- **Morphismus** (NEU): Glasmorphismus-Effekte mit weichen Schatten und Farbverläufen
+- **Glas** (NEU): Transparente Glaseffekte mit starkem Blur
+- **Retro** (NEU): 80er/90er Neon-Stil mit Pink, Cyan und Gelb
+
+### 🔔 Benachrichtigungen
 - Desktop-Benachrichtigungen bei neuen E-Mails
 - Konfigurierbar pro Konto und Kategorie
 - Klick auf Benachrichtigung öffnet die E-Mail
 - Badge-Counter für ungelesene E-Mails
 
-### 🔄 Auto-Update (NEU in v1.2)
-- Automatische Prüfung auf neue Versionen
+### 🔄 Auto-Update
+- Automatische Prüfung auf neue Versionen (täglich)
 - Ein-Klick-Download und Installation
 - Update-Verlauf und Release Notes
+- Benachrichtigung bei verfügbarem Update
 
-### 📎 Anhang-Verwaltung (NEU in v1.2)
+### 📎 Anhang-Verwaltung (Verbessert in v1.3)
 - Bildvorschau direkt in der E-Mail
 - PDF-Vorschau integriert
+- **Drag & Drop** (NEU): Dateien direkt ins Compose-Fenster ziehen
 - "Alle herunterladen" Button
-- Download-Manager mit Fortschrittsanzeige
+- **Upload-Fortschrittsanzeige** (NEU)
+- Dateigrößen-Anzeige (KB/MB)
+- Dateityp-Icons (PDF, DOC, ZIP, etc.)
 - Konfigurierbarer Download-Ordner
 
-### ✍️ E-Mail-Signaturen (NEU in v1.2)
+### ✍️ E-Mail-Signaturen (Erweitert in v1.3)
 - Rich-Text-Editor für Signaturen
 - Pro-Konto-Signaturen
-- Vorlagen für schnelle Einrichtung
+- **6 Vorlagen** (NEU): Einfach, Professionell, Business, Freundlich, Minimal, Modern
+- **Platzhalter-Unterstützung** (NEU): Name, E-Mail, Datum, etc.
 - Automatisches Anhängen beim Senden
 - Vorschau im Compose-Fenster
-
-### 🎨 Design
-- 3 Themes: Dark, Light, Minimal
-- Modernes, minimalistisches Interface
-- Responsives Layout
+- HTML-Unterstützung
 
 ## 📋 Systemanforderungen
 
@@ -56,14 +65,14 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 
 ### AppImage (empfohlen)
 
-1. Lade `CoreMail.Desktop-1.2.2.AppImage` herunter
+1. Lade `CoreMail.Desktop-1.3.0.AppImage` herunter
 2. Mache die Datei ausführbar:
    ```bash
-   chmod +x CoreMail.Desktop-1.2.2.AppImage
+   chmod +x CoreMail.Desktop-1.3.0.AppImage
    ```
 3. Starte die App:
    ```bash
-   ./CoreMail.Desktop-1.2.2.AppImage
+   ./CoreMail.Desktop-1.3.0.AppImage
    ```
 
 ### Aus Quellcode
@@ -122,7 +131,15 @@ npm run build
 
 Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
 
-### v1.2.2 (aktuell)
+### v1.3.0 (aktuell)
+- 🎨 3 neue Themes: Morphismus, Glas, Retro
+- 📎 Drag & Drop für Anhänge beim E-Mail-Verfassen
+- 📎 Upload-Fortschrittsanzeige
+- ✍️ 6 Signatur-Vorlagen
+- ✍️ Platzhalter-Unterstützung für Signaturen
+- 🔄 Verbesserte Update-Funktion mit täglicher Prüfung
+
+### v1.2.2
 - 🎨 Neues professionelles App-Icon
 - 🔧 Version wird jetzt dynamisch angezeigt
 - 🐛 Icon-Anzeige in Desktop-Umgebung korrigiert

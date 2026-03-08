@@ -11,6 +11,7 @@ function SignatureEditor() {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [saved, setSaved] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [showPlaceholderHelp, setShowPlaceholderHelp] = useState(false);
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ function SignatureEditor() {
   };
 
   const getCurrentSignature = () => {
-    return signatures[selectedAccountId] || { enabled: false, html: '', text: '' };
+    return signatures[selectedAccountId] || { enabled: false, html: '', text: '', name: 'Standard' };
   };
 
   const updateSignature = (updates) => {
@@ -83,8 +84,108 @@ function SignatureEditor() {
     }
   };
 
+  const insertPlaceholder = (placeholder) => {
+    const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+    let value = placeholder;
+    
+    switch (placeholder) {
+      case '{{name}}':
+        value = selectedAccount?.name || 'Name';
+        break;
+      case '{{email}}':
+        value = selectedAccount?.smtp?.fromEmail || selectedAccount?.smtp?.username || 'email@example.com';
+        break;
+      case '{{date}}':
+        value = new Date().toLocaleDateString('de-DE');
+        break;
+      case '{{company}}':
+        value = 'Firma';
+        break;
+      case '{{phone}}':
+        value = '+49 123 456789';
+        break;
+      default:
+        break;
+    }
+    
+    document.execCommand('insertText', false, value);
+    updateContentFromEditor();
+  };
+
   const currentSig = getCurrentSignature();
   const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+
+  // Extended templates
+  const templates = [
+    {
+      name: 'Einfach',
+      desc: 'MfG + Name',
+      icon: '📝',
+      getHtml: (acc) => `<p>Mit freundlichen Grüßen</p><p><strong>${acc.name}</strong></p>`,
+      getText: (acc) => `Mit freundlichen Grüßen\n${acc.name}`
+    },
+    {
+      name: 'Professionell',
+      desc: 'Name + E-Mail + Trennlinie',
+      icon: '💼',
+      getHtml: (acc) => {
+        const email = acc.smtp?.fromEmail || acc.smtp?.username || '';
+        return `<p style="border-top: 1px solid #ccc; padding-top: 12px; margin-top: 12px;">Mit freundlichen Grüßen</p><p><strong>${acc.name}</strong></p><p style="color: #666; font-size: 12px;">E-Mail: <a href="mailto:${email}">${email}</a></p>`;
+      },
+      getText: (acc) => {
+        const email = acc.smtp?.fromEmail || acc.smtp?.username || '';
+        return `---\nMit freundlichen Grüßen\n${acc.name}\nE-Mail: ${email}`;
+      }
+    },
+    {
+      name: 'Business',
+      desc: 'Vollständig mit Telefon',
+      icon: '🏢',
+      getHtml: (acc) => {
+        const email = acc.smtp?.fromEmail || acc.smtp?.username || '';
+        return `<table style="font-family: Arial, sans-serif; font-size: 12px; color: #333;"><tr><td style="border-right: 2px solid #0891b2; padding-right: 15px;"><strong style="font-size: 14px; color: #0891b2;">${acc.name}</strong><br><span style="color: #666;">Position</span></td><td style="padding-left: 15px;"><span style="color: #666;">📧</span> <a href="mailto:${email}" style="color: #0891b2;">${email}</a><br><span style="color: #666;">📞</span> +49 123 456789</td></tr></table>`;
+      },
+      getText: (acc) => {
+        const email = acc.smtp?.fromEmail || acc.smtp?.username || '';
+        return `${acc.name}\nPosition\n📧 ${email}\n📞 +49 123 456789`;
+      }
+    },
+    {
+      name: 'Freundlich',
+      desc: 'Mit Emoji',
+      icon: '🌟',
+      getHtml: (acc) => `<p>Beste Grüße 🌟</p><p>${acc.name}</p>`,
+      getText: (acc) => `Beste Grüße 🌟\n${acc.name}`
+    },
+    {
+      name: 'Minimal',
+      desc: 'Nur Name',
+      icon: '✨',
+      getHtml: (acc) => `<p style="color: #666;">— ${acc.name}</p>`,
+      getText: (acc) => `— ${acc.name}`
+    },
+    {
+      name: 'Modern',
+      desc: 'Mit Social Links',
+      icon: '🚀',
+      getHtml: (acc) => {
+        const email = acc.smtp?.fromEmail || acc.smtp?.username || '';
+        return `<div style="font-family: Arial, sans-serif;"><p style="margin: 0; font-size: 14px;"><strong>${acc.name}</strong></p><p style="margin: 4px 0; font-size: 12px; color: #666;">${email}</p><p style="margin-top: 8px;"><a href="#" style="text-decoration: none; margin-right: 8px;">🔗 LinkedIn</a><a href="#" style="text-decoration: none; margin-right: 8px;">🐦 Twitter</a><a href="#" style="text-decoration: none;">🌐 Website</a></p></div>`;
+      },
+      getText: (acc) => {
+        const email = acc.smtp?.fromEmail || acc.smtp?.username || '';
+        return `${acc.name}\n${email}\n\nLinkedIn | Twitter | Website`;
+      }
+    }
+  ];
+
+  const applyTemplate = (template) => {
+    if (!selectedAccount) return;
+    const html = template.getHtml(selectedAccount);
+    const text = template.getText(selectedAccount);
+    updateSignature({ html, text });
+    if (editorRef.current) editorRef.current.innerHTML = html;
+  };
 
   return (
     <div className="space-y-6">
@@ -98,7 +199,7 @@ function SignatureEditor() {
       {/* Account Selection */}
       {accounts.length > 1 && (
         <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-          <h3 className={`text-lg font-semibold ${c.text} mb-4`}>Konto auswählen</h3>
+          <h3 className={`text-lg font-semibold ${c.text} mb-4`}>📧 Konto auswählen</h3>
           <div className="flex flex-wrap gap-2">
             {accounts.map(account => (
               <button
@@ -111,6 +212,9 @@ function SignatureEditor() {
                 }`}
               >
                 {account.name}
+                {signatures[account.id]?.enabled && (
+                  <span className="ml-2 text-green-400">✓</span>
+                )}
               </button>
             ))}
           </div>
@@ -123,7 +227,7 @@ function SignatureEditor() {
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
             <label className="flex items-center justify-between cursor-pointer">
               <div>
-                <span className={`font-semibold ${c.text}`}>Signatur aktivieren</span>
+                <span className={`font-semibold ${c.text}`}>✍️ Signatur aktivieren</span>
                 <p className={`text-sm ${c.textSecondary}`}>
                   Signatur für "{selectedAccount.name}" automatisch anhängen
                 </p>
@@ -152,7 +256,7 @@ function SignatureEditor() {
           {/* Editor */}
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-semibold ${c.text}`}>Signatur bearbeiten</h3>
+              <h3 className={`text-lg font-semibold ${c.text}`}>📝 Signatur bearbeiten</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setPreviewMode(false)}
@@ -253,14 +357,44 @@ function SignatureEditor() {
                     title="Textfarbe"
                     defaultValue="#ffffff"
                   />
+                  <div className={`w-px h-6 ${c.bgTertiary} self-center mx-1`} />
+                  <button
+                    onClick={() => setShowPlaceholderHelp(!showPlaceholderHelp)}
+                    className={`px-2 py-1 ${c.hover} rounded ${c.textSecondary} text-sm`}
+                    title="Platzhalter"
+                  >
+                    {'{...}'}
+                  </button>
                 </div>
+
+                {/* Placeholder Help */}
+                {showPlaceholderHelp && (
+                  <div className={`flex flex-wrap gap-2 p-3 ${c.bgTertiary} border-x ${c.border}`}>
+                    <span className={`text-xs ${c.textSecondary} w-full mb-1`}>Klicke um einzufügen:</span>
+                    {[
+                      { key: '{{name}}', label: 'Name' },
+                      { key: '{{email}}', label: 'E-Mail' },
+                      { key: '{{date}}', label: 'Datum' },
+                      { key: '{{company}}', label: 'Firma' },
+                      { key: '{{phone}}', label: 'Telefon' }
+                    ].map(p => (
+                      <button
+                        key={p.key}
+                        onClick={() => insertPlaceholder(p.key)}
+                        className={`px-2 py-1 ${c.bgSecondary} ${c.hover} ${c.text} rounded text-xs`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Editor Area */}
                 <div
                   ref={editorRef}
                   contentEditable
                   onInput={updateContentFromEditor}
-                  className={`min-h-[200px] p-4 ${c.input} border ${c.border} border-t-0 rounded-b-lg focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                  className={`min-h-[200px] p-4 ${c.input} border ${c.border} ${showPlaceholderHelp ? '' : 'border-t-0'} rounded-b-lg focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                   dangerouslySetInnerHTML={{ __html: currentSig.html }}
                   style={{ color: 'white' }}
                 />
@@ -279,53 +413,42 @@ function SignatureEditor() {
 
           {/* Templates */}
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-            <h3 className={`text-lg font-semibold ${c.text} mb-4`}>Vorlagen</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  const template = `<p>Mit freundlichen Grüßen</p><p><strong>${selectedAccount.name}</strong></p>`;
-                  updateSignature({ html: template, text: `Mit freundlichen Grüßen\n${selectedAccount.name}` });
-                  if (editorRef.current) editorRef.current.innerHTML = template;
-                }}
-                className={`p-3 ${c.bgSecondary} ${c.hover} rounded-lg text-left`}
-              >
-                <span className={`text-sm font-medium ${c.text}`}>Einfach</span>
-                <p className={`text-xs ${c.textSecondary} mt-1`}>MfG + Name</p>
-              </button>
-              <button
-                onClick={() => {
-                  const email = selectedAccount.smtp?.fromEmail || selectedAccount.smtp?.username || '';
-                  const template = `<p>Mit freundlichen Grüßen</p><p><strong>${selectedAccount.name}</strong></p><p style="color: #666; font-size: 12px;">E-Mail: ${email}</p>`;
-                  updateSignature({ html: template, text: `Mit freundlichen Grüßen\n${selectedAccount.name}\nE-Mail: ${email}` });
-                  if (editorRef.current) editorRef.current.innerHTML = template;
-                }}
-                className={`p-3 ${c.bgSecondary} ${c.hover} rounded-lg text-left`}
-              >
-                <span className={`text-sm font-medium ${c.text}`}>Professionell</span>
-                <p className={`text-xs ${c.textSecondary} mt-1`}>Name + E-Mail</p>
-              </button>
-              <button
-                onClick={() => {
-                  const template = `<p>Beste Grüße 🌟</p><p>${selectedAccount.name}</p>`;
-                  updateSignature({ html: template, text: `Beste Grüße 🌟\n${selectedAccount.name}` });
-                  if (editorRef.current) editorRef.current.innerHTML = template;
-                }}
-                className={`p-3 ${c.bgSecondary} ${c.hover} rounded-lg text-left`}
-              >
-                <span className={`text-sm font-medium ${c.text}`}>Freundlich</span>
-                <p className={`text-xs ${c.textSecondary} mt-1`}>Mit Emoji</p>
-              </button>
+            <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🎨 Vorlagen</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {templates.map((template, index) => (
+                <button
+                  key={index}
+                  onClick={() => applyTemplate(template)}
+                  className={`p-3 ${c.bgSecondary} ${c.hover} rounded-lg text-left transition-all hover:scale-[1.02]`}
+                >
+                  <span className="text-xl mb-2 block">{template.icon}</span>
+                  <span className={`text-sm font-medium ${c.text}`}>{template.name}</span>
+                  <p className={`text-xs ${c.textSecondary} mt-1`}>{template.desc}</p>
+                </button>
+              ))}
               <button
                 onClick={() => {
                   updateSignature({ html: '', text: '' });
                   if (editorRef.current) editorRef.current.innerHTML = '';
                 }}
-                className={`p-3 ${c.bgSecondary} ${c.hover} rounded-lg text-left`}
+                className={`p-3 ${c.bgSecondary} ${c.hover} rounded-lg text-left border border-red-500/30 hover:border-red-500`}
               >
-                <span className={`text-sm font-medium ${c.text}`}>Löschen</span>
+                <span className="text-xl mb-2 block">🗑️</span>
+                <span className={`text-sm font-medium text-red-400`}>Löschen</span>
                 <p className={`text-xs ${c.textSecondary} mt-1`}>Signatur entfernen</p>
               </button>
             </div>
+          </div>
+
+          {/* Tips */}
+          <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
+            <h3 className={`text-lg font-semibold ${c.text} mb-4`}>💡 Tipps</h3>
+            <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
+              <li>• Jedes Konto kann eine eigene Signatur haben</li>
+              <li>• Aktiviere "Signatur aktivieren" um sie automatisch anzuhängen</li>
+              <li>• Beim Verfassen kannst du die Signatur ein/ausschalten</li>
+              <li>• Füge Bilder über URLs ein (z.B. Logo)</li>
+            </ul>
           </div>
         </>
       )}

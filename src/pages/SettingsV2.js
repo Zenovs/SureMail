@@ -50,10 +50,38 @@ function SettingsV2() {
   ];
 
   const themeOptions = [
-    { id: 'dark', name: 'Dark', desc: 'Dunkles Design mit Cyan-Akzenten', preview: 'bg-gray-900' },
-    { id: 'light', name: 'Light', desc: 'Helles Design mit blauen Akzenten', preview: 'bg-white' },
-    { id: 'minimal', name: 'Minimal', desc: 'Minimalistisch in Schwarz/Weiß', preview: 'bg-gray-100' },
+    { id: 'dark', name: 'Dark', desc: 'Dunkles Design mit Cyan-Akzenten', preview: 'bg-gray-900', previewBorder: 'border-cyan-500/50' },
+    { id: 'light', name: 'Light', desc: 'Helles Design mit blauen Akzenten', preview: 'bg-white', previewBorder: 'border-blue-500/50' },
+    { id: 'minimal', name: 'Minimal', desc: 'Minimalistisch in Schwarz/Weiß', preview: 'bg-gray-100', previewBorder: 'border-gray-400' },
+    { id: 'morphism', name: 'Morphismus', desc: 'Glasmorphismus mit weichen Schatten', preview: 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900', previewBorder: 'border-purple-500/50' },
+    { id: 'glass', name: 'Glas', desc: 'Transparente Glaseffekte', preview: 'bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950', previewBorder: 'border-sky-400/50' },
+    { id: 'retro', name: 'Retro', desc: '80er/90er Neon-Stil', preview: 'bg-gray-950', previewBorder: 'border-pink-500/50' },
   ];
+
+  const getThemePreviewContent = (themeId) => {
+    switch (themeId) {
+      case 'morphism':
+        return (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur shadow-lg" />
+          </div>
+        );
+      case 'glass':
+        return (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-8 h-8 rounded bg-white/10 backdrop-blur-sm border border-white/20" />
+          </div>
+        );
+      case 'retro':
+        return (
+          <div className="w-full h-full flex items-center justify-center relative">
+            <span className="text-xs text-pink-500 font-bold" style={{ textShadow: '0 0 10px #ff00ff' }}>NEON</span>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -62,21 +90,23 @@ function SettingsV2() {
           <div className="space-y-6">
             {/* Theme Selection */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>Design</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🎨 Design</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {themeOptions.map(t => (
                   <button
                     key={t.id}
                     onClick={() => changeTheme(t.id)}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       theme === t.id 
-                        ? 'border-cyan-500 ring-2 ring-cyan-500/20' 
+                        ? `border-cyan-500 ring-2 ring-cyan-500/20` 
                         : `${c.border} hover:border-gray-400`
                     }`}
                   >
-                    <div className={`w-full h-16 rounded-lg ${t.preview} border ${c.border} mb-3`} />
-                    <div className={`font-medium ${c.text}`}>{t.name}</div>
-                    <div className={`text-xs ${c.textSecondary} mt-1`}>{t.desc}</div>
+                    <div className={`w-full h-16 rounded-lg ${t.preview} border ${t.previewBorder} mb-3 overflow-hidden relative`}>
+                      {getThemePreviewContent(t.id)}
+                    </div>
+                    <div className={`font-medium ${c.text} text-sm`}>{t.name}</div>
+                    <div className={`text-xs ${c.textSecondary} mt-1 line-clamp-2`}>{t.desc}</div>
                   </button>
                 ))}
               </div>
@@ -84,7 +114,7 @@ function SettingsV2() {
 
             {/* Info */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>Über CoreMail</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>📧 Über CoreMail</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className={c.textSecondary}>Version</span>
@@ -103,7 +133,7 @@ function SettingsV2() {
 
             {/* Hinweise */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>Hinweise</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>💡 Hinweise</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li>• E-Mail-Konten werden unter "Konten" verwaltet</li>
                 <li>• Passwörter werden verschlüsselt gespeichert</li>
@@ -114,27 +144,23 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>Neu in v1.2.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.3.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🔄</span>
-                  <span>Update-Funktion: Automatische Update-Prüfung und Installation</span>
+                  <span className="text-cyan-400">🎨</span>
+                  <span>3 neue Themes: Morphismus, Glas und Retro</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🔔</span>
-                  <span>Desktop-Benachrichtigungen bei neuen E-Mails</span>
+                  <span className="text-cyan-400">🔄</span>
+                  <span>Verbesserte Update-Funktion mit täglicher Prüfung</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyan-400">📎</span>
-                  <span>Verbesserte Anhang-Verwaltung mit Vorschau</span>
+                  <span>Drag & Drop für Anhänge beim E-Mail-Verfassen</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyan-400">✍️</span>
-                  <span>E-Mail-Signaturen mit Rich-Text-Editor</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🎨</span>
-                  <span>Neues App-Icon</span>
+                  <span>Erweiterte Signatur-Verwaltung mit mehr Vorlagen</span>
                 </li>
               </ul>
             </div>
@@ -186,6 +212,7 @@ function SettingsV2() {
                 <li>• Anhänge können einzeln oder alle auf einmal heruntergeladen werden</li>
                 <li>• Bilder und PDFs werden mit Vorschau angezeigt</li>
                 <li>• Klicke auf "Öffnen" um Dateien mit der Standard-App zu öffnen</li>
+                <li>• Drag & Drop: Ziehe Dateien direkt in das Compose-Fenster</li>
               </ul>
             </div>
           </div>

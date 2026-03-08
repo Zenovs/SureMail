@@ -5,7 +5,7 @@
 
 set -e
 
-VERSION="1.2.2"
+VERSION="1.3.0"
 APP_NAME="CoreMail Desktop"
 APPIMAGE_NAME="CoreMail.Desktop-${VERSION}.AppImage"
 INSTALL_DIR="$HOME/.local/share/coremail"
