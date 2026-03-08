@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.3.1
+# 📧 CoreMail Desktop v1.4.0
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design und fortschrittlichen Funktionen.
 
@@ -14,13 +14,31 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 - **IMAP/SMTP**: Volle Unterstützung für IMAP und SMTP-Protokolle
 - **Split-View**: E-Mail-Liste und Vorschau nebeneinander
 
-### 🎨 6 Themes (NEU in v1.3)
+### 📐 Individualisierbare Sidebar (NEU in v1.4)
+- **Resize-Handle**: Sidebar-Breite per Drag & Drop anpassen
+- **Min/Max-Breite**: 200px bis 400px einstellbar
+- **Icons-Only-Modus**: Kompakte Ansicht nur mit Icons
+- **Auto-Collapse**: Automatisches Minimieren bei kleinen Fenstern
+- **Persistente Einstellungen**: Werden beim Neustart wiederhergestellt
+
+### 📊 Widget-Dashboard (NEU in v1.4)
+- **4 Widget-Typen**: 
+  - Konto-Widget: Einzelnes E-Mail-Konto mit Statistiken
+  - Kategorie-Widget: Übersicht einer Kategorie
+  - Statistik-Widget: Gesamtstatistiken aller Konten
+  - Schnellaktionen-Widget: Schnellzugriff auf häufige Aktionen
+- **Drag & Drop**: Widgets per Drag & Drop verschieben
+- **3 Größen**: Klein (S), Mittel (M), Groß (L)
+- **Bearbeitungsmodus**: Dashboard im Edit-Mode anpassen
+- **Persistentes Layout**: Widget-Positionen werden gespeichert
+
+### 🎨 6 Themes
 - **Dark**: Klassisches dunkles Design mit Cyan-Akzenten
 - **Light**: Helles, klassisches Design
 - **Minimal**: Minimalistisch in Schwarz-Weiß
-- **Morphismus** (NEU): Glasmorphismus-Effekte mit weichen Schatten und Farbverläufen
-- **Glas** (NEU): Transparente Glaseffekte mit starkem Blur
-- **Retro** (NEU): 80er/90er Neon-Stil mit Pink, Cyan und Gelb
+- **Morphismus**: Glasmorphismus-Effekte mit weichen Schatten
+- **Glas**: Transparente Glaseffekte mit starkem Blur
+- **Retro**: 80er/90er Neon-Stil mit Pink, Cyan und Gelb
 
 ### 🔔 Benachrichtigungen
 - Desktop-Benachrichtigungen bei neuen E-Mails
@@ -34,24 +52,20 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 - Update-Verlauf und Release Notes
 - Benachrichtigung bei verfügbarem Update
 
-### 📎 Anhang-Verwaltung (Verbessert in v1.3)
+### 📎 Anhang-Verwaltung
 - Bildvorschau direkt in der E-Mail
 - PDF-Vorschau integriert
-- **Drag & Drop** (NEU): Dateien direkt ins Compose-Fenster ziehen
+- Drag & Drop: Dateien direkt ins Compose-Fenster ziehen
 - "Alle herunterladen" Button
-- **Upload-Fortschrittsanzeige** (NEU)
-- Dateigrößen-Anzeige (KB/MB)
-- Dateityp-Icons (PDF, DOC, ZIP, etc.)
+- Upload-Fortschrittsanzeige
 - Konfigurierbarer Download-Ordner
 
-### ✍️ E-Mail-Signaturen (Erweitert in v1.3)
+### ✍️ E-Mail-Signaturen
 - Rich-Text-Editor für Signaturen
 - Pro-Konto-Signaturen
-- **6 Vorlagen** (NEU): Einfach, Professionell, Business, Freundlich, Minimal, Modern
-- **Platzhalter-Unterstützung** (NEU): Name, E-Mail, Datum, etc.
+- 6 Vorlagen: Einfach, Professionell, Business, Freundlich, Minimal, Modern
+- Platzhalter-Unterstützung: Name, E-Mail, Datum, etc.
 - Automatisches Anhängen beim Senden
-- Vorschau im Compose-Fenster
-- HTML-Unterstützung
 
 ## 📋 Systemanforderungen
 
@@ -65,14 +79,14 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 
 ### AppImage (empfohlen)
 
-1. Lade `CoreMail.Desktop-1.3.1.AppImage` herunter
+1. Lade `CoreMail.Desktop-1.4.0.AppImage` herunter
 2. Mache die Datei ausführbar:
    ```bash
-   chmod +x CoreMail.Desktop-1.3.1.AppImage
+   chmod +x CoreMail.Desktop-1.4.0.AppImage
    ```
 3. Starte die App:
    ```bash
-   ./CoreMail.Desktop-1.3.1.AppImage
+   ./CoreMail.Desktop-1.4.0.AppImage
    ```
 
 ### Aus Quellcode
@@ -131,44 +145,40 @@ npm run build
 
 Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
 
-### v1.3.1 (aktuell)
-- 🐛 Versions-Anzeige korrigiert - zeigt jetzt überall korrekte Version an
-- 🔧 SidebarV2 und UpdateSettings laden Version dynamisch
+### v1.4.0 (aktuell)
+- 📐 **Individualisierbare Sidebar**
+  - Resize-Handle zum Anpassen der Breite (200-400px)
+  - Icons-Only-Modus für kompakte Ansicht
+  - Auto-Collapse-Funktion
+  - Neue Einstellungsseite für Sidebar
+- 📊 **Widget-Dashboard**
+  - 4 Widget-Typen: Konto, Kategorie, Statistik, Schnellaktionen
+  - Drag & Drop zum Verschieben
+  - 3 Widget-Größen (S/M/L)
+  - Bearbeitungsmodus mit visuellen Hinweisen
+  - Persistentes Layout
+
+### v1.3.1
+- 🐛 Versions-Anzeige korrigiert
 
 ### v1.3.0
 - 🎨 3 neue Themes: Morphismus, Glas, Retro
-- 📎 Drag & Drop für Anhänge beim E-Mail-Verfassen
-- 📎 Upload-Fortschrittsanzeige
-- ✍️ 6 Signatur-Vorlagen
-- ✍️ Platzhalter-Unterstützung für Signaturen
-- 🔄 Verbesserte Update-Funktion mit täglicher Prüfung
-
-### v1.2.2
-- 🎨 Neues professionelles App-Icon
-- 🔧 Version wird jetzt dynamisch angezeigt
-- 🐛 Icon-Anzeige in Desktop-Umgebung korrigiert
-
-### v1.2.1
-- 🐛 Bugfix: Scrolling in E-Mail-Liste behoben
-- 🐛 Bugfix: Scrolling in E-Mail-Vorschau behoben
+- 📎 Drag & Drop für Anhänge
+- ✍️ 6 Signatur-Vorlagen mit Platzhaltern
 
 ### v1.2.0
 - 🔄 Update-Funktion mit GitHub Releases
 - 🔔 Desktop-Benachrichtigungen
 - 📎 Verbesserte Anhang-Verwaltung
 - ✍️ E-Mail-Signaturen
-- 🎨 Neues App-Icon
 
 ### v1.1.0
 - Multi-Account-Support
 - Kategorien
-- 3 Themes
 - Dashboard
 
 ### v1.0.0
 - Erste Version
-- IMAP/SMTP
-- Grundlegende E-Mail-Funktionen
 
 ## 🤝 Beitragen
 

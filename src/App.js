@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AccountProvider, useAccounts } from './context/AccountContext';
+import { SidebarProvider } from './context/SidebarContext';
+import { DashboardProvider } from './context/DashboardContext';
 import SidebarV2 from './components/SidebarV2';
 import Dashboard from './pages/Dashboard';
 import InboxSplitView from './pages/InboxSplitView';
@@ -70,7 +72,11 @@ function App() {
   return (
     <ThemeProvider>
       <AccountProvider>
-        <AppContent />
+        <SidebarProvider>
+          <DashboardProvider>
+            <AppContent />
+          </DashboardProvider>
+        </SidebarProvider>
       </AccountProvider>
     </ThemeProvider>
   );

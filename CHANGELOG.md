@@ -2,6 +2,44 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.4.0] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 📐 Individualisierbare Sidebar
+- **Resize-Handle**: Sidebar-Breite durch Ziehen am rechten Rand anpassen
+- **Min/Max-Breite**: Einstellbarer Bereich von 200px bis 400px
+- **Icons-Only-Modus**: Kompakte Ansicht nur mit Icons
+- **Auto-Collapse**: Automatisches Minimieren bei kleinen Fenstern
+- **Neue Einstellungsseite**: Sidebar-Einstellungen unter Einstellungen → Sidebar
+- **Persistente Einstellungen**: Werden beim Neustart wiederhergestellt
+
+#### 📊 Widget-Dashboard
+- **4 Widget-Typen**:
+  - Konto-Widget: Einzelnes E-Mail-Konto mit Statistiken und Schnellzugriff
+  - Kategorie-Widget: Übersicht einer Kategorie mit allen Konten
+  - Statistik-Widget: Gesamtstatistiken aller Konten
+  - Schnellaktionen-Widget: Schnellzugriff auf häufige Aktionen
+- **Drag & Drop**: Widgets im Grid per Drag & Drop verschieben
+- **3 Größen**: Klein (S), Mittel (M), Groß (L) pro Widget einstellbar
+- **Bearbeitungsmodus**: Dashboard mit visuellen Hinweisen bearbeiten
+- **Widget hinzufügen**: Modal zum Auswählen und Konfigurieren neuer Widgets
+- **Persistentes Layout**: Widget-Positionen und -Größen werden gespeichert
+
+### 🔧 Technisch
+
+- Neuer `SidebarContext` für Sidebar-Einstellungen
+- Neuer `DashboardContext` für Widget-Verwaltung
+- Integration von `react-grid-layout` für Drag & Drop
+- Modulare Widget-Komponenten unter `src/components/widgets/`
+- Smooth Resize-Animation für Sidebar
+
+### 📦 Dependencies
+
+- `react-grid-layout` hinzugefügt für Dashboard-Grid
+
+---
+
 ## [1.3.1] - 2026-03-08
 
 ### 🐛 Bugfixes

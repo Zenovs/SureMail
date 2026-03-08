@@ -263,3 +263,178 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(128, 128, 128, 0.6);
 }
+
+
+
+/* ============================================
+   v1.4.0 - Sidebar & Dashboard Widget Styles
+   ============================================ */
+
+/* Sidebar Resize Handle */
+.sidebar-resize-handle {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.sidebar-resize-handle:hover {
+  background: rgba(6, 182, 212, 0.3);
+}
+
+.sidebar-resize-handle.active {
+  background: rgba(6, 182, 212, 0.5);
+}
+
+/* React Grid Layout Overrides */
+.react-grid-layout {
+  position: relative;
+  transition: height 200ms ease;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+
+.react-grid-item.resizing {
+  z-index: 1;
+  will-change: width, height;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 3;
+  will-change: transform;
+}
+
+.react-grid-item.dropping {
+  visibility: hidden;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: rgba(6, 182, 212, 0.2);
+  border: 2px dashed rgba(6, 182, 212, 0.5);
+  border-radius: 0.75rem;
+  opacity: 0.5;
+  transition-duration: 100ms;
+  z-index: 2;
+}
+
+/* Widget Container */
+.widget-container {
+  height: 100%;
+}
+
+/* Widget Drag Handle */
+.drag-handle {
+  cursor: move;
+  user-select: none;
+}
+
+.drag-handle:hover {
+  color: rgba(6, 182, 212, 0.8);
+}
+
+/* Widget Edit Mode Glow */
+.widget-edit-mode {
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.3);
+}
+
+/* Resize Handle für Grid Items */
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+}
+
+.react-resizable-handle-se {
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+}
+
+.react-resizable-handle-se::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(6, 182, 212, 0.5);
+  border-bottom: 2px solid rgba(6, 182, 212, 0.5);
+}
+
+.react-resizable-handle:hover::after {
+  border-color: rgba(6, 182, 212, 0.8);
+}
+
+/* Sidebar Transition */
+.sidebar-transition {
+  transition: width 0.2s ease-out;
+}
+
+/* Icons-Only Mode Animation */
+.sidebar-icons-only {
+  animation: sidebar-collapse 0.2s ease-out;
+}
+
+@keyframes sidebar-collapse {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Widget Tooltip */
+.widget-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 0.75rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+
+.widget-tooltip-trigger:hover .widget-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Dashboard Edit Mode Overlay */
+.dashboard-edit-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(6, 182, 212, 0.05);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Widget Add Button Animation */
+.widget-add-btn {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.widget-add-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+}
+
+/* Smooth Layout Transition */
+.layout-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

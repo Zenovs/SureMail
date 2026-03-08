@@ -3,6 +3,7 @@ import { useTheme, themes } from '../context/ThemeContext';
 import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
 import SignatureEditor from './SignatureEditor';
+import SidebarSettings from './SidebarSettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
@@ -43,6 +44,7 @@ function SettingsV2() {
 
   const tabs = [
     { id: 'general', name: 'Allgemein', icon: '⚙️' },
+    { id: 'sidebar', name: 'Sidebar', icon: '📐' },
     { id: 'notifications', name: 'Benachrichtigungen', icon: '🔔' },
     { id: 'signatures', name: 'Signaturen', icon: '✍️' },
     { id: 'downloads', name: 'Downloads', icon: '📁' },
@@ -144,28 +146,31 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.3.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.4.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🎨</span>
-                  <span>3 neue Themes: Morphismus, Glas und Retro</span>
+                  <span className="text-cyan-400">📐</span>
+                  <span>Individualisierbare Sidebar mit Resize-Handle und Einstellungen</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400">📊</span>
+                  <span>Widget-System für Dashboard mit Drag & Drop</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400">📦</span>
+                  <span>4 Widget-Typen: Konto, Kategorie, Statistik, Schnellaktionen</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-cyan-400">🔄</span>
-                  <span>Verbesserte Update-Funktion mit täglicher Prüfung</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📎</span>
-                  <span>Drag & Drop für Anhänge beim E-Mail-Verfassen</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">✍️</span>
-                  <span>Erweiterte Signatur-Verwaltung mit mehr Vorlagen</span>
+                  <span>Widget-Größen anpassbar (S/M/L) und Layout persistent</span>
                 </li>
               </ul>
             </div>
           </div>
         );
+      
+      case 'sidebar':
+        return <SidebarSettings />;
       
       case 'notifications':
         return <NotificationSettings />;
