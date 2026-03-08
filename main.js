@@ -79,7 +79,52 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow);
+// ============ AUTO-START OLLAMA (v1.7.1) ============
+async function autoStartOllama() {
+  // Only try to start if Ollama is installed
+  if (!isOllamaInstalled()) {
+    console.log('[Ollama] Not installed, skipping auto-start');
+    return;
+  }
+
+  // Check if already running
+  if (await isOllamaRunning()) {
+    console.log('[Ollama] Already running');
+    return;
+  }
+
+  console.log('[Ollama] Installed but not running, starting automatically...');
+
+  // Try systemctl first (silent)
+  try {
+    execSync('systemctl --user start ollama 2>/dev/null', { stdio: 'ignore' });
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    if (await isOllamaRunning()) {
+      console.log('[Ollama] Started via systemctl');
+      return;
+    }
+  } catch {
+    // Ignore systemctl errors
+  }
+
+  // Fallback: start ollama serve in background
+  try {
+    const ollamaProcess = spawn('ollama', ['serve'], {
+      detached: true,
+      stdio: 'ignore'
+    });
+    ollamaProcess.unref();
+    console.log('[Ollama] Started via ollama serve');
+  } catch (err) {
+    console.log('[Ollama] Could not auto-start:', err.message);
+  }
+}
+
+app.whenReady().then(async () => {
+  createWindow();
+  // Auto-start Ollama in background (non-blocking)
+  setTimeout(() => autoStartOllama(), 2000);
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

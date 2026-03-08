@@ -61,6 +61,7 @@ function SettingsV2() {
     { id: 'morphism', name: 'Morphismus', desc: 'Glasmorphismus mit weichen Schatten', preview: 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900', previewBorder: 'border-purple-500/50' },
     { id: 'glass', name: 'Glas', desc: 'Transparente Glaseffekte', preview: 'bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950', previewBorder: 'border-sky-400/50' },
     { id: 'retro', name: 'Retro', desc: '80er/90er Neon-Stil', preview: 'bg-gray-950', previewBorder: 'border-pink-500/50' },
+    { id: 'foundations', name: 'Foundations', desc: 'Professionelles Design-System mit Orange & Grün', preview: 'bg-foundations-950', previewBorder: 'border-orange-500/50' },
   ];
 
   const getThemePreviewContent = (themeId) => {
@@ -81,6 +82,13 @@ function SettingsV2() {
         return (
           <div className="w-full h-full flex items-center justify-center relative">
             <span className="text-xs text-pink-500 font-bold" style={{ textShadow: '0 0 10px #ff00ff' }}>NEON</span>
+          </div>
+        );
+      case 'foundations':
+        return (
+          <div className="w-full h-full flex items-center justify-center gap-1">
+            <div className="w-4 h-4 rounded-full bg-orange-500" />
+            <div className="w-4 h-4 rounded-full bg-green-500" />
           </div>
         );
       default:
@@ -149,27 +157,23 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.7.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.7.1</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
+                  <span className="text-green-400">🤖</span>
+                  <span>Ollama startet jetzt automatisch beim App-Start</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400">📥</span>
+                  <span>Automatischer Modell-Download nach Ollama-Installation</span>
+                </li>
+                <li className="flex items-start gap-2">
                   <span className="text-orange-400">🎨</span>
-                  <span>Neues "Foundations" Theme mit professionellem Design-System</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-400">🟠</span>
-                  <span>Orange & Grün als Akzentfarben im neuen Theme</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-400">📐</span>
-                  <span>Modernes Border-Radius-System (4px, 8px, 12px, Pill)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">💡</span>
-                  <span>Raised, Inset & Pressed Schatten-Effekte</span>
+                  <span>Foundations Theme jetzt in der Theme-Auswahl sichtbar</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-400">✨</span>
-                  <span>Jetzt 7 Themes verfügbar</span>
+                  <span>Alle 7 Themes vollständig verfügbar</span>
                 </li>
               </ul>
             </div>

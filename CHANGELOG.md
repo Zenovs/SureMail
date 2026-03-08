@@ -2,6 +2,30 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.7.1] - 2026-03-08
+
+### 🐛 Bugfixes
+
+#### 🤖 Ollama Auto-Start & Modell-Download
+- **Automatischer Start**: Ollama wird jetzt automatisch beim CoreMail-Start gestartet, wenn es installiert aber nicht laufend ist
+- **Kein manuelles Starten mehr nötig**: Ollama-Dienst startet im Hintergrund (via systemctl oder ollama serve)
+- **Automatischer Modell-Download**: Nach der Ollama-Installation wird das Modell `llama3.2:1b` automatisch heruntergeladen
+
+#### 🎨 Foundations Theme sichtbar
+- **Theme-Auswahl korrigiert**: Das neue "Foundations" Theme wird jetzt korrekt in den Einstellungen angezeigt
+- **Theme-Preview hinzugefügt**: Orange & Grün Kreise als visuelles Preview für das Theme
+- **7 Themes jetzt vollständig sichtbar**: Dark, Light, Minimal, Morphismus, Glas, Retro, Foundations
+
+### 🔧 Technische Änderungen
+- **main.js**: Neue `autoStartOllama()` Funktion beim App-Start
+- **SettingsV2.js**: "Foundations" Theme zu `themeOptions` Array hinzugefügt
+- **SettingsV2.js**: Theme-Preview für Foundations mit Orange/Grün Kreisen
+
+### 📦 Version
+- Patch-Release: v1.7.0 → v1.7.1
+
+---
+
 ## [1.7.0] - 2026-03-08
 
 ### ✨ Neue Features
