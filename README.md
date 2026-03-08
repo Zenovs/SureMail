@@ -40,31 +40,37 @@ CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 CoreMail ist auch als Desktop-App für Linux verfügbar!
 
-### 🆕 Neu in v1.2.2
+### 🆕 Neu in v1.3.0 – Major Update!
 
-- **Professionelles App-Icon**: Neues, professionelles Icon – wird jetzt korrekt im App-Menü und in der Taskleiste angezeigt
-- **Version wird korrekt angezeigt**: Die Versionsnummer wird jetzt dynamisch aus package.json gelesen und korrekt in der App angezeigt
+- **Update-Funktion (in der App)**: Prüfe und installiere Updates direkt in der App – kein manueller Download mehr nötig
+- **Bessere Anhang-Verwaltung**: Drag & Drop, Vorschau und Fortschrittsanzeige für alle Anhänge
+- **E-Mail-Signaturen**: Rich-Text-Editor mit 6 Vorlagen und Platzhaltern für professionelle Signaturen
+- **3 neue Themes**: Morphismus, Glas und Retro – jetzt insgesamt **6 Themes** zur Auswahl!
+  - Dark, Light, Minimal (bestehend)
+  - Morphismus, Glas, Retro (neu)
 
-### Bugfixes in v1.2.1
+### v1.2.2 – Professionelles Icon
 
-- **E-Mail-Liste scrollt korrekt**: Keine springenden oder fehlenden Einträge mehr
-- **E-Mail-Vorschau scrollt korrekt**: Lange E-Mails sind jetzt vollständig lesbar
+- Professionelles App-Icon für App-Menü und Taskleiste
+- Version wird dynamisch aus package.json gelesen
 
-### Features aus v1.2.0
+### v1.2.1 – Bugfix Release
 
-- **Automatische Updates**: Updates direkt in der App prüfen und installieren – kein manueller Download mehr nötig
-- **Desktop-Benachrichtigungen**: Erhalte sofort Benachrichtigungen bei neuen E-Mails – auch im Hintergrund
-- **Verbesserte Anhang-Verwaltung**: Vorschau, Download-Manager und Drag-and-Drop für Anhänge
-- **E-Mail-Signaturen**: Erstelle und verwalte Signaturen mit dem Rich-Text-Editor
-- **Neues Icon**: Professionelles neues App-Icon im Darknet-Design
+- E-Mail-Liste scrollt korrekt
+- E-Mail-Vorschau scrollt korrekt
 
-### Features aus v1.1.0
+### v1.2.0 – Feature Update
 
-- **Mehrere IMAP-Konten**: Verwalte alle deine E-Mail-Konten an einem Ort
-- **Dashboard**: Übersicht aller Konten und Statistiken auf einen Blick
-- **Kategorien & Gruppen**: Organisiere E-Mails mit benutzerdefinierten Kategorien
-- **E-Mail-Vorschau (Split-View)**: Vorschau von E-Mails direkt in der Listenansicht
-- **3 Themes**: Dark, Light und Minimal – wähle dein bevorzugtes Design
+- Desktop-Benachrichtigungen bei neuen E-Mails
+- Neues Icon & UI-Verbesserungen
+
+### v1.1.0 – Multi-Account Support
+
+- Mehrere IMAP-Konten verwalten
+- Dashboard mit Übersicht aller Konten
+- Kategorien & Gruppen für E-Mails
+- E-Mail-Vorschau (Split-View)
+- 3 Themes: Dark, Light, Minimal
 
 ### Quick Install (Eine Zeile)
 
@@ -79,7 +85,7 @@ wget -qO- https://suremail.vercel.app/install.sh | bash
 ```
 
 Das Script:
-- Lädt CoreMail Desktop v1.2.2 von GitHub Releases herunter
+- Lädt CoreMail Desktop v1.3.0 von GitHub Releases herunter
 - Prüft und installiert automatisch FUSE (benötigt für AppImages)
 - Installiert nach `~/.local/bin/coremail-desktop`
 - Erstellt einen Desktop-Eintrag im App-Menü

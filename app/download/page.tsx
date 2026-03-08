@@ -17,7 +17,12 @@ import {
   Wrench,
   Zap,
   Copy,
-  Check
+  Check,
+  Palette,
+  Sparkles,
+  RefreshCw,
+  Paperclip,
+  PenTool
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -54,17 +59,110 @@ export default function DownloadPage() {
       {/* Hero Section */}
       <section className="py-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded-full text-cyan-400 text-sm font-mono mb-6">
-            <Monitor className="w-4 h-4" />
-            <span>Desktop Client v1.2.2 - Professionelles Icon!</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-400/20 to-cyan-400/20 border border-emerald-400/40 rounded-full text-emerald-400 text-sm font-mono mb-6 animate-pulse">
+            <Sparkles className="w-4 h-4" />
+            <span>NEU: Desktop Client v1.3.0 - Major Update!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
           </h1>
           <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-            Der native Desktop-Client für CoreMail. Mit automatischen Updates, Desktop-Benachrichtigungen, 
-            verbesserter Anhang-Verwaltung und E-Mail-Signaturen – jetzt noch produktiver!
+            Der native Desktop-Client für CoreMail. Mit automatischen Updates, 6 Themes, 
+            E-Mail-Signaturen und verbesserter Anhang-Verwaltung – jetzt noch produktiver!
           </p>
+        </div>
+      </section>
+
+      {/* NEW: Neu in v1.3.0 Section - Hero Position */}
+      <section className="py-8 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-r from-emerald-500/20 via-cyan-500/15 to-purple-500/20 border-2 border-emerald-400/50 rounded-2xl p-8 relative overflow-hidden">
+            {/* Background effect */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-400/10 rounded-full blur-3xl"></div>
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-center gap-4 mb-8">
+                <img src="/coremail-icon.png" alt="CoreMail Icon" className="w-20 h-20 rounded-2xl shadow-lg shadow-emerald-400/20" />
+                <div>
+                  <h2 className="text-3xl font-bold">
+                    <span className="font-mono text-emerald-400">// </span>Neu in v1.3.0
+                  </h2>
+                  <p className="text-gray-400 font-mono text-sm">Major Update mit vielen neuen Features</p>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4 mb-6">
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-emerald-400/20">
+                  <div className="w-10 h-10 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <RefreshCw className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">Update-Funktion (in der App)</h4>
+                    <p className="text-gray-400 text-sm">Prüfe und installiere Updates direkt in der App – kein manueller Download mehr nötig.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-cyan-400/20">
+                  <div className="w-10 h-10 bg-cyan-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Paperclip className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">Bessere Anhang-Verwaltung</h4>
+                    <p className="text-gray-400 text-sm">Drag & Drop, Vorschau und Fortschrittsanzeige für alle Anhänge.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-purple-400/20">
+                  <div className="w-10 h-10 bg-purple-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <PenTool className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">E-Mail-Signaturen</h4>
+                    <p className="text-gray-400 text-sm">Rich-Text-Editor mit 6 Vorlagen und Platzhaltern für professionelle Signaturen.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-yellow-400/20">
+                  <div className="w-10 h-10 bg-yellow-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Palette className="w-5 h-5 text-yellow-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">3 neue Themes</h4>
+                    <p className="text-gray-400 text-sm">Morphismus, Glas und Retro – jetzt insgesamt 6 Themes zur Auswahl!</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 6 Themes Showcase */}
+              <div className="bg-dark-800/50 rounded-xl p-6 border border-dark-700">
+                <h4 className="font-mono text-cyan-400 text-sm mb-4 text-center">// Alle 6 Themes</h4>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  <div className="text-center">
+                    <div className="w-full aspect-square bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg border border-gray-700 mb-2"></div>
+                    <span className="text-xs text-gray-400">Dark</span>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg border border-gray-300 mb-2"></div>
+                    <span className="text-xs text-gray-400">Light</span>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full aspect-square bg-gradient-to-br from-gray-950 to-black rounded-lg border border-gray-800 mb-2"></div>
+                    <span className="text-xs text-gray-400">Minimal</span>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full aspect-square bg-gradient-to-br from-purple-900/80 to-blue-900/80 rounded-lg border border-purple-500/30 mb-2 shadow-lg shadow-purple-500/20"></div>
+                    <span className="text-xs text-emerald-400 font-bold">Morphismus ✨</span>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full aspect-square bg-gradient-to-br from-cyan-400/20 to-emerald-400/20 rounded-lg border border-cyan-400/30 mb-2 backdrop-blur"></div>
+                    <span className="text-xs text-emerald-400 font-bold">Glas ✨</span>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-full aspect-square bg-gradient-to-br from-amber-900 to-orange-800 rounded-lg border border-amber-600 mb-2"></div>
+                    <span className="text-xs text-emerald-400 font-bold">Retro ✨</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -138,7 +236,7 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Lädt CoreMail Desktop v1.2.2 von GitHub Releases herunter</span>
+                  <span>Lädt CoreMail Desktop v1.3.0 von GitHub Releases herunter</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -197,7 +295,7 @@ export default function DownloadPage() {
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
-              <span>v1.2.2</span>
+              <span className="text-emerald-400 font-bold">v1.3.0</span>
             </div>
 
             {/* Info Box */}
@@ -238,105 +336,54 @@ export default function DownloadPage() {
         </div>
       </section>
 
-      {/* New in v1.2.2 Section */}
+      {/* Previous Versions */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-400/30 rounded-2xl p-8">
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <img src="/coremail-icon.png" alt="CoreMail Icon" className="w-16 h-16 rounded-xl" />
-              <h2 className="text-2xl font-bold">
-                <span className="font-mono text-emerald-400">// </span>Neu in v1.2.2
-              </h2>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
-                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-white">Professionelles App-Icon</h4>
-                  <p className="text-gray-400 text-sm">Neues, professionelles Icon – wird jetzt korrekt im App-Menü und in der Taskleiste angezeigt.</p>
-                </div>
+          <h2 className="text-xl font-bold mb-6 text-center text-gray-400">
+            <span className="font-mono text-gray-500">// </span>Frühere Versionen
+          </h2>
+          
+          {/* v1.2.2 */}
+          <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6 mb-4">
+            <h3 className="font-bold text-gray-300 mb-3">v1.2.2 – Professionelles Icon</h3>
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Professionelles App-Icon für App-Menü und Taskleiste</span>
               </div>
-              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
-                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-white">Version wird korrekt angezeigt</h4>
-                  <p className="text-gray-400 text-sm">Die Versionsnummer wird jetzt dynamisch aus package.json gelesen und korrekt in der App angezeigt.</p>
-                </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Version wird dynamisch aus package.json gelesen</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* v1.2.1 Section */}
-      <section className="py-8 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-dark-800/50 border border-dark-700 rounded-2xl p-8">
-            <h2 className="text-xl font-bold mb-6 text-center text-gray-400">
-              <span className="font-mono text-gray-500">// </span>v1.2.1 – Bugfix Release
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-start gap-3 bg-dark-800/30 rounded-xl p-4">
-                <CheckCircle className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-gray-300">E-Mail-Liste scrollt korrekt</h4>
-                  <p className="text-gray-500 text-sm">Keine springenden oder fehlenden Einträge mehr.</p>
-                </div>
+          {/* v1.2.1 */}
+          <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6 mb-4">
+            <h3 className="font-bold text-gray-300 mb-3">v1.2.1 – Bugfix Release</h3>
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>E-Mail-Liste scrollt korrekt</span>
               </div>
-              <div className="flex items-start gap-3 bg-dark-800/30 rounded-xl p-4">
-                <CheckCircle className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-gray-300">E-Mail-Vorschau scrollt korrekt</h4>
-                  <p className="text-gray-500 text-sm">Lange E-Mails sind vollständig lesbar.</p>
-                </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>E-Mail-Vorschau scrollt korrekt</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Features from v1.2.0 Section */}
-      <section className="py-8 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-6 text-center">
-              <span className="font-mono text-cyan-400">// </span>Features aus v1.2.0
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
-                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-white">Automatische Updates</h4>
-                  <p className="text-gray-400 text-sm">Updates direkt in der App prüfen und installieren – kein manueller Download mehr nötig.</p>
-                </div>
+          {/* v1.2.0 */}
+          <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6">
+            <h3 className="font-bold text-gray-300 mb-3">v1.2.0 – Feature Update</h3>
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Desktop-Benachrichtigungen</span>
               </div>
-              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
-                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-white">Desktop-Benachrichtigungen</h4>
-                  <p className="text-gray-400 text-sm">Erhalte sofort Benachrichtigungen bei neuen E-Mails – auch im Hintergrund.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
-                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-white">Verbesserte Anhang-Verwaltung</h4>
-                  <p className="text-gray-400 text-sm">Vorschau, Download-Manager und Drag-and-Drop für Anhänge.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
-                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-white">E-Mail-Signaturen</h4>
-                  <p className="text-gray-400 text-sm">Erstelle und verwalte Signaturen mit dem Rich-Text-Editor.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4 md:col-span-2">
-                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h4 className="font-bold text-white">Neues Icon & UI-Verbesserungen</h4>
-                  <p className="text-gray-400 text-sm">Professionelles neues App-Icon und verfeinerte UI-Elemente im Darknet-Design.</p>
-                </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Neues Icon & UI-Verbesserungen</span>
               </div>
             </div>
           </div>
@@ -362,11 +409,11 @@ export default function DownloadPage() {
             </div>
             <div className="bg-dark-800 border border-dark-700 rounded-xl p-6">
               <div className="w-12 h-12 bg-emerald-400/10 rounded-lg flex items-center justify-center mb-4">
-                <Moon className="w-6 h-6 text-emerald-400" />
+                <Palette className="w-6 h-6 text-emerald-400" />
               </div>
-              <h3 className="font-bold mb-2">3 Themes</h3>
+              <h3 className="font-bold mb-2">6 Themes</h3>
               <p className="text-gray-400 text-sm">
-                Dark, Light oder Minimal – wähle das Design, das zu dir passt.
+                Dark, Light, Minimal, Morphismus, Glas oder Retro – wähle das Design, das zu dir passt.
                 Schonend für die Augen, auch bei langen Sessions.
               </p>
             </div>
@@ -509,7 +556,7 @@ export default function DownloadPage() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-dark-700">
         <div className="max-w-4xl mx-auto text-center text-gray-500 text-sm">
-          <p>CoreMail Desktop v1.2.2 • Powered by Electron</p>
+          <p>CoreMail Desktop v1.3.0 • Powered by Electron</p>
           <p className="mt-2">
             <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
               Zur Web-App →
