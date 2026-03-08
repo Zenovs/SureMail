@@ -3,7 +3,9 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AccountProvider, useAccounts } from './context/AccountContext';
 import { SidebarProvider } from './context/SidebarContext';
 import { DashboardProvider } from './context/DashboardContext';
+import { OllamaProvider } from './context/OllamaContext';
 import SidebarV2 from './components/SidebarV2';
+import ChatWidget from './components/ChatWidget';
 import Dashboard from './pages/Dashboard';
 import InboxSplitView from './pages/InboxSplitView';
 import ComposeEmail from './pages/ComposeEmail';
@@ -64,6 +66,7 @@ function AppContent() {
       <main className="flex-1 flex flex-col overflow-hidden">
         {renderContent()}
       </main>
+      <ChatWidget />
     </div>
   );
 }
@@ -74,7 +77,9 @@ function App() {
       <AccountProvider>
         <SidebarProvider>
           <DashboardProvider>
-            <AppContent />
+            <OllamaProvider>
+              <AppContent />
+            </OllamaProvider>
           </DashboardProvider>
         </SidebarProvider>
       </AccountProvider>

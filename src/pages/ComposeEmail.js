@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
+import { useOllama } from '../context/OllamaContext';
 
 function ComposeEmail({ onBack, replyTo = null }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount, accounts } = useAccounts();
+  const { isAvailable: aiAvailable, suggestReply, improveText } = useOllama();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -19,6 +21,11 @@ function ComposeEmail({ onBack, replyTo = null }) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
+  
+  // AI state
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
   
   const c = currentTheme.colors;
 
@@ -158,6 +165,51 @@ function ComposeEmail({ onBack, replyTo = null }) {
     return attachments.reduce((sum, att) => sum + att.size, 0);
   };
 
+  // ============ AI FUNCTIONS ============
+
+  const handleAiSuggestReply = async () => {
+    if (!replyTo || aiLoading) return;
+    
+    setAiLoading(true);
+    setAiSuggestion('');
+    
+    const emailContent = replyTo.text || replyTo.html?.replace(/<[^>]*>/g, '') || '';
+    const suggestion = await suggestReply(emailContent, replyTo.subject, replyTo.from);
+    
+    if (suggestion) {
+      setAiSuggestion(suggestion);
+    } else {
+      setAiSuggestion('Fehler: Konnte keinen Vorschlag generieren.');
+    }
+    
+    setAiLoading(false);
+  };
+
+  const handleAiImprove = async (instruction = 'Verbessere und verfeinere') => {
+    if (!form.body.trim() || aiLoading) return;
+    
+    setAiLoading(true);
+    setAiSuggestion('');
+    
+    const improved = await improveText(form.body, instruction);
+    
+    if (improved) {
+      setAiSuggestion(improved);
+    } else {
+      setAiSuggestion('Fehler: Text konnte nicht verbessert werden.');
+    }
+    
+    setAiLoading(false);
+  };
+
+  const applyAiSuggestion = () => {
+    if (aiSuggestion) {
+      setForm(f => ({ ...f, body: aiSuggestion }));
+      setAiSuggestion('');
+      setShowAiPanel(false);
+    }
+  };
+
   // ============ SEND EMAIL ============
 
   const handleSend = async () => {
@@ -259,6 +311,19 @@ function ComposeEmail({ onBack, replyTo = null }) {
               <span className={`text-sm ${c.textSecondary}`}>
                 📎 {attachments.length} ({formatFileSize(getTotalSize())})
               </span>
+            )}
+            {aiAvailable && (
+              <button
+                onClick={() => setShowAiPanel(!showAiPanel)}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  showAiPanel
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                }`}
+                title="KI-Assistent"
+              >
+                🤖 KI-Assistent
+              </button>
             )}
             <button
               onClick={handleSend}
@@ -478,6 +543,142 @@ function ComposeEmail({ onBack, replyTo = null }) {
           )}
         </div>
       </div>
+
+      {/* AI Assistant Panel */}
+      {showAiPanel && aiAvailable && (
+        <div className={`w-80 ${c.bgSecondary} ${c.border} border-l flex flex-col`}>
+          <div className="p-4 border-b border-gray-700">
+            <div className="flex items-center justify-between">
+              <h3 className={`font-semibold ${c.text} flex items-center gap-2`}>
+                🤖 KI-Assistent
+              </h3>
+              <button
+                onClick={() => setShowAiPanel(false)}
+                className={`${c.textMuted} hover:${c.text}`}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Actions */}
+            <div className="space-y-2">
+              <p className={`text-xs ${c.textMuted} uppercase tracking-wider`}>Aktionen</p>
+              
+              {replyTo && (
+                <button
+                  onClick={handleAiSuggestReply}
+                  disabled={aiLoading}
+                  className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
+                    aiLoading
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                  }`}
+                >
+                  <span>💬</span>
+                  <span>Antwort vorschlagen</span>
+                </button>
+              )}
+              
+              <button
+                onClick={() => handleAiImprove('Verbessere und mache professioneller')}
+                disabled={aiLoading || !form.body.trim()}
+                className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
+                  aiLoading || !form.body.trim()
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                }`}
+              >
+                <span>✨</span>
+                <span>Text verbessern</span>
+              </button>
+
+              <button
+                onClick={() => handleAiImprove('Kürze den Text und mache ihn prägnanter')}
+                disabled={aiLoading || !form.body.trim()}
+                className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
+                  aiLoading || !form.body.trim()
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                }`}
+              >
+                <span>📝</span>
+                <span>Kürzen</span>
+              </button>
+
+              <button
+                onClick={() => handleAiImprove('Mache den Text förmlicher und geschäftlicher')}
+                disabled={aiLoading || !form.body.trim()}
+                className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
+                  aiLoading || !form.body.trim()
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                }`}
+              >
+                <span>💼</span>
+                <span>Förmlicher</span>
+              </button>
+
+              <button
+                onClick={() => handleAiImprove('Mache den Text freundlicher und lockerer')}
+                disabled={aiLoading || !form.body.trim()}
+                className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
+                  aiLoading || !form.body.trim()
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                }`}
+              >
+                <span>😊</span>
+                <span>Freundlicher</span>
+              </button>
+            </div>
+
+            {/* Loading */}
+            {aiLoading && (
+              <div className="flex items-center justify-center py-4">
+                <div className="flex items-center gap-2 text-purple-400">
+                  <span className="animate-spin">⏳</span>
+                  <span className="text-sm">KI denkt nach...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Suggestion */}
+            {aiSuggestion && (
+              <div className="space-y-2">
+                <p className={`text-xs ${c.textMuted} uppercase tracking-wider`}>Vorschlag</p>
+                <div className={`p-3 rounded-lg ${c.bg} border ${c.border} max-h-60 overflow-y-auto`}>
+                  <p className={`text-sm ${c.text} whitespace-pre-wrap`}>{aiSuggestion}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={applyAiSuggestion}
+                    className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:from-purple-400 hover:to-pink-400"
+                  >
+                    ✓ Übernehmen
+                  </button>
+                  <button
+                    onClick={() => setAiSuggestion('')}
+                    className={`px-3 py-2 ${c.bgTertiary} ${c.text} rounded-lg text-sm`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Tips */}
+            {!aiLoading && !aiSuggestion && (
+              <div className={`p-3 rounded-lg bg-purple-500/5 border border-purple-500/20`}>
+                <p className={`text-xs ${c.textMuted}`}>
+                  💡 <strong>Tipp:</strong> Schreibe erst deinen Text, dann lass ihn von der KI verbessern.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

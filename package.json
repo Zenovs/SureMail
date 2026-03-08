@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.4.0",
-  "description": "CoreMail Desktop Client v1.4.0 - Multi-Account E-Mail-Client für Linux mit individualisierbarer Sidebar und Dashboard",
+  "version": "1.5.0",
+  "description": "CoreMail Desktop Client v1.5.0 - Multi-Account E-Mail-Client für Linux mit lokaler KI-Integration (Ollama)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

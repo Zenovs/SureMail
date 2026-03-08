@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
+import { useOllama } from '../context/OllamaContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const EmailView = ({ email, onBack, onReply }) => {
   const { currentTheme } = useTheme();
+  const { isAvailable: aiAvailable, summarizeEmail, isGenerating: aiGenerating } = useOllama();
   const [fullEmail, setFullEmail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState({});
   const [previewAttachment, setPreviewAttachment] = useState(null);
+  const [aiSummary, setAiSummary] = useState(null);
+  const [summarizing, setSummarizing] = useState(false);
   const c = currentTheme.colors;
 
   useEffect(() => {
@@ -146,6 +150,24 @@ const EmailView = ({ email, onBack, onReply }) => {
     return contentType.startsWith('image/') || contentType === 'application/pdf';
   };
 
+  const handleSummarize = async () => {
+    if (!fullEmail || summarizing) return;
+    
+    setSummarizing(true);
+    setAiSummary(null);
+    
+    const emailContent = fullEmail.text || fullEmail.html?.replace(/<[^>]*>/g, '') || '';
+    const summary = await summarizeEmail(emailContent, fullEmail.subject);
+    
+    if (summary) {
+      setAiSummary(summary);
+    } else {
+      setAiSummary('Fehler: Zusammenfassung konnte nicht erstellt werden.');
+    }
+    
+    setSummarizing(false);
+  };
+
   if (loading) {
     return (
       <div className={`flex-1 flex items-center justify-center ${c.bg}`}>
@@ -188,12 +210,36 @@ const EmailView = ({ email, onBack, onReply }) => {
               {fullEmail.subject}
             </h2>
           </div>
-          <button
-            onClick={onReply}
-            className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors flex items-center gap-2`}
-          >
-            ↩️ Antworten
-          </button>
+          <div className="flex items-center gap-2">
+            {aiAvailable && (
+              <button
+                onClick={handleSummarize}
+                disabled={summarizing}
+                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  summarizing
+                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-400 hover:to-pink-400'
+                }`}
+                title="Mit KI zusammenfassen"
+              >
+                {summarizing ? (
+                  <>
+                    <span className="animate-spin">⏳</span> Lädt...
+                  </>
+                ) : (
+                  <>
+                    🤖 Zusammenfassen
+                  </>
+                )}
+              </button>
+            )}
+            <button
+              onClick={onReply}
+              className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors flex items-center gap-2`}
+            >
+              ↩️ Antworten
+            </button>
+          </div>
         </div>
       </header>
 
@@ -219,6 +265,24 @@ const EmailView = ({ email, onBack, onReply }) => {
           </div>
         </div>
       </div>
+
+      {/* AI Summary */}
+      {aiSummary && (
+        <div className={`mx-6 mt-4 p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30`}>
+          <div className="flex items-start justify-between mb-2">
+            <h4 className="font-medium text-purple-400 flex items-center gap-2">
+              🤖 KI-Zusammenfassung
+            </h4>
+            <button
+              onClick={() => setAiSummary(null)}
+              className={`text-sm ${c.textMuted} hover:${c.text}`}
+            >
+              ✕
+            </button>
+          </div>
+          <p className={`text-sm ${c.text} leading-relaxed`}>{aiSummary}</p>
+        </div>
+      )}
 
       {/* E-Mail Inhalt */}
       <div className={`flex-1 overflow-y-auto p-6 ${c.bg}`}>

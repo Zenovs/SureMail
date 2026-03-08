@@ -4,6 +4,7 @@ import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
 import SignatureEditor from './SignatureEditor';
 import SidebarSettings from './SidebarSettings';
+import OllamaSettings from './OllamaSettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
@@ -44,6 +45,7 @@ function SettingsV2() {
 
   const tabs = [
     { id: 'general', name: 'Allgemein', icon: '⚙️' },
+    { id: 'ai', name: 'KI-Assistent', icon: '🤖' },
     { id: 'sidebar', name: 'Sidebar', icon: '📐' },
     { id: 'notifications', name: 'Benachrichtigungen', icon: '🔔' },
     { id: 'signatures', name: 'Signaturen', icon: '✍️' },
@@ -146,28 +148,31 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.4.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.5.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📐</span>
-                  <span>Individualisierbare Sidebar mit Resize-Handle und Einstellungen</span>
+                  <span className="text-cyan-400">🤖</span>
+                  <span>Lokale KI-Integration mit Ollama für E-Mail-Assistenz</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📊</span>
-                  <span>Widget-System für Dashboard mit Drag & Drop</span>
+                  <span className="text-cyan-400">💬</span>
+                  <span>KI-Chatbot Widget zum Stellen von Fragen</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📦</span>
-                  <span>4 Widget-Typen: Konto, Kategorie, Statistik, Schnellaktionen</span>
+                  <span className="text-cyan-400">📧</span>
+                  <span>E-Mails zusammenfassen und Antworten generieren lassen</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🔄</span>
-                  <span>Widget-Größen anpassbar (S/M/L) und Layout persistent</span>
+                  <span className="text-cyan-400">⚡</span>
+                  <span>Textverbesserung direkt beim Verfassen von E-Mails</span>
                 </li>
               </ul>
             </div>
           </div>
         );
+      
+      case 'ai':
+        return <OllamaSettings />;
       
       case 'sidebar':
         return <SidebarSettings />;

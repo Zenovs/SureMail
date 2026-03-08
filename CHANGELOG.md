@@ -2,6 +2,61 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.5.0] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 🤖 Lokale KI-Integration (Ollama)
+- **Ollama-Integration**: Vollständig lokale KI ohne Cloud-Abhängigkeit
+- **E-Mails zusammenfassen**: Ein-Klick-Zusammenfassung von E-Mail-Inhalten
+- **Antwort-Vorschläge**: KI generiert Antwort-Entwürfe basierend auf Original-E-Mail
+- **Textverbesserung**: Texte verbessern, kürzen, förmlicher oder freundlicher gestalten
+- **KI-Chatbot Widget**: Schwebendes Chat-Panel (rechts unten) für direkte Fragen
+- **Streaming-Antworten**: Echtzeit-Typing-Animation bei KI-Antworten
+- **Chat-Historie**: Gespräche werden gespeichert (letzte 50 Nachrichten)
+
+#### ⚙️ KI-Einstellungen
+- **Neue Einstellungsseite**: "KI-Assistent" Tab in Einstellungen
+- **Ollama-Status**: Anzeige ob Ollama läuft und verfügbar ist
+- **Modell-Verwaltung**: Installierte Modelle anzeigen, aktives Modell wechseln
+- **Modelle installieren**: Download neuer Modelle mit Fortschrittsanzeige
+- **Modelle löschen**: Nicht mehr benötigte Modelle entfernen
+- **Empfohlene Modelle**: Liste von empfohlenen Modellen (llama3.2:1b, mistral:7b, etc.)
+- **Benutzerdefinierte Modelle**: Jedes Ollama-Modell installierbar
+
+#### 📧 KI in E-Mails
+- **Zusammenfassen-Button**: In E-Mail-Ansicht, zeigt Zusammenfassung oberhalb des Inhalts
+- **KI-Assistent Panel**: In Compose-Ansicht, seitliches Panel mit KI-Aktionen
+- **Antwort vorschlagen**: Generiert Antwort-Entwurf bei Reply
+- **Text verbessern**: Verbesserung des geschriebenen Textes
+- **Kürzen**: Text prägnanter formulieren
+- **Förmlicher**: Geschäftlichen Ton verstärken
+- **Freundlicher**: Lockeren, freundlichen Ton verwenden
+- **Übernehmen**: KI-Vorschlag direkt in Text übernehmen
+
+### 📥 Erweiterter Installer
+- **Ollama-Installation**: Automatische Installation von Ollama (optional)
+- **Modell-Download**: Standard-Modell (llama3.2:1b) installieren (optional)
+- **Interaktive Prompts**: Benutzer wird gefragt, ob KI-Funktionen installiert werden sollen
+
+### 🔧 Technisch
+
+- Neuer `OllamaContext` für KI-State-Management
+- API-Integration mit Ollama REST API (localhost:11434)
+- Streaming-Response-Unterstützung für Typing-Effekt
+- ChatWidget Komponente mit modernem Design
+- OllamaSettings Komponente für Modell-Verwaltung
+- Integration in EmailView und ComposeEmail
+
+### 💡 Wichtig
+
+- **Ollama ist optional**: App funktioniert vollständig ohne Ollama
+- **Keine Cloud**: Alle KI-Operationen laufen lokal auf dem Computer
+- **Datenschutz**: Keine E-Mail-Daten werden an externe Server gesendet
+- **Ressourcen**: Empfohlen mindestens 4 GB RAM für KI-Funktionen
+
+---
+
 ## [1.4.0] - 2026-03-08
 
 ### ✨ Neue Features

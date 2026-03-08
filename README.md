@@ -1,6 +1,6 @@
-# 📧 CoreMail Desktop v1.4.0
+# 📧 CoreMail Desktop v1.5.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design und fortschrittlichen Funktionen.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration und fortschrittlichen Funktionen.
 
 <p align="center">
   <img src="assets/icon.png" width="128" height="128" alt="CoreMail Desktop">
@@ -8,20 +8,29 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 
 ## ✨ Features
 
+### 🤖 Lokale KI-Integration (NEU in v1.5)
+- **Ollama-Integration**: Lokale KI ohne Cloud-Abhängigkeit
+- **E-Mails zusammenfassen**: Ein Klick für prägnante Zusammenfassungen
+- **Antwort-Vorschläge**: KI hilft beim Verfassen von Antworten
+- **Textverbesserung**: Text verbessern, kürzen, förmlicher/freundlicher machen
+- **KI-Chatbot**: Schwebendes Widget für direkte Fragen
+- **Modell-Verwaltung**: Installiere und verwalte verschiedene KI-Modelle
+- **Streaming-Antworten**: Echtzeit-Typing-Animation
+
 ### 📬 E-Mail-Verwaltung
 - **Multi-Account-Support**: Verwalte mehrere E-Mail-Konten gleichzeitig
 - **Kategorien**: Organisiere Konten in Kategorien (Arbeit, Privat, etc.)
 - **IMAP/SMTP**: Volle Unterstützung für IMAP und SMTP-Protokolle
 - **Split-View**: E-Mail-Liste und Vorschau nebeneinander
 
-### 📐 Individualisierbare Sidebar (NEU in v1.4)
+### 📐 Individualisierbare Sidebar
 - **Resize-Handle**: Sidebar-Breite per Drag & Drop anpassen
 - **Min/Max-Breite**: 200px bis 400px einstellbar
 - **Icons-Only-Modus**: Kompakte Ansicht nur mit Icons
 - **Auto-Collapse**: Automatisches Minimieren bei kleinen Fenstern
 - **Persistente Einstellungen**: Werden beim Neustart wiederhergestellt
 
-### 📊 Widget-Dashboard (NEU in v1.4)
+### 📊 Widget-Dashboard
 - **4 Widget-Typen**: 
   - Konto-Widget: Einzelnes E-Mail-Konto mit Statistiken
   - Kategorie-Widget: Übersicht einer Kategorie
@@ -74,20 +83,32 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 | Betriebssystem | Linux (x64) |
 | Grafik | X11 oder Wayland |
 | Speicher | ~200 MB |
+| Für KI-Features | Ollama + min. 4 GB RAM |
 
 ## 📥 Installation
 
 ### AppImage (empfohlen)
 
-1. Lade `CoreMail.Desktop-1.4.0.AppImage` herunter
+1. Lade `CoreMail.Desktop-1.5.0.AppImage` herunter
 2. Mache die Datei ausführbar:
    ```bash
-   chmod +x CoreMail.Desktop-1.4.0.AppImage
+   chmod +x CoreMail.Desktop-1.5.0.AppImage
    ```
 3. Starte die App:
    ```bash
-   ./CoreMail.Desktop-1.4.0.AppImage
+   ./CoreMail.Desktop-1.5.0.AppImage
    ```
+
+### Installer mit KI-Setup
+
+```bash
+# Installer ausführen (installiert auch Ollama optional)
+./install.sh
+```
+
+Der Installer bietet an:
+- Ollama automatisch zu installieren
+- Ein kompaktes KI-Modell (llama3.2:1b, ~1.3 GB) herunterzuladen
 
 ### Aus Quellcode
 
@@ -104,6 +125,21 @@ npm run dev
 
 # AppImage erstellen
 npm run build
+```
+
+### Ollama manuell installieren
+
+Falls du Ollama separat installieren möchtest:
+
+```bash
+# Ollama installieren
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Ollama starten
+ollama serve
+
+# Empfohlenes Modell laden
+ollama pull llama3.2:1b
 ```
 
 ## ⚙️ E-Mail-Konto einrichten
@@ -145,37 +181,38 @@ npm run build
 
 Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
 
-### v1.4.0 (aktuell)
-- 📐 **Individualisierbare Sidebar**
-  - Resize-Handle zum Anpassen der Breite (200-400px)
-  - Icons-Only-Modus für kompakte Ansicht
-  - Auto-Collapse-Funktion
-  - Neue Einstellungsseite für Sidebar
-- 📊 **Widget-Dashboard**
-  - 4 Widget-Typen: Konto, Kategorie, Statistik, Schnellaktionen
-  - Drag & Drop zum Verschieben
-  - 3 Widget-Größen (S/M/L)
-  - Bearbeitungsmodus mit visuellen Hinweisen
-  - Persistentes Layout
+### v1.5.0 (aktuell)
+- 🤖 **Lokale KI-Integration mit Ollama**
+  - E-Mails mit einem Klick zusammenfassen
+  - Antwort-Vorschläge generieren lassen
+  - Texte verbessern, kürzen, förmlicher/freundlicher machen
+  - KI-Chatbot Widget (schwebendes Panel)
+  - Streaming-Antworten mit Typing-Animation
+- ⚙️ **KI-Einstellungen**
+  - Neue Einstellungsseite "KI-Assistent"
+  - Modelle installieren, verwalten und wechseln
+  - Download-Fortschrittsanzeige
+  - Empfohlene Modelle: llama3.2:1b, mistral:7b, etc.
+- 📥 **Erweiterter Installer**
+  - Ollama automatisch installieren
+  - Standardmodell herunterladen
 
-### v1.3.1
-- 🐛 Versions-Anzeige korrigiert
+### v1.4.0
+- 📐 **Individualisierbare Sidebar**
+- 📊 **Widget-Dashboard** mit Drag & Drop
 
 ### v1.3.0
 - 🎨 3 neue Themes: Morphismus, Glas, Retro
 - 📎 Drag & Drop für Anhänge
-- ✍️ 6 Signatur-Vorlagen mit Platzhaltern
+- ✍️ 6 Signatur-Vorlagen
 
 ### v1.2.0
-- 🔄 Update-Funktion mit GitHub Releases
+- 🔄 Auto-Update-Funktion
 - 🔔 Desktop-Benachrichtigungen
-- 📎 Verbesserte Anhang-Verwaltung
-- ✍️ E-Mail-Signaturen
 
 ### v1.1.0
 - Multi-Account-Support
 - Kategorien
-- Dashboard
 
 ### v1.0.0
 - Erste Version
