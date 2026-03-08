@@ -40,10 +40,23 @@ CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 CoreMail ist auch als Desktop-App für Linux verfügbar!
 
-### 🆕 Neu in v1.4.0 – Customizable UI!
+### 🆕 Neu in v1.5.0 – Lokale KI-Integration! 🤖
 
-- **Individualisierbare Sidebar**: Breite anpassen, Auto-Collapse, Icons-Only Modus – die Sidebar passt sich deinem Workflow an
-- **Widget-Dashboard**: Drag & Drop Widgets, verschiedene Größen und Widget-Typen für dein persönliches Dashboard
+**Revolutionär: 100% lokale KI direkt in CoreMail!**
+
+- **KI-Chatbot Widget**: Dein persönlicher KI-Assistent direkt in der App – offline und komplett privat
+- **E-Mails zusammenfassen**: Lange E-Mails auf einen Blick verstehen
+- **Antwort-Vorschläge**: Die KI generiert passende Antwort-Vorschläge basierend auf dem E-Mail-Inhalt
+- **Text verbessern**: Lass deine E-Mail-Texte professioneller klingen – Stil und Grammatik werden optimiert
+- **Ollama-Integration**: Powered by Ollama (llama3.2:1b) – läuft komplett lokal auf deinem Rechner
+- **100% Privat**: Keine Cloud, keine Datenübertragung – deine E-Mails bleiben auf deinem Gerät!
+
+Das Installationsscript bietet dir die Option, Ollama automatisch einzurichten.
+
+### v1.4.0 – Customizable UI
+
+- **Individualisierbare Sidebar**: Breite anpassen, Auto-Collapse, Icons-Only Modus
+- **Widget-Dashboard**: Drag & Drop Widgets, verschiedene Größen und Widget-Typen
 - **Drag & Drop Layout**: Ordne Widgets frei an und speichere dein individuelles Layout
 - **Vollständig anpassbar**: Kombiniere Sidebar- und Dashboard-Einstellungen mit deinem Lieblings-Theme
 
@@ -96,8 +109,9 @@ wget -qO- https://suremail.vercel.app/install.sh | bash
 ```
 
 Das Script:
-- Lädt CoreMail Desktop v1.4.0 von GitHub Releases herunter
+- Lädt CoreMail Desktop v1.5.0 von GitHub Releases herunter
 - Prüft und installiert automatisch FUSE (benötigt für AppImages)
+- **NEU:** Bietet optionale Ollama-Installation für lokale KI-Funktionen
 - Installiert nach `~/.local/bin/coremail-desktop`
 - Erstellt einen Desktop-Eintrag im App-Menü
 - Alternative ohne FUSE: Extrahiert das AppImage automatisch

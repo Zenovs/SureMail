@@ -278,12 +278,12 @@ export default function Home() {
         {/* Desktop Client Banner */}
         <a 
           href="/download" 
-          className="block bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-lg px-4 py-3 mb-6 hover:from-cyan-500/20 hover:to-purple-500/20 transition-all group"
+          className="block bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/30 rounded-lg px-4 py-3 mb-6 hover:from-purple-500/20 hover:to-cyan-500/20 transition-all group animate-pulse"
         >
           <div className="flex items-center justify-center gap-3">
-            <Download className="w-5 h-5 text-cyan-400" />
-            <p className="text-sm text-cyan-400 font-mono">
-              <span className="font-bold">NEU:</span> CoreMail Desktop v1.4.0 – Customizable UI!
+            <Download className="w-5 h-5 text-purple-400" />
+            <p className="text-sm text-purple-400 font-mono">
+              <span className="font-bold">🚀 NEU:</span> CoreMail Desktop v1.5.0 – Local AI Integration!
               <span className="ml-2 group-hover:underline">Download →</span>
             </p>
           </div>

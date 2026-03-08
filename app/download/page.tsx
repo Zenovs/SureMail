@@ -25,7 +25,12 @@ import {
   PenTool,
   LayoutDashboard,
   PanelLeft,
-  GripVertical
+  GripVertical,
+  Bot,
+  MessageSquare,
+  FileText,
+  Wand2,
+  Lock
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -62,99 +67,120 @@ export default function DownloadPage() {
       {/* Hero Section */}
       <section className="py-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-400/20 to-cyan-400/20 border border-emerald-400/40 rounded-full text-emerald-400 text-sm font-mono mb-6 animate-pulse">
-            <Sparkles className="w-4 h-4" />
-            <span>NEU: Desktop Client v1.4.0 - Customizable UI!</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400/20 to-cyan-400/20 border border-purple-400/40 rounded-full text-purple-400 text-sm font-mono mb-6 animate-pulse">
+            <Bot className="w-4 h-4" />
+            <span>🚀 NEU: Desktop Client v1.5.0 - Lokale KI-Integration!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
           </h1>
           <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-            Der native Desktop-Client für CoreMail. Mit individualisierbarer Sidebar, 
-            Widget-Dashboard, 6 Themes und E-Mail-Signaturen – jetzt noch produktiver!
+            Der native Desktop-Client mit <span className="text-purple-400 font-semibold">lokaler KI</span>! 
+            KI-Chatbot, E-Mail-Zusammenfassungen, Antwort-Vorschläge – alles 100% lokal und privat.
           </p>
         </div>
       </section>
 
-      {/* NEW: Neu in v1.4.0 Section - Hero Position */}
+      {/* NEW: Neu in v1.5.0 Section - Local AI */}
       <section className="py-8 px-6">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-emerald-500/20 via-cyan-500/15 to-purple-500/20 border-2 border-emerald-400/50 rounded-2xl p-8 relative overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-500/20 via-cyan-500/15 to-emerald-500/20 border-2 border-purple-400/50 rounded-2xl p-8 relative overflow-hidden">
             {/* Background effect */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-3xl"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-400/10 rounded-full blur-3xl"></div>
             
             <div className="relative z-10">
               <div className="flex items-center justify-center gap-4 mb-8">
-                <img src="/coremail-icon.png" alt="CoreMail Icon" className="w-20 h-20 rounded-2xl shadow-lg shadow-emerald-400/20" />
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-2xl shadow-lg shadow-purple-400/30 flex items-center justify-center">
+                  <Bot className="w-10 h-10 text-white" />
+                </div>
                 <div>
                   <h2 className="text-3xl font-bold">
-                    <span className="font-mono text-emerald-400">// </span>Neu in v1.4.0
+                    <span className="font-mono text-purple-400">// </span>Neu in v1.5.0
                   </h2>
-                  <p className="text-gray-400 font-mono text-sm">Customizable UI – Dein CoreMail, dein Style!</p>
+                  <p className="text-gray-400 font-mono text-sm">Lokale KI-Integration mit Ollama – 100% privat!</p>
+                </div>
+              </div>
+
+              {/* Privacy Badge */}
+              <div className="flex justify-center mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-400/10 border border-emerald-400/30 rounded-full">
+                  <Lock className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400 text-sm font-semibold">100% Lokal – Keine Cloud, keine Datenübertragung!</span>
                 </div>
               </div>
               
               <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-emerald-400/20">
-                  <div className="w-10 h-10 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <PanelLeft className="w-5 h-5 text-emerald-400" />
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-purple-400/20">
+                  <div className="w-10 h-10 bg-purple-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <MessageSquare className="w-5 h-5 text-purple-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">Individualisierbare Sidebar</h4>
-                    <p className="text-gray-400 text-sm">Breite anpassen, Auto-Collapse, Icons-Only Modus – die Sidebar passt sich deinem Workflow an.</p>
+                    <h4 className="font-bold text-white">KI-Chatbot Widget</h4>
+                    <p className="text-gray-400 text-sm">Dein persönlicher KI-Assistent direkt in CoreMail. Stelle Fragen, lass dir helfen – offline und privat.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-cyan-400/20">
                   <div className="w-10 h-10 bg-cyan-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <LayoutDashboard className="w-5 h-5 text-cyan-400" />
+                    <FileText className="w-5 h-5 text-cyan-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">Widget-Dashboard</h4>
-                    <p className="text-gray-400 text-sm">Drag & Drop Widgets, verschiedene Größen und Widget-Typen für dein persönliches Dashboard.</p>
+                    <h4 className="font-bold text-white">E-Mails zusammenfassen</h4>
+                    <p className="text-gray-400 text-sm">Lange E-Mails auf einen Blick verstehen. Die KI fasst den Inhalt für dich zusammen.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-purple-400/20">
-                  <div className="w-10 h-10 bg-purple-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <GripVertical className="w-5 h-5 text-purple-400" />
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-emerald-400/20">
+                  <div className="w-10 h-10 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Mail className="w-5 h-5 text-emerald-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">Drag & Drop Layout</h4>
-                    <p className="text-gray-400 text-sm">Ordne Widgets frei an und speichere dein individuelles Layout.</p>
+                    <h4 className="font-bold text-white">Antwort-Vorschläge</h4>
+                    <p className="text-gray-400 text-sm">Die KI generiert passende Antwort-Vorschläge basierend auf dem E-Mail-Inhalt.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-yellow-400/20">
                   <div className="w-10 h-10 bg-yellow-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Palette className="w-5 h-5 text-yellow-400" />
+                    <Wand2 className="w-5 h-5 text-yellow-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">Vollständig anpassbar</h4>
-                    <p className="text-gray-400 text-sm">Kombiniere Sidebar- und Dashboard-Einstellungen mit deinem Lieblings-Theme.</p>
+                    <h4 className="font-bold text-white">Text verbessern</h4>
+                    <p className="text-gray-400 text-sm">Lass deine E-Mail-Texte professioneller klingen. Die KI verbessert Stil und Grammatik.</p>
                   </div>
                 </div>
               </div>
 
-              {/* Widget Dashboard Preview */}
+              {/* AI Chat Preview */}
               <div className="bg-dark-800/50 rounded-xl p-6 border border-dark-700">
-                <h4 className="font-mono text-cyan-400 text-sm mb-4 text-center">// Widget Dashboard Vorschau</h4>
-                <div className="grid grid-cols-4 gap-3">
-                  <div className="col-span-2 bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 rounded-lg border border-cyan-400/30 p-4 h-24 flex items-center justify-center">
-                    <span className="text-xs text-cyan-400 font-mono">E-Mail Stats</span>
+                <h4 className="font-mono text-purple-400 text-sm mb-4 text-center">// KI-Chatbot Vorschau</h4>
+                <div className="max-w-md mx-auto space-y-3">
+                  <div className="flex justify-end">
+                    <div className="bg-cyan-500/20 border border-cyan-400/30 rounded-lg rounded-br-none px-4 py-2 max-w-[80%]">
+                      <p className="text-sm text-gray-300">Fasse diese E-Mail zusammen</p>
+                    </div>
                   </div>
-                  <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-lg border border-purple-400/30 p-4 h-24 flex items-center justify-center">
-                    <span className="text-xs text-purple-400 font-mono">Kalender</span>
+                  <div className="flex justify-start">
+                    <div className="bg-purple-500/20 border border-purple-400/30 rounded-lg rounded-bl-none px-4 py-2 max-w-[80%]">
+                      <p className="text-sm text-gray-300">📧 Diese E-Mail behandelt einen Projektvorschlag für Q2 mit einem Budget von 50.000€ und einer Deadline am 15. April.</p>
+                    </div>
                   </div>
-                  <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-lg border border-amber-400/30 p-4 h-24 flex items-center justify-center">
-                    <span className="text-xs text-amber-400 font-mono">Tasks</span>
+                  <div className="flex justify-center">
+                    <span className="text-xs text-gray-500 font-mono">Powered by Ollama (llama3.2:1b)</span>
                   </div>
-                  <div className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-lg border border-emerald-400/30 p-4 h-24 flex items-center justify-center">
-                    <span className="text-xs text-emerald-400 font-mono">Quick Send</span>
+                </div>
+              </div>
+
+              {/* Ollama Info */}
+              <div className="mt-6 bg-dark-900/50 rounded-xl p-4 border border-purple-400/20">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-purple-400/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 text-purple-400" />
                   </div>
-                  <div className="col-span-2 bg-gradient-to-br from-rose-500/20 to-red-500/20 rounded-lg border border-rose-400/30 p-4 h-24 flex items-center justify-center">
-                    <span className="text-xs text-rose-400 font-mono">Kampagnen</span>
-                  </div>
-                  <div className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-lg border border-blue-400/30 p-4 h-24 flex items-center justify-center">
-                    <span className="text-xs text-blue-400 font-mono">Kontakte</span>
+                  <div>
+                    <h4 className="font-mono text-purple-400 text-sm mb-1">Powered by Ollama</h4>
+                    <p className="text-gray-400 text-xs">
+                      Die KI läuft vollständig auf deinem Computer. Keine Internetverbindung erforderlich, keine Daten verlassen dein Gerät. 
+                      Das Installationsscript bietet dir die Option, Ollama automatisch einzurichten.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -233,7 +259,11 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Lädt CoreMail Desktop v1.3.1 von GitHub Releases herunter</span>
+                  <span>Lädt CoreMail Desktop v1.5.0 von GitHub Releases herunter</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <span>Bietet <strong className="text-purple-400">optionale Ollama-Installation</strong> für lokale KI</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -292,7 +322,7 @@ export default function DownloadPage() {
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
-              <span className="text-emerald-400 font-bold">v1.3.1</span>
+              <span className="text-purple-400 font-bold">v1.5.0</span>
             </div>
 
             {/* Info Box */}
@@ -339,6 +369,29 @@ export default function DownloadPage() {
           <h2 className="text-xl font-bold mb-6 text-center text-gray-400">
             <span className="font-mono text-gray-500">// </span>Frühere Versionen
           </h2>
+
+          {/* v1.4.0 */}
+          <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6 mb-4">
+            <h3 className="font-bold text-gray-300 mb-3">v1.4.0 – Customizable UI</h3>
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Individualisierbare Sidebar (Breite, Auto-Collapse, Icons-Only)</span>
+              </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Widget-Dashboard mit Drag & Drop</span>
+              </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Vollständig anpassbare Layouts</span>
+              </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Kombinierbar mit allen 6 Themes</span>
+              </div>
+            </div>
+          </div>
           
           {/* v1.2.2 */}
           <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6 mb-4">
@@ -393,7 +446,17 @@ export default function DownloadPage() {
           <h2 className="text-2xl font-bold text-center mb-12">
             <span className="font-mono text-cyan-400">// </span>Features
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-dark-800 border border-dark-700 rounded-xl p-6">
+              <div className="w-12 h-12 bg-purple-400/10 rounded-lg flex items-center justify-center mb-4">
+                <Bot className="w-6 h-6 text-purple-400" />
+              </div>
+              <h3 className="font-bold mb-2">Lokale KI</h3>
+              <p className="text-gray-400 text-sm">
+                KI-Chatbot, E-Mail-Zusammenfassungen und Antwort-Vorschläge – 
+                alles lokal mit Ollama.
+              </p>
+            </div>
             <div className="bg-dark-800 border border-dark-700 rounded-xl p-6">
               <div className="w-12 h-12 bg-cyan-400/10 rounded-lg flex items-center justify-center mb-4">
                 <Mail className="w-6 h-6 text-cyan-400" />
@@ -401,7 +464,7 @@ export default function DownloadPage() {
               <h3 className="font-bold mb-2">IMAP Support</h3>
               <p className="text-gray-400 text-sm">
                 Voller IMAP-Support für alle gängigen E-Mail-Anbieter. 
-                Verbinde dich mit Gmail, Outlook, oder deinem eigenen Mailserver.
+                Gmail, Outlook, oder eigener Mailserver.
               </p>
             </div>
             <div className="bg-dark-800 border border-dark-700 rounded-xl p-6">
@@ -410,18 +473,18 @@ export default function DownloadPage() {
               </div>
               <h3 className="font-bold mb-2">6 Themes</h3>
               <p className="text-gray-400 text-sm">
-                Dark, Light, Minimal, Morphismus, Glas oder Retro – wähle das Design, das zu dir passt.
-                Schonend für die Augen, auch bei langen Sessions.
+                Dark, Light, Minimal, Morphismus, Glas oder Retro – 
+                wähle das Design, das zu dir passt.
               </p>
             </div>
             <div className="bg-dark-800 border border-dark-700 rounded-xl p-6">
-              <div className="w-12 h-12 bg-purple-400/10 rounded-lg flex items-center justify-center mb-4">
-                <Shield className="w-6 h-6 text-purple-400" />
+              <div className="w-12 h-12 bg-yellow-400/10 rounded-lg flex items-center justify-center mb-4">
+                <Shield className="w-6 h-6 text-yellow-400" />
               </div>
-              <h3 className="font-bold mb-2">Lokal & Sicher</h3>
+              <h3 className="font-bold mb-2">100% Privat</h3>
               <p className="text-gray-400 text-sm">
                 Alle Daten bleiben auf deinem Rechner. 
-                Keine Cloud, keine Tracking – volle Kontrolle über deine E-Mails.
+                Keine Cloud, kein Tracking – volle Kontrolle.
               </p>
             </div>
           </div>
@@ -553,7 +616,7 @@ export default function DownloadPage() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-dark-700">
         <div className="max-w-4xl mx-auto text-center text-gray-500 text-sm">
-          <p>CoreMail Desktop v1.3.1 • Powered by Electron</p>
+          <p>CoreMail Desktop v1.5.0 • Powered by Electron & Ollama</p>
           <p className="mt-2">
             <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
               Zur Web-App →

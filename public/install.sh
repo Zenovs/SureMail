@@ -20,7 +20,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Konfiguration
-VERSION="1.4.0"
+VERSION="1.5.0"
 APP_NAME="CoreMail Desktop"
 BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
@@ -32,6 +32,9 @@ ICON_URL="https://img.freepik.com/premium-vector/customer-service-representative
 
 # Installationsmodus: appimage oder extracted
 INSTALL_MODE="appimage"
+
+# Ollama Installation
+INSTALL_OLLAMA="false"
 
 print_banner() {
     echo -e "${CYAN}"
@@ -394,6 +397,86 @@ setup_path() {
     fi
 }
 
+# Frage nach Ollama-Installation
+ask_ollama_install() {
+    echo ""
+    echo -e "${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}║  ${CYAN}🤖 NEU in v1.5.0: Lokale KI-Integration mit Ollama${NC}       ${BOLD}║${NC}"
+    echo -e "${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  CoreMail Desktop v1.5.0 enthält ${BOLD}lokale KI-Funktionen${NC}:"
+    echo -e "    • KI-Chatbot Widget"
+    echo -e "    • E-Mails zusammenfassen"
+    echo -e "    • Antwort-Vorschläge generieren"
+    echo -e "    • Texte verbessern"
+    echo ""
+    echo -e "  ${GREEN}✓ 100% lokal - Keine Cloud, keine Datenübertragung!${NC}"
+    echo -e "  ${GREEN}✓ Deine E-Mails bleiben privat auf deinem Rechner.${NC}"
+    echo ""
+    
+    if ask_yes_no "  Möchtest du Ollama für die KI-Funktionen installieren?" "y"; then
+        INSTALL_OLLAMA="true"
+        return 0
+    else
+        echo ""
+        print_warning "Ollama wird nicht installiert."
+        echo "  Du kannst es später jederzeit manuell installieren:"
+        echo -e "    ${CYAN}curl -fsSL https://ollama.com/install.sh | sh${NC}"
+        echo ""
+        return 0
+    fi
+}
+
+# Installiere Ollama
+install_ollama() {
+    if [ "$INSTALL_OLLAMA" != "true" ]; then
+        return 0
+    fi
+    
+    echo ""
+    print_step "Installiere Ollama für lokale KI..."
+    
+    # Prüfe ob Ollama bereits installiert ist
+    if command -v ollama &> /dev/null; then
+        print_success "Ollama ist bereits installiert!"
+        OLLAMA_ALREADY_INSTALLED="true"
+    else
+        # Installiere Ollama
+        print_step "Lade Ollama herunter und installiere..."
+        if curl -fsSL https://ollama.com/install.sh | sh; then
+            print_success "Ollama wurde erfolgreich installiert!"
+        else
+            print_error "Ollama-Installation fehlgeschlagen!"
+            print_warning "Du kannst Ollama später manuell installieren:"
+            echo -e "    ${CYAN}curl -fsSL https://ollama.com/install.sh | sh${NC}"
+            return 1
+        fi
+    fi
+    
+    # Starte Ollama Service falls nicht läuft
+    print_step "Starte Ollama-Service..."
+    if ! pgrep -x "ollama" > /dev/null; then
+        ollama serve &>/dev/null &
+        sleep 2
+    fi
+    
+    # Lade Standard-Modell herunter
+    print_step "Lade KI-Modell herunter (llama3.2:1b - ca. 1.3 GB)..."
+    print_step "(Dies kann einige Minuten dauern...)"
+    
+    if ollama pull llama3.2:1b; then
+        print_success "KI-Modell 'llama3.2:1b' wurde erfolgreich heruntergeladen!"
+    else
+        print_warning "Modell-Download fehlgeschlagen."
+        print_warning "Du kannst es später manuell herunterladen:"
+        echo -e "    ${CYAN}ollama pull llama3.2:1b${NC}"
+    fi
+    
+    echo ""
+    print_success "Ollama ist bereit für CoreMail Desktop!"
+    echo ""
+}
+
 # Zeige Erfolgsmeldung
 print_success_message() {
     echo ""
@@ -405,6 +488,15 @@ print_success_message() {
     if [ "$INSTALL_MODE" = "extracted" ]; then
         echo -e "  ${YELLOW}Hinweis:${NC} Extrahierte Installation (ohne FUSE)"
     fi
+    
+    if [ "$INSTALL_OLLAMA" = "true" ]; then
+        echo ""
+        echo -e "  ${CYAN}🤖 KI-Funktionen:${NC}"
+        echo -e "    • Ollama ist installiert und bereit"
+        echo -e "    • KI-Modell: llama3.2:1b"
+        echo -e "    • ${GREEN}100% lokal – deine Daten bleiben privat!${NC}"
+    fi
+    
     echo ""
     echo "  Starten:"
     echo -e "    ${CYAN}coremail-desktop${NC}           (im Terminal)"
@@ -426,6 +518,7 @@ print_success_message() {
 main() {
     print_banner
     check_downloader
+    ask_ollama_install
     handle_fuse_dependency
     create_directories
     download_appimage
@@ -439,6 +532,7 @@ main() {
     
     download_icon
     create_desktop_entry
+    install_ollama
     setup_path
     print_success_message
 }
