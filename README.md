@@ -40,6 +40,10 @@ CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 CoreMail ist auch als Desktop-App für Linux verfügbar!
 
+### 🔧 v1.5.2 – Bugfix Release
+
+- **OpenGL-Fehler vollständig behoben**: Finale Lösung für Kompatibilitätsprobleme
+
 ### 🔧 v1.5.1 – Bugfix Release
 
 - **Update-Crash behoben**: Update-Funktion stürzt nicht mehr ab
