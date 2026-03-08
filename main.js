@@ -330,6 +330,162 @@ function updateBadgeCount(count) {
   }
 }
 
+// ============ OLLAMA INSTALLATION (v1.6.0) ============
+
+// Check if Ollama is installed
+function isOllamaInstalled() {
+  try {
+    execSync('which ollama', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Check if Ollama is running
+async function isOllamaRunning() {
+  return new Promise((resolve) => {
+    http.get('http://localhost:11434/api/tags', { timeout: 2000 }, (res) => {
+      resolve(res.statusCode === 200);
+    }).on('error', () => resolve(false));
+  });
+}
+
+// Install Ollama
+async function installOllama(progressCallback) {
+  return new Promise((resolve, reject) => {
+    progressCallback({ step: 'checking', message: 'Prüfe Systemvoraussetzungen...' });
+    
+    // Check if curl is available
+    try {
+      execSync('which curl', { stdio: 'ignore' });
+    } catch {
+      reject(new Error('curl ist nicht installiert. Bitte installiere curl zuerst.'));
+      return;
+    }
+
+    progressCallback({ step: 'downloading', message: 'Lade Ollama herunter...' });
+    
+    // Download and install Ollama
+    const installProcess = spawn('sh', ['-c', 'curl -fsSL https://ollama.com/install.sh | sh'], {
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    let output = '';
+    let errorOutput = '';
+
+    installProcess.stdout.on('data', (data) => {
+      output += data.toString();
+      progressCallback({ step: 'installing', message: 'Installiere Ollama...', detail: data.toString().trim() });
+    });
+
+    installProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    installProcess.on('close', (code) => {
+      if (code === 0 && isOllamaInstalled()) {
+        progressCallback({ step: 'installed', message: 'Ollama erfolgreich installiert!' });
+        resolve({ success: true });
+      } else {
+        reject(new Error(errorOutput || 'Installation fehlgeschlagen. Code: ' + code));
+      }
+    });
+
+    installProcess.on('error', (err) => {
+      reject(new Error('Installation konnte nicht gestartet werden: ' + err.message));
+    });
+  });
+}
+
+// Start Ollama service
+async function startOllamaService(progressCallback) {
+  progressCallback({ step: 'starting', message: 'Starte Ollama-Dienst...' });
+  
+  return new Promise((resolve, reject) => {
+    // First try systemctl
+    try {
+      execSync('systemctl --user start ollama 2>/dev/null || true', { stdio: 'ignore' });
+    } catch {
+      // Ignore systemctl errors
+    }
+
+    // Wait a moment for systemctl
+    setTimeout(async () => {
+      if (await isOllamaRunning()) {
+        resolve({ success: true });
+        return;
+      }
+
+      // Fallback: start ollama serve in background
+      const ollamaProcess = spawn('ollama', ['serve'], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      ollamaProcess.unref();
+
+      // Wait for service to start
+      let attempts = 0;
+      const checkInterval = setInterval(async () => {
+        attempts++;
+        if (await isOllamaRunning()) {
+          clearInterval(checkInterval);
+          progressCallback({ step: 'running', message: 'Ollama-Dienst läuft!' });
+          resolve({ success: true });
+        } else if (attempts > 15) {
+          clearInterval(checkInterval);
+          reject(new Error('Ollama-Dienst konnte nicht gestartet werden. Versuche: ollama serve'));
+        }
+      }, 1000);
+    }, 1000);
+  });
+}
+
+// Download the default model
+async function downloadOllamaModel(modelName, progressCallback) {
+  progressCallback({ step: 'model_download', message: `Lade KI-Modell "${modelName}" herunter...`, progress: 0 });
+  
+  return new Promise((resolve, reject) => {
+    const pullProcess = spawn('ollama', ['pull', modelName], {
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    pullProcess.stdout.on('data', (data) => {
+      const output = data.toString();
+      // Try to parse progress from output
+      const match = output.match(/(\d+)%/);
+      if (match) {
+        progressCallback({ 
+          step: 'model_download', 
+          message: `Lade KI-Modell "${modelName}" herunter...`,
+          progress: parseInt(match[1]),
+          detail: output.trim()
+        });
+      }
+    });
+
+    pullProcess.stderr.on('data', (data) => {
+      const output = data.toString();
+      if (output.includes('pulling')) {
+        progressCallback({ step: 'model_download', message: 'Lade Modelldateien...', detail: output.trim() });
+      }
+    });
+
+    pullProcess.on('close', (code) => {
+      if (code === 0) {
+        progressCallback({ step: 'model_ready', message: `Modell "${modelName}" bereit!`, progress: 100 });
+        resolve({ success: true });
+      } else {
+        reject(new Error('Modell konnte nicht heruntergeladen werden.'));
+      }
+    });
+
+    pullProcess.on('error', (err) => {
+      reject(new Error('Modell-Download fehlgeschlagen: ' + err.message));
+    });
+  });
+}
+
 // ============ IPC HANDLERS ============
 
 // === APP INFO ===
@@ -434,6 +590,68 @@ ipcMain.handle('notification:show', async (event, { title, body }) => {
 ipcMain.handle('notification:setBadge', async (event, count) => {
   updateBadgeCount(count);
   return { success: true };
+});
+
+// === OLLAMA INSTALLATION (v1.6.0) ===
+ipcMain.handle('ollama:checkInstalled', async () => {
+  const installed = isOllamaInstalled();
+  const running = await isOllamaRunning();
+  return { installed, running };
+});
+
+ipcMain.handle('ollama:install', async (event) => {
+  const progressCallback = (data) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('ollama:progress', data);
+    }
+  };
+
+  try {
+    // Step 1: Install Ollama
+    await installOllama(progressCallback);
+    
+    // Step 2: Start Ollama service
+    await startOllamaService(progressCallback);
+    
+    // Step 3: Download default model
+    await downloadOllamaModel('llama3.2:1b', progressCallback);
+    
+    progressCallback({ step: 'complete', message: 'Ollama ist bereit!' });
+    return { success: true };
+  } catch (error) {
+    progressCallback({ step: 'error', message: error.message });
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('ollama:startService', async (event) => {
+  const progressCallback = (data) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('ollama:progress', data);
+    }
+  };
+
+  try {
+    await startOllamaService(progressCallback);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('ollama:downloadModel', async (event, modelName) => {
+  const progressCallback = (data) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('ollama:progress', data);
+    }
+  };
+
+  try {
+    await downloadOllamaModel(modelName, progressCallback);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
 
 // === SIGNATURES ===

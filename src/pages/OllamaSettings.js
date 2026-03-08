@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MessageCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageCircle, Download, Loader2, Check, AlertCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useOllama } from '../context/OllamaContext';
 
@@ -28,7 +28,70 @@ const OllamaSettings = () => {
   
   const [customModel, setCustomModel] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [installProgress, setInstallProgress] = useState(null);
+  const [installError, setInstallError] = useState(null);
   const c = currentTheme.colors;
+
+  // Listen for installation progress
+  useEffect(() => {
+    if (window.electronAPI?.onOllamaProgress) {
+      const handler = (data) => {
+        setInstallProgress(data);
+        if (data.step === 'complete') {
+          setIsInstalling(false);
+          checkOllama();
+        } else if (data.step === 'error') {
+          setIsInstalling(false);
+          setInstallError(data.message);
+        }
+      };
+      
+      window.electronAPI.onOllamaProgress(handler);
+      
+      return () => {
+        if (window.electronAPI?.removeOllamaProgressListener) {
+          window.electronAPI.removeOllamaProgressListener();
+        }
+      };
+    }
+  }, [checkOllama]);
+
+  const handleInstallOllama = async () => {
+    setIsInstalling(true);
+    setInstallError(null);
+    setInstallProgress({ step: 'checking', message: 'Starte Installation...' });
+    
+    try {
+      const result = await window.electronAPI.installOllama();
+      if (!result.success) {
+        setInstallError(result.error);
+        setIsInstalling(false);
+      }
+    } catch (err) {
+      setInstallError(err.message);
+      setIsInstalling(false);
+    }
+  };
+
+  const handleStartService = async () => {
+    setIsInstalling(true);
+    setInstallProgress({ step: 'starting', message: 'Starte Ollama-Dienst...' });
+    
+    try {
+      const result = await window.electronAPI.startOllamaService();
+      if (result.success) {
+        setIsInstalling(false);
+        checkOllama();
+      } else {
+        setInstallError(result.error);
+        setIsInstalling(false);
+      }
+    } catch (err) {
+      setInstallError(err.message);
+      setIsInstalling(false);
+    }
+  };
 
   const handlePullModel = async (modelName) => {
     await pullModel(modelName);
@@ -90,19 +153,75 @@ const OllamaSettings = () => {
         </div>
       </div>
 
-      {/* Installation Help when not available */}
-      {!isAvailable && !isChecking && (
-        <div className={`p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30`}>
-          <h4 className={`font-medium text-yellow-400 mb-2`}>Ollama installieren</h4>
-          <p className={`text-sm ${c.textMuted} mb-3`}>
-            Ollama ist nicht installiert oder läuft nicht. Führe folgenden Befehl im Terminal aus:
-          </p>
-          <div className={`p-3 rounded-lg ${c.bg} font-mono text-sm ${c.text} mb-3`}>
-            curl -fsSL https://ollama.com/install.sh | sh
+      {/* Installation / Start Section when not available */}
+      {!isAvailable && !isChecking && !isInstalling && (
+        <div className={`p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/30`}>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+              <Download className="w-6 h-6 text-cyan-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className={`font-medium text-cyan-400 mb-2`}>Ollama installieren</h4>
+              <p className={`text-sm ${c.textSecondary} mb-4`}>
+                Ollama ist nicht installiert oder läuft nicht. Installiere es jetzt direkt in der App.
+              </p>
+              
+              <button
+                onClick={handleInstallOllama}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium hover:from-cyan-400 hover:to-blue-500 transition-all flex items-center justify-center gap-2"
+              >
+                <Download className="w-5 h-5" />
+                Ollama installieren
+              </button>
+              
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className={`text-xs ${c.textSecondary} mb-2`}>Oder manuell im Terminal:</p>
+                <code className={`text-xs block bg-black/30 p-2 rounded font-mono ${c.text}`}>
+                  curl -fsSL https://ollama.com/install.sh | sh
+                </code>
+              </div>
+            </div>
           </div>
-          <p className={`text-sm ${c.textMuted}`}>
-            Nach der Installation starte Ollama mit: <code className="bg-gray-700/50 px-2 py-0.5 rounded">ollama serve</code>
-          </p>
+          
+          {installError && (
+            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-red-400 font-medium">Installation fehlgeschlagen</p>
+                  <p className="text-xs text-red-300">{installError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Installation Progress */}
+      {isInstalling && installProgress && (
+        <div className={`p-4 rounded-xl ${c.card} border ${c.border}`}>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+            </div>
+            <div className="flex-1">
+              <h4 className={`font-medium ${c.text} mb-1`}>{installProgress.message}</h4>
+              {installProgress.detail && (
+                <p className={`text-xs ${c.textSecondary} font-mono`}>{installProgress.detail}</p>
+              )}
+              {installProgress.progress !== undefined && (
+                <div className="mt-2">
+                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-300"
+                      style={{ width: `${installProgress.progress}%` }}
+                    />
+                  </div>
+                  <p className={`text-xs ${c.textSecondary} mt-1`}>{installProgress.progress}%</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

@@ -149,23 +149,27 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.5.4</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.6.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">🔧</span>
-                  <span>Robustere Ollama-Installation mit besserem Logging</span>
+                  <span className="text-green-400">🤖</span>
+                  <span>In-App Ollama-Installation - kein Terminal mehr nötig</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📐</span>
-                  <span>Breitere Einstellungs-Sidebar für bessere Lesbarkeit</span>
+                  <span className="text-cyan-400">🚀</span>
+                  <span>Automatische KI-Einrichtung beim ersten Start</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📜</span>
-                  <span>Scrolling in Einstellungen ermöglicht</span>
+                  <span className="text-purple-400">📦</span>
+                  <span>Automatischer Download des KI-Modells</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <MessageCircle className="w-4 h-4 text-cyan-400 mt-0.5" />
-                  <span>Verbesserte Fehlerbehandlung bei KI-Installation</span>
+                  <span>Verbesserte Installation mit Progress-Anzeige</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-400">🎨</span>
+                  <span>Alle 6 Themes verifiziert und optimiert</span>
                 </li>
               </ul>
             </div>

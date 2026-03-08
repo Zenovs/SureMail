@@ -2,6 +2,49 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.6.0] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 🤖 In-App Ollama-Installation
+- **OllamaInstaller-Komponente**: Neuer modaler Dialog für Ollama-Installation
+- **Erster-Start-Dialog**: Automatische Anzeige beim ersten App-Start
+- **Progress-Anzeige**: Echtzeit-Fortschrittsbalken während Installation
+- **IPC-Integration**: 
+  - `ollama:checkInstalled` - Prüft Installationsstatus
+  - `ollama:install` - Startet Installation
+  - `ollama:startService` - Startet Ollama-Dienst
+  - `ollama:downloadModel` - Lädt KI-Modell herunter
+  - `ollama:progress` - Echtzeit-Progress-Events
+- **Automatischer Modell-Download**: llama3.2:1b wird automatisch geladen
+- **Fehlerbehandlung**: Manuelle Anleitung bei Fehlschlag
+
+#### 🎨 Theme-System
+- **Alle 6 Themes verifiziert**: Dark, Light, Minimal, Morphismus, Glas, Retro
+- **Theme-Previews**: Visuelle Vorschauen in Einstellungen
+- **Konsistente Anwendung**: Themes werden korrekt in allen Komponenten angewendet
+
+#### 📐 Verbesserte Einstellungen
+- **OllamaSettings erweitert**: Installation direkt aus Einstellungen möglich
+- **Status-Anzeige**: Zeigt Installationsstatus und Service-Status
+- **Installation/Start-Buttons**: Direkte Aktionen aus der UI
+
+### 🔧 Technische Änderungen
+- **main.js**: Neue Funktionen für Ollama-Installation
+  - `isOllamaInstalled()` - Prüft ob ollama Command verfügbar
+  - `isOllamaRunning()` - Prüft HTTP-Verbindung zu Ollama
+  - `installOllama()` - Führt curl-Installation aus
+  - `startOllamaService()` - Startet systemd/nohup Service
+  - `downloadOllamaModel()` - Lädt Modell mit Progress
+- **preload.js**: Neue APIs für Renderer-Process
+- **App.js**: useOllama Hook und OllamaInstaller-Integration
+- **OllamaSettings.js**: Erweiterte UI für Installation
+
+### 📦 Version
+- **Minor-Release**: v1.5.4 → v1.6.0 (neues Feature)
+
+---
+
 ## [1.5.4] - 2026-03-08
 
 ### 🐛 Bugfixes
