@@ -7,6 +7,7 @@ import SignatureEditor from './SignatureEditor';
 import SidebarSettings from './SidebarSettings';
 import OllamaSettings from './OllamaSettings';
 import CategorySettings from './CategorySettings';
+import EmailSettings from './EmailSettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
@@ -47,6 +48,7 @@ function SettingsV2() {
 
   const tabs = [
     { id: 'general', name: 'Allgemein', icon: '⚙️' },
+    { id: 'email', name: 'E-Mail', icon: '📧' },
     { id: 'ai', name: 'KI-Assistent', icon: <MessageCircle className="w-5 h-5" /> },
     { id: 'sidebar', name: 'Sidebar', icon: '📐' },
     { id: 'categories', name: 'Kategorien', icon: '🏷️' },
@@ -159,40 +161,32 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.8.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.8.1</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">🗑️</span>
-                  <span>E-Mail-Aktionen: Löschen, Gelesen/Ungelesen, Antworten, Allen antworten, Weiterleiten</span>
+                  <span className="text-cyan-400">📧</span>
+                  <span>Einstellung "Als gelesen markieren": Beim Klick, Beim Öffnen oder nur durch Icon</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">⚡</span>
-                  <span>Performance-Verbesserung: E-Mail-Caching, Lazy Loading</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-orange-400">📁</span>
-                  <span>Ordner-Struktur: Posteingang, Gesendet, Entwürfe, Papierkorb, Spam</span>
+                  <span className="text-orange-400">↔️</span>
+                  <span>Ordnerspalte verschiebbar: Breite anpassbar per Drag (150-350px)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-400">🏷️</span>
-                  <span>Kategorien-Verwaltung: Erstellen, Bearbeiten, Löschen, Farben ändern</span>
+                  <span>Kategorien bearbeiten: Umbenennen und Farben ändern jetzt möglich</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-pink-400">🤖</span>
-                  <span>KI-Zugriff auf Postfächer: E-Mail-Kontext für bessere Antworten</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-blue-400">📧</span>
-                  <span>Microsoft Exchange/Office 365 Support (IMAP)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-yellow-400">🔧</span>
-                  <span>UI-Fix: Update-Balken überläuft nicht mehr</span>
-                </li>
+              </ul>
+              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.8.0</h4>
+              <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
+                <li>• E-Mail-Aktionen, Performance-Verbesserungen, Ordner-Struktur</li>
+                <li>• Kategorien-Verwaltung, KI-Kontext, Exchange/Office 365</li>
               </ul>
             </div>
           </div>
         );
+      
+      case 'email':
+        return <EmailSettings />;
       
       case 'ai':
         return <OllamaSettings />;

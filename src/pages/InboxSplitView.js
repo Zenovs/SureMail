@@ -1,8 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+
+// Folder column width constants (v1.8.1)
+const FOLDER_MIN_WIDTH = 150;
+const FOLDER_MAX_WIDTH = 350;
+const FOLDER_DEFAULT_WIDTH = 192;
 
 // Email cache for performance (v1.8.0)
 const emailCache = new Map();
@@ -101,6 +106,40 @@ function InboxSplitView({ onFullView }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const c = currentTheme.colors;
+  
+  // Resizable folder column (v1.8.1)
+  const [folderWidth, setFolderWidth] = useState(() => {
+    const saved = localStorage.getItem('inbox.folderColumnWidth');
+    return saved ? parseInt(saved, 10) : FOLDER_DEFAULT_WIDTH;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeRef = useRef(null);
+  
+  // Handle folder column resize
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizing) return;
+      const newWidth = Math.max(FOLDER_MIN_WIDTH, Math.min(FOLDER_MAX_WIDTH, e.clientX - 60)); // 60 = sidebar offset approx
+      setFolderWidth(newWidth);
+    };
+    
+    const handleMouseUp = () => {
+      if (isResizing) {
+        setIsResizing(false);
+        localStorage.setItem('inbox.folderColumnWidth', folderWidth.toString());
+      }
+    };
+    
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, folderWidth]);
 
   // Generate cache key
   const getCacheKey = useCallback((accountId, folder) => `${accountId}:${folder}`, []);
@@ -262,6 +301,12 @@ function InboxSplitView({ onFullView }) {
     setSelectedIndex(index);
     if (emails[index]) {
       loadEmailPreview(emails[index].uid);
+      
+      // Auto-mark as read based on settings (v1.8.1)
+      const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
+      if (markMode === 'onClick' && !emails[index].seen) {
+        handleToggleRead(emails[index].uid, false);
+      }
     }
   };
 
@@ -404,8 +449,11 @@ function InboxSplitView({ onFullView }) {
 
   return (
     <div className={`flex-1 flex overflow-hidden ${c.bg}`}>
-      {/* Folder List */}
-      <div className={`w-48 ${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden`}>
+      {/* Folder List - Resizable (v1.8.1) */}
+      <div 
+        className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden relative`}
+        style={{ width: `${folderWidth}px`, minWidth: `${FOLDER_MIN_WIDTH}px`, maxWidth: `${FOLDER_MAX_WIDTH}px` }}
+      >
         <div className={`p-3 ${c.border} border-b flex items-center justify-between`}>
           <h3 className={`font-medium ${c.text} text-sm`}>Ordner</h3>
           {loadingFolders && <RefreshCw className={`w-4 h-4 ${c.textSecondary} animate-spin`} />}
@@ -441,6 +489,14 @@ function InboxSplitView({ onFullView }) {
             </div>
           )}
         </div>
+        
+        {/* Resize Handle */}
+        <div
+          ref={resizeRef}
+          onMouseDown={() => setIsResizing(true)}
+          className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 transition-colors ${isResizing ? 'bg-cyan-500' : ''}`}
+          title="Ziehen zum Ändern der Breite"
+        />
       </div>
 
       {/* Email List */}

@@ -30,6 +30,13 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
         setFullEmail(email);
         setIsRead(email.seen ?? true);
         setLoading(false);
+        
+        // Mark as read on open if setting is "onOpen" (v1.8.1)
+        const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
+        if (markMode === 'onOpen' && !email.seen && window.electronAPI && activeAccountId) {
+          window.electronAPI.markAsRead(activeAccountId, email.uid, true, currentFolder);
+          setIsRead(true);
+        }
         return;
       }
       
@@ -52,7 +59,13 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
         
         if (result.success) {
           setFullEmail(result.email);
-          setIsRead(true); // Email is marked as read when opened
+          
+          // Mark as read on open if setting is "onOpen" (v1.8.1)
+          const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
+          if (markMode === 'onOpen' && !email.seen) {
+            window.electronAPI.markAsRead(activeAccountId, email.uid, true, currentFolder);
+          }
+          setIsRead(true);
         } else {
           setError(result.error);
         }
@@ -64,7 +77,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
     };
 
     fetchFullEmail();
-  }, [email, activeAccountId]);
+  }, [email, activeAccountId, currentFolder]);
 
   // === EMAIL ACTIONS ===
   const handleDelete = async () => {
