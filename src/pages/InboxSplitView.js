@@ -14,6 +14,79 @@ const emailCache = new Map();
 const folderCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// v1.8.2: Refresh interval mapping
+const REFRESH_INTERVALS = {
+  '1': 60000,
+  '5': 300000,
+  '10': 600000,
+  '15': 900000,
+  '30': 1800000,
+  'manual': 0
+};
+
+// v1.8.2: IndexedDB for local email storage
+const DB_NAME = 'CoreMailDB';
+const DB_VERSION = 1;
+
+const openEmailDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('emails')) {
+        const store = db.createObjectStore('emails', { keyPath: 'id' });
+        store.createIndex('accountId', 'accountId', { unique: false });
+        store.createIndex('folder', 'folder', { unique: false });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+    };
+  });
+};
+
+const saveEmailsToIndexedDB = async (accountId, folder, emails) => {
+  try {
+    const db = await openEmailDB();
+    const tx = db.transaction('emails', 'readwrite');
+    const store = tx.objectStore('emails');
+    
+    const id = `${accountId}:${folder}`;
+    await store.put({
+      id,
+      accountId,
+      folder,
+      emails,
+      timestamp: Date.now()
+    });
+    
+    db.close();
+  } catch (e) {
+    console.error('Failed to save to IndexedDB:', e);
+  }
+};
+
+const loadEmailsFromIndexedDB = async (accountId, folder) => {
+  try {
+    const db = await openEmailDB();
+    const tx = db.transaction('emails', 'readonly');
+    const store = tx.objectStore('emails');
+    
+    const id = `${accountId}:${folder}`;
+    const result = await new Promise((resolve, reject) => {
+      const request = store.get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    db.close();
+    return result;
+  } catch (e) {
+    console.error('Failed to load from IndexedDB:', e);
+    return null;
+  }
+};
+
 // Memoized Email List Item for performance
 const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onToggleRead, c, actionLoading }) => {
   return (
@@ -169,7 +242,7 @@ function InboxSplitView({ onFullView }) {
     setLoadingFolders(false);
   }, [activeAccountId]);
 
-  // Fetch emails with caching
+  // v1.8.2: Fetch emails with caching and IndexedDB (stale-while-revalidate)
   const fetchEmails = useCallback(async (useCache = true) => {
     if (!window.electronAPI || !activeAccountId) {
       setLoading(false);
@@ -177,8 +250,9 @@ function InboxSplitView({ onFullView }) {
     }
 
     const cacheKey = getCacheKey(activeAccountId, currentFolder);
+    const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
     
-    // Check cache first
+    // Check memory cache first
     if (useCache) {
       const cached = emailCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -192,8 +266,24 @@ function InboxSplitView({ onFullView }) {
       }
     }
 
-    setLoading(true);
+    // v1.8.2: Try IndexedDB first (stale-while-revalidate)
+    if (localStorageEnabled && useCache) {
+      const localData = await loadEmailsFromIndexedDB(activeAccountId, currentFolder);
+      if (localData && localData.emails?.length > 0) {
+        // Show cached data immediately
+        setEmails(localData.emails);
+        setLoading(false);
+        if (localData.emails.length > 0) {
+          loadEmailPreview(localData.emails[0].uid);
+        }
+        // Continue to fetch fresh data in background
+      }
+    }
+
     setError(null);
+    if (!localStorageEnabled || !useCache) {
+      setLoading(true);
+    }
 
     try {
       let result;
@@ -207,12 +297,17 @@ function InboxSplitView({ onFullView }) {
         setEmails(result.emails);
         setHasMore(result.hasMore || false);
         
-        // Update cache
+        // Update memory cache
         emailCache.set(cacheKey, { 
           data: result.emails, 
           hasMore: result.hasMore,
           timestamp: Date.now() 
         });
+        
+        // v1.8.2: Save to IndexedDB for offline access
+        if (localStorageEnabled) {
+          saveEmailsToIndexedDB(activeAccountId, currentFolder, result.emails);
+        }
         
         if (result.emails.length > 0) {
           loadEmailPreview(result.emails[0].uid);
@@ -281,6 +376,41 @@ function InboxSplitView({ onFullView }) {
     setSelectedEmail(null);
     fetchEmails(true);
   }, [currentFolder, fetchEmails]);
+
+  // v1.8.2: Auto-refresh interval
+  useEffect(() => {
+    const getRefreshInterval = () => {
+      const saved = localStorage.getItem('emailSettings.refreshInterval') || '5';
+      return REFRESH_INTERVALS[saved] || 0;
+    };
+
+    let intervalId = null;
+    const setupInterval = () => {
+      const interval = getRefreshInterval();
+      if (interval > 0 && activeAccountId) {
+        intervalId = setInterval(() => {
+          console.log('[AutoRefresh] Fetching emails...');
+          fetchEmails(false); // Force refresh, don't use cache
+        }, interval);
+      }
+    };
+
+    setupInterval();
+
+    // Listen for settings changes
+    const handleSettingsChange = (e) => {
+      if (e.detail?.refreshInterval) {
+        if (intervalId) clearInterval(intervalId);
+        setupInterval();
+      }
+    };
+    window.addEventListener('emailSettingsChanged', handleSettingsChange);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      window.removeEventListener('emailSettingsChanged', handleSettingsChange);
+    };
+  }, [activeAccountId, fetchEmails]);
 
   const loadEmailPreview = async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;

@@ -2,6 +2,45 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.8.2] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 🏢 Microsoft Account Integration verbessert
+- **Auto-Fill für E-Mail**: E-Mail-Adresse wird automatisch als Benutzername übernommen
+- **STARTTLS-Unterstützung**: Korrekte Anzeige für Port 587
+- **Hilfe-Links**: Direkte Links zu App-Passwort-Anleitungen
+- **"Von IMAP kopieren"**: Schnelles Übertragen der Zugangsdaten
+- **Lucide Icons**: Moderne Icons für Test-Buttons und Status
+
+#### ⏱️ Automatische Mail-Aktualisierung
+- **Einstellbare Intervalle**: 1, 5, 10, 15, 30 Minuten oder Manuell
+- **Für alle Konten**: Auto-Refresh läuft im Hintergrund
+- **Live-Änderungen**: Einstellungen werden sofort übernommen
+- **Neue Einstellungsseite**: Unter "E-Mail" in den Einstellungen
+
+#### 💾 Lokale E-Mail-Speicherung (IndexedDB)
+- **Stale-While-Revalidate**: Erst lokale Daten, dann Server-Aktualisierung
+- **Schnellerer Kontowechsel**: E-Mails sofort sichtbar
+- **Offline-Verfügbarkeit**: E-Mails auch ohne Verbindung lesbar
+- **Cache-Verwaltung**: Cache-Größe anzeigen und leeren
+- **Toggle-Schalter**: Lokale Speicherung ein/ausschalten
+
+#### 🤖 KI-Zugriff auf alle Postfächer
+- **Multi-Mailbox-Suche**: KI durchsucht alle Konten
+- **aiSearchMailboxes**: KI-gestützte Suche mit Kontext
+- **getMailboxStats**: Statistiken über alle Postfächer
+- **Kontoübergreifend**: Finde E-Mails in allen Postfächern
+
+### 🔧 Verbesserungen
+
+- **EmailSettings.js**: Neue Optionen für Refresh-Intervall und Cache
+- **InboxSplitView.js**: Auto-Refresh und IndexedDB-Integration
+- **AccountManager.js**: Bessere Microsoft/Exchange-Unterstützung
+- **OllamaContext.js**: Neue Multi-Mailbox-Funktionen
+
+---
+
 ## [1.8.0] - 2026-03-08
 
 ### ✨ Neue Features

@@ -395,6 +395,115 @@ Erstelle eine professionelle E-Mail auf Deutsch.`;
     return generate(prompt, 'Du bist ein E-Mail-Assistent. Erstelle professionelle, gut strukturierte E-Mails.');
   }, [emailContext, generate]);
 
+  // v1.8.2: Search across all mailboxes
+  const searchAllMailboxes = useCallback(async (searchQuery) => {
+    if (!window.electronAPI) return [];
+    
+    try {
+      // Get all accounts
+      const accountsData = await window.electronAPI.loadAccounts();
+      const accounts = accountsData || [];
+      
+      const results = [];
+      
+      for (const account of accounts) {
+        try {
+          // Fetch emails from inbox
+          const inboxResult = await window.electronAPI.fetchEmailsForAccount(account.id, { limit: 30 });
+          if (inboxResult.success && inboxResult.emails) {
+            const matchingEmails = inboxResult.emails.filter(email => {
+              const searchLower = searchQuery.toLowerCase();
+              return (
+                email.subject?.toLowerCase().includes(searchLower) ||
+                email.from?.toLowerCase().includes(searchLower) ||
+                email.preview?.toLowerCase().includes(searchLower)
+              );
+            });
+            
+            results.push(...matchingEmails.map(email => ({
+              ...email,
+              accountId: account.id,
+              accountName: account.name
+            })));
+          }
+        } catch (err) {
+          console.warn(`Could not search in account ${account.name}:`, err);
+        }
+      }
+      
+      return results;
+    } catch (err) {
+      console.error('Error searching mailboxes:', err);
+      return [];
+    }
+  }, []);
+
+  // v1.8.2: AI-powered search with context from all mailboxes
+  const aiSearchMailboxes = useCallback(async (userQuery) => {
+    if (!isAvailable) return null;
+    
+    // First, search for relevant emails
+    const searchResults = await searchAllMailboxes(userQuery);
+    
+    if (searchResults.length === 0) {
+      return generate(
+        `Der Benutzer fragt: "${userQuery}"\n\nEs wurden keine passenden E-Mails gefunden. Bitte informiere den Benutzer höflich darüber.`,
+        'Du bist ein E-Mail-Assistent. Der Benutzer hat nach E-Mails gesucht, aber keine wurden gefunden.'
+      );
+    }
+    
+    // Build context from search results
+    const emailSummaries = searchResults.slice(0, 10).map((email, i) => 
+      `${i + 1}. [${email.accountName}] Von: ${email.from}, Betreff: "${email.subject}", Datum: ${new Date(email.date).toLocaleDateString('de-DE')}`
+    ).join('\n');
+    
+    const prompt = `Der Benutzer fragt: "${userQuery}"
+
+Gefundene E-Mails (${searchResults.length} Treffer):
+${emailSummaries}
+
+Bitte beantworte die Anfrage des Benutzers basierend auf diesen E-Mails. Wenn der Benutzer nach bestimmten Informationen sucht, versuche diese aus den E-Mails zu extrahieren.`;
+
+    return generate(prompt, 'Du bist ein intelligenter E-Mail-Assistent mit Zugriff auf alle Postfächer des Benutzers. Beantworte Fragen präzise basierend auf den gefundenen E-Mails.');
+  }, [isAvailable, searchAllMailboxes, generate]);
+
+  // v1.8.2: Get email statistics across all accounts
+  const getMailboxStats = useCallback(async () => {
+    if (!window.electronAPI) return null;
+    
+    try {
+      const accountsData = await window.electronAPI.loadAccounts();
+      const accounts = accountsData || [];
+      
+      const stats = {
+        totalAccounts: accounts.length,
+        accounts: []
+      };
+      
+      for (const account of accounts) {
+        try {
+          const inboxResult = await window.electronAPI.fetchEmailsForAccount(account.id, { limit: 50 });
+          if (inboxResult.success) {
+            const unreadCount = inboxResult.emails.filter(e => !e.seen).length;
+            stats.accounts.push({
+              name: account.name,
+              totalEmails: inboxResult.emails.length,
+              unreadEmails: unreadCount,
+              hasMore: inboxResult.hasMore
+            });
+          }
+        } catch (err) {
+          console.warn(`Could not get stats for account ${account.name}:`, err);
+        }
+      }
+      
+      return stats;
+    } catch (err) {
+      console.error('Error getting mailbox stats:', err);
+      return null;
+    }
+  }, []);
+
   // Pull/Download a model
   const pullModel = useCallback(async (modelName) => {
     if (!isAvailable) return false;
@@ -514,7 +623,11 @@ Erstelle eine professionelle E-Mail auf Deutsch.`;
     // v1.8.0: Email context functions
     setCurrentEmailContext,
     generateWithEmailContext,
-    composeEmail
+    composeEmail,
+    // v1.8.2: Multi-mailbox AI functions
+    searchAllMailboxes,
+    aiSearchMailboxes,
+    getMailboxStats
   };
 
   return (

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle, AlertCircle, Settings, Mail, Loader } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
-// v1.8.0: Server Presets including Microsoft Exchange
+// v1.8.2: Improved Server Presets with better Microsoft/Exchange support
 const SERVER_PRESETS = [
   { 
     id: 'custom', 
@@ -17,31 +18,36 @@ const SERVER_PRESETS = [
     icon: '📧',
     imap: { host: 'imap.gmail.com', port: '993', tls: true },
     smtp: { host: 'smtp.gmail.com', port: '465', secure: true },
-    note: 'Erfordert App-Passwort'
+    note: 'Erfordert App-Passwort',
+    help: 'https://support.google.com/accounts/answer/185833'
   },
   { 
     id: 'outlook', 
     name: 'Outlook.com / Hotmail',
     icon: '📬',
     imap: { host: 'outlook.office365.com', port: '993', tls: true },
-    smtp: { host: 'smtp.office365.com', port: '587', secure: false },
-    note: 'Outlook.com, Hotmail, Live.com'
+    smtp: { host: 'smtp.office365.com', port: '587', secure: false, starttls: true },
+    note: 'Outlook.com, Hotmail, Live.com',
+    autoFillUsername: true
   },
   { 
     id: 'exchange', 
-    name: 'Microsoft Exchange / Office 365',
+    name: 'Microsoft 365 / Exchange',
     icon: '🏢',
     imap: { host: 'outlook.office365.com', port: '993', tls: true },
-    smtp: { host: 'smtp.office365.com', port: '587', secure: false },
-    note: 'Für Firmen-Exchange-Konten mit IMAP aktiviert'
+    smtp: { host: 'smtp.office365.com', port: '587', secure: false, starttls: true },
+    note: 'Für Firmen-Exchange mit IMAP aktiviert',
+    help: 'https://support.microsoft.com/de-de/office/pop-imap-und-smtp-einstellungen',
+    autoFillUsername: true
   },
   { 
     id: 'icloud', 
     name: 'iCloud Mail',
     icon: '☁️',
     imap: { host: 'imap.mail.me.com', port: '993', tls: true },
-    smtp: { host: 'smtp.mail.me.com', port: '587', secure: false },
-    note: 'Erfordert App-Passwort'
+    smtp: { host: 'smtp.mail.me.com', port: '587', secure: false, starttls: true },
+    note: 'Erfordert App-Passwort',
+    help: 'https://support.apple.com/de-de/HT204397'
   },
   { 
     id: 'yahoo', 
@@ -49,28 +55,29 @@ const SERVER_PRESETS = [
     icon: '📨',
     imap: { host: 'imap.mail.yahoo.com', port: '993', tls: true },
     smtp: { host: 'smtp.mail.yahoo.com', port: '465', secure: true },
-    note: 'Erfordert App-Passwort'
+    note: 'Erfordert App-Passwort',
+    help: 'https://help.yahoo.com/kb/SLN15241.html'
   },
   { 
     id: 'gmx', 
     name: 'GMX',
     icon: '📩',
     imap: { host: 'imap.gmx.net', port: '993', tls: true },
-    smtp: { host: 'mail.gmx.net', port: '587', secure: false }
+    smtp: { host: 'mail.gmx.net', port: '587', secure: false, starttls: true }
   },
   { 
     id: 'webde', 
     name: 'WEB.DE',
     icon: '📪',
     imap: { host: 'imap.web.de', port: '993', tls: true },
-    smtp: { host: 'smtp.web.de', port: '587', secure: false }
+    smtp: { host: 'smtp.web.de', port: '587', secure: false, starttls: true }
   },
   { 
     id: 'ionos', 
     name: 'IONOS / 1&1',
     icon: '🌐',
     imap: { host: 'imap.ionos.de', port: '993', tls: true },
-    smtp: { host: 'smtp.ionos.de', port: '587', secure: false }
+    smtp: { host: 'smtp.ionos.de', port: '587', secure: false, starttls: true }
   }
 ];
 
@@ -94,7 +101,7 @@ function AccountManager() {
 
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#3b82f6' });
 
-  // v1.8.0: Apply preset
+  // v1.8.2: Apply preset with improved auto-fill
   const applyPreset = (presetId) => {
     setSelectedPreset(presetId);
     const preset = SERVER_PRESETS.find(p => p.id === presetId);
@@ -115,6 +122,37 @@ function AccountManager() {
         }
       }));
     }
+  };
+
+  // v1.8.2: Auto-fill username from email
+  const handleEmailChange = (email) => {
+    const preset = SERVER_PRESETS.find(p => p.id === selectedPreset);
+    const shouldAutoFill = preset?.autoFillUsername;
+    
+    setAccountForm(f => ({
+      ...f,
+      imap: {
+        ...f.imap,
+        username: email
+      },
+      smtp: {
+        ...f.smtp,
+        username: shouldAutoFill ? email : f.smtp.username,
+        fromEmail: email
+      }
+    }));
+  };
+
+  // v1.8.2: Quick setup - copy credentials between IMAP and SMTP
+  const copyImapToSmtp = () => {
+    setAccountForm(f => ({
+      ...f,
+      smtp: {
+        ...f.smtp,
+        username: f.imap.username,
+        password: f.imap.password
+      }
+    }));
   };
 
   const resetForm = () => {
@@ -372,10 +410,10 @@ function AccountManager() {
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
                     />
                     <input
-                      type="text"
-                      placeholder="Benutzername"
+                      type="email"
+                      placeholder="E-Mail-Adresse"
                       value={accountForm.imap.username}
-                      onChange={e => setAccountForm(f => ({ ...f, imap: { ...f.imap, username: e.target.value }}))}
+                      onChange={e => handleEmailChange(e.target.value)}
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
                     />
                     <input
@@ -398,21 +436,33 @@ function AccountManager() {
                     <button
                       onClick={handleTestImap}
                       disabled={testing.imap}
-                      className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded`}
+                      className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded flex items-center gap-1`}
                     >
+                      {testing.imap ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
                       {testing.imap ? 'Teste...' : 'Testen'}
                     </button>
                   </div>
                   {testResults.imap && (
-                    <div className={`mt-2 text-sm ${testResults.imap.success ? 'text-green-400' : 'text-red-400'}`}>
-                      {testResults.imap.success ? '✓ Verbindung OK' : `✗ ${testResults.imap.error}`}
+                    <div className={`mt-2 text-sm flex items-center gap-1 ${testResults.imap.success ? 'text-green-400' : 'text-red-400'}`}>
+                      {testResults.imap.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                      {testResults.imap.success ? 'Verbindung OK' : testResults.imap.error}
                     </div>
                   )}
                 </div>
 
                 {/* SMTP */}
                 <div className={`${c.bgTertiary} p-4 rounded-lg`}>
-                  <h4 className={`font-medium ${c.text} mb-3`}>SMTP (Versand)</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className={`font-medium ${c.text}`}>SMTP (Versand)</h4>
+                    <button
+                      onClick={copyImapToSmtp}
+                      className={`text-xs ${c.accent} hover:underline flex items-center gap-1`}
+                      title="IMAP-Zugangsdaten übernehmen"
+                    >
+                      <Mail className="w-3 h-3" />
+                      Von IMAP kopieren
+                    </button>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <input
                       type="text"
@@ -423,7 +473,7 @@ function AccountManager() {
                     />
                     <input
                       type="text"
-                      placeholder="Port (465)"
+                      placeholder="Port (465 oder 587)"
                       value={accountForm.smtp.port}
                       onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, port: e.target.value }}))}
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
@@ -457,19 +507,21 @@ function AccountManager() {
                         checked={accountForm.smtp.secure}
                         onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, secure: e.target.checked }}))}
                       />
-                      SSL/TLS
+                      SSL/TLS {accountForm.smtp.port === '587' && <span className="text-xs text-yellow-400">(STARTTLS)</span>}
                     </label>
                     <button
                       onClick={handleTestSmtp}
                       disabled={testing.smtp}
-                      className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded`}
+                      className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded flex items-center gap-1`}
                     >
+                      {testing.smtp ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
                       {testing.smtp ? 'Teste...' : 'Testen'}
                     </button>
                   </div>
                   {testResults.smtp && (
-                    <div className={`mt-2 text-sm ${testResults.smtp.success ? 'text-green-400' : 'text-red-400'}`}>
-                      {testResults.smtp.success ? '✓ Verbindung OK' : `✗ ${testResults.smtp.error}`}
+                    <div className={`mt-2 text-sm flex items-center gap-1 ${testResults.smtp.success ? 'text-green-400' : 'text-red-400'}`}>
+                      {testResults.smtp.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                      {testResults.smtp.success ? 'Verbindung OK' : testResults.smtp.error}
                     </div>
                   )}
                 </div>

@@ -1,6 +1,13 @@
-# 📧 CoreMail Desktop v1.8.0
+# 📧 CoreMail Desktop v1.8.2
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, Ordner-Struktur und Microsoft Exchange-Support.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, Auto-Refresh und lokaler E-Mail-Speicherung.
+
+## 🆕 Neu in v1.8.2
+
+- **🏢 Microsoft Account Integration verbessert**: Auto-Fill, STARTTLS, Hilfe-Links
+- **⏱️ Automatische Mail-Aktualisierung**: 1-30 Minuten Intervalle einstellbar
+- **💾 Lokale E-Mail-Speicherung**: IndexedDB für schnellere Ladezeiten
+- **🤖 KI-Zugriff auf alle Postfächer**: Suche und lese E-Mails kontoübergreifend
 
 <p align="center">
   <img src="assets/icon.png" width="128" height="128" alt="CoreMail Desktop">
