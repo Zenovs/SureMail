@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.8.2",
-  "description": "CoreMail Desktop Client v1.8.2 - Multi-Account E-Mail-Client für Linux mit lokaler KI-Integration, Auto-Refresh und lokaler Speicherung",
+  "version": "1.9.0",
+  "description": "CoreMail Desktop Client v1.9.0 - Multi-Account E-Mail-Client für Linux mit lokaler KI-Integration, modernem UI/UX-Design und professionellem Icon",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

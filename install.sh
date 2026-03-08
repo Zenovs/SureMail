@@ -1,17 +1,19 @@
 #!/bin/bash
 
-# CoreMail Desktop Installer v1.5.4
+# CoreMail Desktop Installer v1.9.0
 # Installiert CoreMail Desktop als AppImage mit Desktop-Integration
 # Inklusive verbesserter Ollama KI-Integration mit robuster Fehlerbehandlung
+# v1.9.0: Neues professionelles Icon und UI/UX-Verbesserungen
 
 set -e
 
-VERSION="1.5.4"
+VERSION="1.9.0"
 APP_NAME="CoreMail Desktop"
 APPIMAGE_NAME="CoreMail.Desktop-${VERSION}.AppImage"
 INSTALL_DIR="$HOME/.local/share/coremail"
 DESKTOP_FILE="$HOME/.local/share/applications/coremail.desktop"
 ICON_DIR="$HOME/.local/share/icons"
+ICON_DIR_HICOLOR="$HOME/.local/share/icons/hicolor"
 ICON_FILE="$ICON_DIR/coremail.png"
 LOG_FILE="/tmp/coremail-install.log"
 
@@ -117,13 +119,49 @@ cp "$APPIMAGE_NAME" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/$(basename $APPIMAGE_NAME)"
 log_success "AppImage installiert"
 
-# Extrahiere Icon aus AppImage oder verwende assets
-log_info "Installiere Icon..."
+# Installiere Icons in verschiedenen Größen (v1.9.0)
+log_info "Installiere Icons..."
+
+# Erstelle hicolor Icon-Verzeichnisse
+for size in 16 32 64 128 256 512; do
+    mkdir -p "$ICON_DIR_HICOLOR/${size}x${size}/apps"
+done
+
+# Kopiere Icons in verschiedenen Größen
 if [ -f "assets/icon.png" ]; then
     cp "assets/icon.png" "$ICON_FILE"
-    log_success "Icon aus assets/icon.png kopiert"
-else
-    # Extrahiere Icon aus AppImage
+    log_success "Haupt-Icon kopiert"
+fi
+
+# Installiere alle Größen in hicolor
+if [ -f "assets/coremail-icon-16.png" ]; then
+    cp "assets/coremail-icon-16.png" "$ICON_DIR_HICOLOR/16x16/apps/coremail.png"
+fi
+if [ -f "assets/coremail-icon-32.png" ]; then
+    cp "assets/coremail-icon-32.png" "$ICON_DIR_HICOLOR/32x32/apps/coremail.png"
+fi
+if [ -f "assets/coremail-icon-64.png" ]; then
+    cp "assets/coremail-icon-64.png" "$ICON_DIR_HICOLOR/64x64/apps/coremail.png"
+fi
+if [ -f "assets/coremail-icon-128.png" ]; then
+    cp "assets/coremail-icon-128.png" "$ICON_DIR_HICOLOR/128x128/apps/coremail.png"
+fi
+if [ -f "assets/coremail-icon-256.png" ]; then
+    cp "assets/coremail-icon-256.png" "$ICON_DIR_HICOLOR/256x256/apps/coremail.png"
+fi
+if [ -f "assets/coremail-icon-512.png" ]; then
+    cp "assets/coremail-icon-512.png" "$ICON_DIR_HICOLOR/512x512/apps/coremail.png"
+fi
+
+# Kopiere auch SVG wenn vorhanden
+if [ -f "assets/icon.svg" ]; then
+    mkdir -p "$ICON_DIR_HICOLOR/scalable/apps"
+    cp "assets/icon.svg" "$ICON_DIR_HICOLOR/scalable/apps/coremail.svg"
+    log_success "SVG-Icon installiert"
+fi
+
+# Falls keine Icons gefunden, versuche aus AppImage zu extrahieren
+if [ ! -f "$ICON_FILE" ]; then
     cd "$INSTALL_DIR"
     ./$(basename "$APPIMAGE_NAME") --appimage-extract usr/share/icons/hicolor/256x256/apps/*.png 2>/dev/null || true
     if [ -f "squashfs-root/usr/share/icons/hicolor/256x256/apps/"*.png ]; then
@@ -134,6 +172,14 @@ else
         log_warning "Kein Icon gefunden, verwende Fallback"
     fi
     cd - > /dev/null
+fi
+
+log_success "Icons installiert"
+
+# Update Icon-Cache
+if command -v gtk-update-icon-cache &> /dev/null; then
+    gtk-update-icon-cache -f "$ICON_DIR_HICOLOR" 2>/dev/null || true
+    log_success "Icon-Cache aktualisiert"
 fi
 
 # Erstelle Desktop-Entry

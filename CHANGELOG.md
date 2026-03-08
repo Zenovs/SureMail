@@ -2,6 +2,76 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.9.0] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 🎨 Modernes UI/UX-Design
+- **Moderne Button-Styles**: Neue CSS-Klassen für primäre, sekundäre und Ghost-Buttons
+- **Hover-Effekte**: Shine-Animationen und Transform-Effekte
+- **Verbesserte Transitions**: Smooth Übergänge in der gesamten App (0.3s ease)
+- **Schatten-System**: Moderne Box-Shadow-Styles für Elevation
+
+#### 🃏 Verbesserte Karten-Designs
+- **Card-Modern**: Glasmorphismus-ähnlicher Effekt mit Backdrop-Blur
+- **Card-Elevated**: Tiefeneffekt mit Inner-Light
+- **Card-Glass**: Transparenter Glas-Effekt
+- **Hover-States**: Karten heben sich beim Hover an
+
+#### 📝 Elegante Input-Felder
+- **Input-Modern**: Fokus-Animationen mit Glow-Effekt
+- **Input-With-Icon**: Icon-unterstützte Eingabefelder
+- **Input-Floating**: Floating-Label-Stil für moderne Formulare
+- **Focus-Ring**: Konsistente Fokus-Anzeige
+
+#### ✨ Professionelle Animationen
+- **Fade-In/Fade-In-Up**: Sanfte Einblend-Animationen
+- **Slide-In (Left/Right)**: Slide-Animationen für Panels
+- **Scale-In**: Zoom-Effekt für Modals
+- **Shimmer**: Loading-Effekt für Skeleton-Loader
+- **Stagger-Children**: Gestaffelte Animationen für Listen (bis 10 Items)
+
+#### 📧 E-Mail-Liste Optimiert
+- **Email-Item**: Neue Hover-Effekte mit translateX
+- **Unread-Indicator**: Cyan-Border für ungelesene E-Mails
+- **Enter-Animationen**: Sanftes Einblenden neuer E-Mails
+- **Scrollbar-Modern**: Moderne, dünne Scrollbars
+
+#### 🧭 Sidebar-Verbesserungen
+- **Sidebar-Item**: Hover-Animation mit Padding-Shift
+- **Active-State**: Cyan-Border und Hintergrund
+- **Slide-Animation**: Sanftes Einblenden beim Start
+
+#### 🖼️ Professionelles App-Icon
+- **SVG-basiertes Design**: Skalierbar ohne Qualitätsverlust
+- **Cyan/Blau-Farbschema**: Passend zum CoreMail-Design
+- **E-Mail-Envelope mit "C"**: Erkennbares CoreMail-Branding
+- **Notification-Badge**: Checkmark für Bestätigung
+- **Alle Größen**: 16x16, 32x32, 64x64, 128x128, 256x256, 512x512
+- **Desktop-Integration**: Icon wird nach Installation angezeigt
+
+#### 🧩 Neue UI-Komponenten
+- **Badge-Styles**: Primary, Success, Warning, Danger mit Pulse-Animation
+- **Tooltip**: Hover-Tooltips mit CSS-only
+- **Skeleton-Loader**: Für Loading-States mit Shimmer
+- **Progress-Bar**: Animated Progress mit Shine-Effekt
+- **Switch/Toggle**: Moderner Toggle-Schalter
+- **Avatar**: Gradient-Avatare in sm/md/lg
+- **Chip/Tag**: Removable Tags
+
+#### 🔧 LoadingSpinner Erweitert
+- **Varianten**: Default, Dots, Pulse
+- **Größen**: sm, md, lg
+- **EmailSkeleton**: Skeleton-Loader für E-Mail-Listen
+
+### 🔧 Verbesserungen
+
+- **src/styles/index.css**: 700+ neue Zeilen für moderne UI
+- **LoadingSpinner.js**: Neue Varianten und EmailSkeleton
+- **build/icons/**: Alle Icon-Größen vorgeneriert
+
+---
+
 ## [1.8.2] - 2026-03-08
 
 ### ✨ Neue Features

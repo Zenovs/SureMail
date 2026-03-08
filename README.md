@@ -1,13 +1,41 @@
-# 📧 CoreMail Desktop v1.8.2
+# 📧 CoreMail Desktop v1.9.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, Auto-Refresh und lokaler E-Mail-Speicherung.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration und professionellem UI/UX.
 
-## 🆕 Neu in v1.8.2
+## 🆕 Neu in v1.9.0
+
+- **🎨 Modernes UI/UX-Design**: Komplett überarbeitete Benutzeroberfläche
+  - Moderne Buttons mit Hover-Effekten und Transitions
+  - Verbesserte Karten-Designs mit Schatten und Borders
+  - Elegante Input-Felder mit Focus-Animationen
+  - Smooth Transitions in der gesamten App
+- **✨ Professionelle Animationen**:
+  - Fade-In-Effekte für E-Mails
+  - Slide-In für Sidebar
+  - Loading-Animationen mit verschiedenen Varianten
+  - Staggered Animations für Listen
+- **📐 Optimiertes Layout**:
+  - Verbesserte Typografie mit besseren Font-Größen
+  - Optimiertes Spacing (Padding, Margins)
+  - Responsive Design-Verbesserungen
+  - Moderne Scrollbars
+- **🖼️ Professionelles App-Icon**:
+  - Neues SVG-basiertes Icon-Design
+  - Cyan/Blau-Farbschema passend zum CoreMail-Design
+  - Hochauflösende Icons in allen Größen (16x16 bis 512x512)
+  - Sichtbar in Desktop-Umgebungen nach Installation
+
+### Frühere Versionen
+
+<details>
+<summary>v1.8.2 Features</summary>
 
 - **🏢 Microsoft Account Integration verbessert**: Auto-Fill, STARTTLS, Hilfe-Links
 - **⏱️ Automatische Mail-Aktualisierung**: 1-30 Minuten Intervalle einstellbar
 - **💾 Lokale E-Mail-Speicherung**: IndexedDB für schnellere Ladezeiten
 - **🤖 KI-Zugriff auf alle Postfächer**: Suche und lese E-Mails kontoübergreifend
+
+</details>
 
 <p align="center">
   <img src="assets/icon.png" width="128" height="128" alt="CoreMail Desktop">
