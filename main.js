@@ -9,8 +9,8 @@ const imapSimple = require('imap-simple');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
 
-// App Version
-const APP_VERSION = '1.2.0';
+// App Version - read from package.json
+const APP_VERSION = require('./package.json').version;
 const GITHUB_REPO = 'Zenovs/coremail';
 
 // Verschlüsselte Speicherung

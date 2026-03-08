@@ -1,8 +1,10 @@
-# 📧 CoreMail Desktop v1.2.1
+# 📧 CoreMail Desktop v1.2.2
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design und fortschrittlichen Funktionen.
 
-![CoreMail Desktop](assets/icon.png)
+<p align="center">
+  <img src="assets/icon.png" width="128" height="128" alt="CoreMail Desktop">
+</p>
 
 ## ✨ Features
 
@@ -54,14 +56,14 @@ Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design
 
 ### AppImage (empfohlen)
 
-1. Lade `CoreMail.Desktop-1.2.1.AppImage` herunter
+1. Lade `CoreMail.Desktop-1.2.2.AppImage` herunter
 2. Mache die Datei ausführbar:
    ```bash
-   chmod +x CoreMail.Desktop-1.2.1.AppImage
+   chmod +x CoreMail.Desktop-1.2.2.AppImage
    ```
 3. Starte die App:
    ```bash
-   ./CoreMail.Desktop-1.2.1.AppImage
+   ./CoreMail.Desktop-1.2.2.AppImage
    ```
 
 ### Aus Quellcode
@@ -120,7 +122,12 @@ npm run build
 
 Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
 
-### v1.2.1 (aktuell)
+### v1.2.2 (aktuell)
+- 🎨 Neues professionelles App-Icon
+- 🔧 Version wird jetzt dynamisch angezeigt
+- 🐛 Icon-Anzeige in Desktop-Umgebung korrigiert
+
+### v1.2.1
 - 🐛 Bugfix: Scrolling in E-Mail-Liste behoben
 - 🐛 Bugfix: Scrolling in E-Mail-Vorschau behoben
 

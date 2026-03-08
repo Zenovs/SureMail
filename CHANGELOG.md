@@ -2,6 +2,21 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.2.2] - 2026-03-08
+
+### 🎨 Verbesserungen
+
+- **Neues professionelles App-Icon**: Modernes E-Mail-Design mit Cyan-Akzenten
+- **Icon in allen Größen**: 32x32, 64x64, 128x128, 256x256, 512x512
+- **Icon-Anzeige korrigiert**: Icon wird jetzt korrekt in Desktop-Umgebung angezeigt
+
+### 🔧 Technisch
+
+- **Version dynamisch**: Version wird jetzt aus package.json gelesen
+- **Versionanzeige korrigiert**: Settings zeigen jetzt die korrekte Version
+
+---
+
 ## [1.2.1] - 2026-03-08
 
 ### 🐛 Bugfixes

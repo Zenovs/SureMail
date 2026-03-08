@@ -9,10 +9,19 @@ function SettingsV2() {
   const c = currentTheme.colors;
   const [activeTab, setActiveTab] = useState('general');
   const [downloadPath, setDownloadPath] = useState('');
+  const [appVersion, setAppVersion] = useState('...');
 
   useEffect(() => {
     loadDownloadPath();
+    loadAppVersion();
   }, []);
+
+  const loadAppVersion = async () => {
+    if (window.electronAPI?.getVersion) {
+      const version = await window.electronAPI.getVersion();
+      setAppVersion(version);
+    }
+  };
 
   const loadDownloadPath = async () => {
     if (window.electronAPI?.getAppSettings) {
@@ -79,7 +88,7 @@ function SettingsV2() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className={c.textSecondary}>Version</span>
-                  <span className={`${c.accent} font-semibold`}>1.2.1</span>
+                  <span className={`${c.accent} font-semibold`}>{appVersion}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className={c.textSecondary}>Electron</span>
