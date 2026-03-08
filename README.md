@@ -1,136 +1,151 @@
-# 📧 CoreMail Desktop v1.1
+# 📧 CoreMail Desktop v1.2.0
 
-Ein moderner, schlanker Desktop-E-Mail-Client für Linux mit Multi-Account-Unterstützung.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design und fortschrittlichen Funktionen.
 
-![CoreMail](https://img.shields.io/badge/version-1.1.0-cyan)
-![Electron](https://img.shields.io/badge/electron-28.x-blue)
-![Platform](https://img.shields.io/badge/platform-Linux-green)
+![CoreMail Desktop](assets/icon.png)
 
-## ✨ Features v1.1
+## ✨ Features
 
-### 🆕 Neu in v1.1
-- **Mehrere E-Mail-Konten** - Unbegrenzte IMAP/SMTP-Konten verwalten
-- **Kategorien/Gruppen** - Konten organisieren (Arbeit, Privat, Sonstiges, eigene...)
-- **Dashboard** - Übersicht über alle Konten mit Statistiken
-- **Split-View Inbox** - E-Mail-Liste und Vorschau nebeneinander
-- **3 Themes** - Dark, Light, Minimal
-- **Verbesserte Sidebar** - Mit Kategorien und Konten-Übersicht
+### 📬 E-Mail-Verwaltung
+- **Multi-Account-Support**: Verwalte mehrere E-Mail-Konten gleichzeitig
+- **Kategorien**: Organisiere Konten in Kategorien (Arbeit, Privat, etc.)
+- **IMAP/SMTP**: Volle Unterstützung für IMAP und SMTP-Protokolle
+- **Split-View**: E-Mail-Liste und Vorschau nebeneinander
 
-### 📬 Basis-Features
-- IMAP E-Mail-Empfang
-- SMTP E-Mail-Versand
-- E-Mail-Vorschau und Vollansicht
-- Anhänge anzeigen und herunterladen
-- Verschlüsselte Passwortspeicherung
+### 🔔 Benachrichtigungen (NEU in v1.2)
+- Desktop-Benachrichtigungen bei neuen E-Mails
+- Konfigurierbar pro Konto und Kategorie
+- Klick auf Benachrichtigung öffnet die E-Mail
+- Badge-Counter für ungelesene E-Mails
 
-## 🖥️ Systemanforderungen
+### 🔄 Auto-Update (NEU in v1.2)
+- Automatische Prüfung auf neue Versionen
+- Ein-Klick-Download und Installation
+- Update-Verlauf und Release Notes
+
+### 📎 Anhang-Verwaltung (NEU in v1.2)
+- Bildvorschau direkt in der E-Mail
+- PDF-Vorschau integriert
+- "Alle herunterladen" Button
+- Download-Manager mit Fortschrittsanzeige
+- Konfigurierbarer Download-Ordner
+
+### ✍️ E-Mail-Signaturen (NEU in v1.2)
+- Rich-Text-Editor für Signaturen
+- Pro-Konto-Signaturen
+- Vorlagen für schnelle Einrichtung
+- Automatisches Anhängen beim Senden
+- Vorschau im Compose-Fenster
+
+### 🎨 Design
+- 3 Themes: Dark, Light, Minimal
+- Modernes, minimalistisches Interface
+- Responsives Layout
+
+## 📋 Systemanforderungen
 
 | Komponente | Anforderung |
 |------------|-------------|
-| OS | Ubuntu 20.04+, Debian 11+, Fedora 35+ |
-| Architektur | x86_64 (64-bit) |
-| RAM | Mindestens 512 MB |
-| Speicher | 200 MB |
+| Betriebssystem | Linux (x64) |
+| Grafik | X11 oder Wayland |
+| Speicher | ~200 MB |
 
-## 📦 Installation
+## 📥 Installation
 
 ### AppImage (empfohlen)
-```bash
-# Download der AppImage-Datei
-chmod +x CoreMail-Desktop-1.1.0.AppImage
-./CoreMail-Desktop-1.1.0.AppImage
-```
+
+1. Lade `CoreMail.Desktop-1.2.0.AppImage` herunter
+2. Mache die Datei ausführbar:
+   ```bash
+   chmod +x CoreMail.Desktop-1.2.0.AppImage
+   ```
+3. Starte die App:
+   ```bash
+   ./CoreMail.Desktop-1.2.0.AppImage
+   ```
 
 ### Aus Quellcode
+
 ```bash
-git clone https://github.com/your-repo/coremail-desktop.git
-cd coremail-desktop
+# Repository klonen
+git clone https://github.com/Zenovs/coremail.git
+cd coremail
+
+# Abhängigkeiten installieren
 npm install
+
+# Entwicklungsmodus
+npm run dev
+
+# AppImage erstellen
 npm run build
 ```
 
-## 🎨 Themes
+## ⚙️ E-Mail-Konto einrichten
 
-| Theme | Beschreibung |
-|-------|--------------|
-| **Dark** | Dunkles Design mit Cyan-Akzenten (Standard) |
-| **Light** | Helles Design mit blauen Akzenten |
-| **Minimal** | Schwarz/Weiß, reduziert und fokussiert |
+### Gmail
 
-Theme wechseln: Einstellungen → Design
+1. Aktiviere 2FA in deinem Google-Konto
+2. Erstelle ein [App-Passwort](https://myaccount.google.com/apppasswords)
+3. Verwende folgende Einstellungen:
+   - **IMAP Host**: imap.gmail.com
+   - **IMAP Port**: 993
+   - **SMTP Host**: smtp.gmail.com
+   - **SMTP Port**: 465
+
+### Andere Anbieter
+
+| Anbieter | IMAP Host | IMAP Port | SMTP Host | SMTP Port |
+|----------|-----------|-----------|-----------|-----------|
+| Outlook  | outlook.office365.com | 993 | smtp.office365.com | 587 |
+| Yahoo    | imap.mail.yahoo.com | 993 | smtp.mail.yahoo.com | 465 |
+| GMX      | imap.gmx.net | 993 | mail.gmx.net | 465 |
 
 ## ⌨️ Tastenkürzel
 
 | Kürzel | Aktion |
 |--------|--------|
-| `↑` / `↓` | E-Mail-Navigation in der Liste |
-| `Enter` | E-Mail in Vollansicht öffnen |
-
-## 🔧 Konto einrichten
-
-1. **Konten** in der Sidebar öffnen
-2. **+ Neues Konto** klicken
-3. IMAP- und SMTP-Einstellungen eingeben
-4. Verbindung testen
-5. Speichern
-
-### Gmail-Nutzer
-- Aktiviere "Zugriff durch weniger sichere Apps" oder
-- Erstelle ein [App-Passwort](https://myaccount.google.com/apppasswords)
-- IMAP: `imap.gmail.com:993`
-- SMTP: `smtp.gmail.com:465`
+| ↑ / ↓  | E-Mail Navigation |
+| Enter  | E-Mail öffnen |
+| Esc    | Zurück |
 
 ## 🔒 Sicherheit
 
-- Passwörter werden mit AES-256 verschlüsselt gespeichert
-- Lokale Speicherung (keine Cloud)
-- TLS/SSL für alle Verbindungen
+- Passwörter werden lokal verschlüsselt gespeichert
+- Keine Cloud-Synchronisation
+- Keine Telemetrie oder Tracking
+- Update-Downloads über HTTPS
 
-## 📁 Projektstruktur
+## 📄 Changelog
 
-```
-coremail-desktop/
-├── src/
-│   ├── context/          # React Contexts (Theme, Accounts)
-│   ├── components/       # UI-Komponenten
-│   └── pages/            # Seiten (Dashboard, Inbox, etc.)
-├── main.js               # Electron Main Process
-├── preload.js            # IPC Bridge
-└── tailwind.config.js    # Styling
-```
+Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
 
-## 🚀 Entwicklung
+### v1.2.0 (aktuell)
+- 🔄 Update-Funktion mit GitHub Releases
+- 🔔 Desktop-Benachrichtigungen
+- 📎 Verbesserte Anhang-Verwaltung
+- ✍️ E-Mail-Signaturen
+- 🎨 Neues App-Icon
 
-```bash
-# Entwicklungsmodus
-npm run dev
-
-# Nur React starten
-npm run react-start
-
-# Build erstellen
-npm run build
-```
-
-## 📝 Changelog
-
-### v1.1.0 (März 2026)
-- Multi-Account-Unterstützung
-- Kategorien für Konten
-- Dashboard mit Statistiken
-- Split-View Inbox
-- Theme-System (Dark/Light/Minimal)
-- Verbesserte Sidebar
+### v1.1.0
+- Multi-Account-Support
+- Kategorien
+- 3 Themes
+- Dashboard
 
 ### v1.0.0
 - Erste Version
-- Basis IMAP/SMTP-Funktionalität
-- Dunkles Design
+- IMAP/SMTP
+- Grundlegende E-Mail-Funktionen
 
-## 📄 Lizenz
+## 🤝 Beitragen
 
-MIT License
+Beiträge sind willkommen! Bitte erstelle einen Issue oder Pull Request.
+
+## 📜 Lizenz
+
+MIT License - siehe LICENSE für Details.
 
 ---
 
-**Made with ❤️ for Linux**
+**CoreMail Desktop** - ...die mit Wallisär Pauer 💪

@@ -1,0 +1,141 @@
+# Changelog
+
+Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
+
+## [1.2.0] - 2026-03-08
+
+### ✨ Neue Features
+
+#### 🔄 Update-Funktion
+- Automatische Prüfung auf neue Versionen beim App-Start
+- Manuelle Update-Prüfung in Einstellungen → Updates
+- Download neuer Versionen direkt in der App
+- Ein-Klick-Installation von Updates
+- Anzeige von Release Notes
+- Einstellung für Auto-Update-Check
+
+#### 🔔 Desktop-Benachrichtigungen
+- Benachrichtigungen bei neuen E-Mails
+- Titel zeigt Absendername
+- Body zeigt Betreff
+- Klick auf Benachrichtigung öffnet E-Mail
+- Konfigurierbar pro Konto
+- Konfigurierbar pro Kategorie
+- Sound ein/ausschaltbar
+- Badge-Counter für ungelesene E-Mails
+
+#### 📎 Verbesserte Anhang-Verwaltung
+- Bildvorschau direkt in E-Mail-Ansicht
+- PDF-Vorschau (erste Seite)
+- "Alle Anhänge herunterladen" Button
+- Download-Fortschritt pro Anhang
+- Konfigurierbarer Standard-Download-Ordner
+- Anhang-Liste mit Dateiname, Größe, Typ
+- Download-Button pro Anhang
+- Vorschau-Button für unterstützte Formate
+- Öffnen mit Standard-App
+
+#### ✍️ E-Mail-Signaturen
+- Signatur-Editor pro Konto
+- Rich-Text-Editor mit Formatierung:
+  - Fett, Kursiv, Unterstrichen
+  - Textausrichtung
+  - Schriftgröße
+  - Textfarbe
+  - Links einfügen
+  - Bilder einfügen
+- Vorlagen für schnelle Einrichtung
+- Signatur-Vorschau in Compose
+- "Signatur verwenden" Checkbox
+- Automatisches Anhängen beim Senden
+
+### 🎨 Verbesserungen
+
+- Neues App-Icon in mehreren Auflösungen (32, 64, 128, 256, 512px)
+- Verbessertes Icon in Taskbar und Fenster
+- Erweiterte Einstellungen mit Tab-Navigation
+- Verbesserte Fehlerbehandlung
+
+### 🔧 Technisch
+
+- Version auf 1.2.0 erhöht
+- Neue IPC-Handler für Updates, Benachrichtigungen, Signaturen
+- Electron Notification API Integration
+- GitHub Releases API für Updates
+- Modulare Settings-Komponenten
+- Verbesserte Anhang-Download-Logik
+
+---
+
+## [1.1.0] - 2026-03-07
+
+### ✨ Neue Features
+
+#### 👥 Multi-Account-Support
+- Mehrere E-Mail-Konten verwalten
+- Schneller Kontowechsel in der Sidebar
+- Kontostatistiken im Dashboard
+
+#### 📁 Kategorien
+- Konten in Kategorien organisieren
+- Vordefinierte Kategorien: Arbeit, Privat, Sonstiges
+- Eigene Kategorien erstellen
+- Farbkodierung pro Kategorie
+
+#### 🎨 Themes
+- 3 Themes verfügbar: Dark, Light, Minimal
+- Theme-Auswahl in Einstellungen
+- Persistente Theme-Speicherung
+
+#### 📊 Dashboard
+- Übersicht über alle Konten
+- E-Mail-Statistiken
+- Schnellzugriff auf Postfächer
+
+### 🔧 Technisch
+
+- AccountContext für Multi-Account-State
+- ThemeContext für Theme-Verwaltung
+- SidebarV2 mit Kategorien
+- Rückwärtskompatibilität mit v1.0 Einstellungen
+
+---
+
+## [1.0.0] - 2026-03-06
+
+### 🎉 Erste Version
+
+#### 📧 E-Mail-Funktionen
+- E-Mails empfangen (IMAP)
+- E-Mails senden (SMTP)
+- E-Mail-Vorschau
+- Anhänge herunterladen
+
+#### ⚙️ Einstellungen
+- IMAP-Konfiguration
+- SMTP-Konfiguration
+- Verbindungstest
+
+#### 🔒 Sicherheit
+- Verschlüsselte Passwort-Speicherung
+- electron-store mit Verschlüsselung
+
+#### 🎨 Design
+- Dunkles Theme
+- Cyan-Akzentfarbe
+- Minimalistisches Interface
+
+---
+
+## Geplant für zukünftige Versionen
+
+- [ ] E-Mail-Suche
+- [ ] Ordner-Verwaltung (Sent, Drafts, Trash)
+- [ ] E-Mail-Labels/Tags
+- [ ] Kontakte-Verwaltung
+- [ ] Kalender-Integration
+- [ ] Offline-Modus
+- [ ] Mehrsprachigkeit
+- [ ] Keyboard Shortcuts erweitern
+- [ ] E-Mail-Regeln/Filter
+- [ ] Verschlüsselung (PGP/GPG)

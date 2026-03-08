@@ -1,21 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
-function ComposeEmail({ onBack }) {
+function ComposeEmail({ onBack, replyTo = null }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount, accounts } = useAccounts();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId);
+  const [signatures, setSignatures] = useState({});
+  const [useSignature, setUseSignature] = useState(true);
+  const [showSignaturePreview, setShowSignaturePreview] = useState(false);
   const c = currentTheme.colors;
 
   const [form, setForm] = useState({
-    to: '',
-    subject: '',
+    to: replyTo?.from || '',
+    subject: replyTo ? `Re: ${replyTo.subject}` : '',
     body: ''
   });
+
+  useEffect(() => {
+    loadSignatures();
+  }, []);
+
+  useEffect(() => {
+    // Update signature preview when account changes
+    setShowSignaturePreview(false);
+  }, [selectedAccountId]);
+
+  const loadSignatures = async () => {
+    if (window.electronAPI?.loadSignatures) {
+      const result = await window.electronAPI.loadSignatures();
+      if (result.success) {
+        setSignatures(result.signatures);
+      }
+    }
+  };
+
+  const currentSignature = signatures[selectedAccountId];
+  const hasSignature = currentSignature?.enabled && currentSignature?.html;
 
   const handleSend = async () => {
     if (!form.to || !form.subject) {
@@ -27,20 +51,30 @@ function ComposeEmail({ onBack }) {
     setError(null);
 
     try {
+      let bodyHtml = `<p>${form.body.replace(/\n/g, '</p><p>')}</p>`;
+      let bodyText = form.body;
+
+      // Append signature if enabled
+      if (useSignature && hasSignature) {
+        bodyHtml += `<br><br>${currentSignature.html}`;
+        bodyText += `\n\n${currentSignature.text || ''}`;
+      }
+
       let result;
       if (selectedAccountId && window.electronAPI.sendEmailForAccount) {
         result = await window.electronAPI.sendEmailForAccount(selectedAccountId, {
           to: form.to,
           subject: form.subject,
-          text: form.body,
-          html: `<p>${form.body.replace(/\n/g, '</p><p>')}</p>`
+          text: bodyText,
+          html: bodyHtml,
+          useSignature: false // Signature already appended
         });
       } else {
         result = await window.electronAPI.sendEmail({
           to: form.to,
           subject: form.subject,
-          text: form.body,
-          html: `<p>${form.body.replace(/\n/g, '</p><p>')}</p>`
+          text: bodyText,
+          html: bodyHtml
         });
       }
 
@@ -147,10 +181,55 @@ function ComposeEmail({ onBack }) {
               value={form.body}
               onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
               placeholder="Nachricht schreiben..."
-              rows={12}
+              rows={10}
               className={`w-full px-4 py-3 rounded-lg ${c.input} focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none`}
             />
           </div>
+
+          {/* Signature Toggle */}
+          {hasSignature && (
+            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="useSignature"
+                    checked={useSignature}
+                    onChange={e => setUseSignature(e.target.checked)}
+                    className="w-5 h-5 rounded accent-cyan-500"
+                  />
+                  <label htmlFor="useSignature" className={`${c.text} cursor-pointer`}>
+                    Signatur anhängen
+                  </label>
+                </div>
+                <button
+                  onClick={() => setShowSignaturePreview(!showSignaturePreview)}
+                  className={`text-sm ${c.accent} hover:underline`}
+                >
+                  {showSignaturePreview ? 'Verbergen' : 'Vorschau'}
+                </button>
+              </div>
+              
+              {showSignaturePreview && useSignature && (
+                <div className="mt-4 pt-4 border-t border-gray-600">
+                  <p className={`text-xs ${c.textSecondary} mb-2`}>Signatur-Vorschau:</p>
+                  <div 
+                    className="p-3 bg-white rounded text-gray-800 text-sm"
+                    dangerouslySetInnerHTML={{ __html: currentSignature.html }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* No Signature Hint */}
+          {!hasSignature && (
+            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
+              <p className={`text-sm ${c.textSecondary}`}>
+                💡 Tipp: Du kannst unter Einstellungen → Signaturen eine E-Mail-Signatur erstellen.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

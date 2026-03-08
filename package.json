@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.1.0",
-  "description": "CoreMail Desktop Client v1.1 - Multi-Account E-Mail-Client für Linux",
+  "version": "1.2.0",
+  "description": "CoreMail Desktop Client v1.2 - Multi-Account E-Mail-Client für Linux",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -48,6 +48,22 @@
       {
         "from": "assets/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "assets/coremail-icon-256.png",
+        "to": "icons/256x256.png"
+      },
+      {
+        "from": "assets/coremail-icon-128.png",
+        "to": "icons/128x128.png"
+      },
+      {
+        "from": "assets/coremail-icon-64.png",
+        "to": "icons/64x64.png"
+      },
+      {
+        "from": "assets/coremail-icon-32.png",
+        "to": "icons/32x32.png"
       }
     ]
   },
