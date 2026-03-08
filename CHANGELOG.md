@@ -2,6 +2,31 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.7.2] - 2026-03-08
+
+### 🐛 Bugfixes
+
+#### 🤖 Ollama API-Kommunikation gefixt
+- **404-Fehler behoben**: Die Ollama API-Kommunikation wurde von `/api/generate` auf `/api/chat` umgestellt
+- **Korrekte Chat-API**: Verwendet jetzt die richtige `/api/chat` API mit `messages`-Array für Konversationen
+- **Bessere Fehlerbehandlung**: 
+  - Spezifische Fehlermeldung wenn Modell nicht installiert ist
+  - Klare Meldung wenn Ollama nicht läuft
+  - Anleitung zum Starten von Ollama
+- **Chat-Funktion funktioniert jetzt**: KI-Assistent kann nun korrekt mit Ollama kommunizieren
+
+### 🔧 Technische Änderungen
+- **OllamaContext.js**: 
+  - `sendMessage()`: Verwendet jetzt `/api/chat` mit `messages`-Array
+  - `sendMessageStreaming()`: Streaming-Antworten mit korrektem `/api/chat` Endpoint
+  - `generate()`: Für E-Mail-Funktionen (Zusammenfassen, Antwortvorschläge) aktualisiert
+  - Response-Parsing für Chat-API: `data.message.content` statt `data.response`
+
+### 📦 Version
+- Bugfix-Release: v1.7.1 → v1.7.2
+
+---
+
 ## [1.7.1] - 2026-03-08
 
 ### 🐛 Bugfixes

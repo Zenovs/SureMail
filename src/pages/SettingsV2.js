@@ -157,23 +157,23 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.7.1</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.7.2</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">🤖</span>
-                  <span>Ollama startet jetzt automatisch beim App-Start</span>
+                  <span className="text-green-400">🔧</span>
+                  <span>Ollama API 404-Fehler behoben - Chat funktioniert jetzt</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📥</span>
-                  <span>Automatischer Modell-Download nach Ollama-Installation</span>
+                  <span className="text-cyan-400">💬</span>
+                  <span>Korrekte /api/chat Endpoint-Verwendung</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-orange-400">🎨</span>
-                  <span>Foundations Theme jetzt in der Theme-Auswahl sichtbar</span>
+                  <span className="text-orange-400">📝</span>
+                  <span>Bessere Fehlermeldungen für Ollama-Probleme</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-purple-400">✨</span>
-                  <span>Alle 7 Themes vollständig verfügbar</span>
+                  <span>KI-Assistent kommuniziert jetzt korrekt mit Ollama</span>
                 </li>
               </ul>
             </div>

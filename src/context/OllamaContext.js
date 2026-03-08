@@ -90,7 +90,7 @@ export const OllamaProvider = ({ children }) => {
     }
   }, []);
 
-  // Send message to Ollama (with streaming)
+  // Send message to Ollama (using /api/chat for better conversation support)
   const sendMessage = useCallback(async (message, systemPrompt = null) => {
     if (!isAvailable || isGenerating) return null;
 
@@ -101,25 +101,38 @@ export const OllamaProvider = ({ children }) => {
     setChatHistory(newHistory);
 
     try {
-      const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+      // Build messages array for chat API
+      const messages = [
+        { 
+          role: 'system', 
+          content: systemPrompt || 'Du bist ein hilfreicher Assistent für E-Mail-Kommunikation. Antworte immer auf Deutsch, es sei denn, der Benutzer schreibt in einer anderen Sprache.'
+        },
+        ...chatHistory.map(msg => ({ role: msg.role, content: msg.content })),
+        { role: 'user', content: message }
+      ];
+
+      const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: activeModel,
-          prompt: message,
-          system: systemPrompt || 'Du bist ein hilfreicher Assistent für E-Mail-Kommunikation. Antworte immer auf Deutsch, es sei denn, der Benutzer schreibt in einer anderen Sprache.',
+          messages: messages,
           stream: false
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status}`);
+        const errorText = await response.text().catch(() => '');
+        if (response.status === 404) {
+          throw new Error(`Modell "${activeModel}" nicht gefunden. Bitte stelle sicher, dass das Modell installiert ist.`);
+        }
+        throw new Error(`Ollama API Fehler: ${response.status}${errorText ? ` - ${errorText}` : ''}`);
       }
 
       const data = await response.json();
       const assistantMessage = { 
         role: 'assistant', 
-        content: data.response,
+        content: data.message?.content || data.response || 'Keine Antwort erhalten',
         timestamp: Date.now(),
         model: activeModel
       };
@@ -128,12 +141,19 @@ export const OllamaProvider = ({ children }) => {
       setChatHistory(updatedHistory);
       saveChatHistory(updatedHistory);
       
-      return data.response;
+      return data.message?.content || data.response;
     } catch (err) {
-      console.error('Ollama generate error:', err);
+      console.error('Ollama chat error:', err);
+      let errorContent = `Fehler: ${err.message}`;
+      
+      // Better error messages
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        errorContent = 'Ollama ist nicht erreichbar. Bitte starte Ollama mit "ollama serve" oder überprüfe ob der Dienst läuft.';
+      }
+      
       const errorMessage = { 
         role: 'assistant', 
-        content: `Fehler: ${err.message}`,
+        content: errorContent,
         timestamp: Date.now(),
         isError: true
       };
@@ -145,7 +165,7 @@ export const OllamaProvider = ({ children }) => {
     }
   }, [isAvailable, isGenerating, chatHistory, activeModel, saveChatHistory]);
 
-  // Send message with streaming (for typing effect)
+  // Send message with streaming (for typing effect) - using /api/chat
   const sendMessageStreaming = useCallback(async (message, onChunk, systemPrompt = null) => {
     if (!isAvailable || isGenerating) return null;
 
@@ -158,19 +178,32 @@ export const OllamaProvider = ({ children }) => {
     let fullResponse = '';
 
     try {
-      const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+      // Build messages array for chat API
+      const messages = [
+        { 
+          role: 'system', 
+          content: systemPrompt || 'Du bist ein hilfreicher Assistent für E-Mail-Kommunikation. Antworte immer auf Deutsch, es sei denn, der Benutzer schreibt in einer anderen Sprache.'
+        },
+        ...chatHistory.map(msg => ({ role: msg.role, content: msg.content })),
+        { role: 'user', content: message }
+      ];
+
+      const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: activeModel,
-          prompt: message,
-          system: systemPrompt || 'Du bist ein hilfreicher Assistent für E-Mail-Kommunikation. Antworte immer auf Deutsch, es sei denn, der Benutzer schreibt in einer anderen Sprache.',
+          messages: messages,
           stream: true
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status}`);
+        const errorText = await response.text().catch(() => '');
+        if (response.status === 404) {
+          throw new Error(`Modell "${activeModel}" nicht gefunden. Bitte installiere es mit: ollama pull ${activeModel}`);
+        }
+        throw new Error(`Ollama API Fehler: ${response.status}${errorText ? ` - ${errorText}` : ''}`);
       }
 
       const reader = response.body.getReader();
@@ -186,8 +219,9 @@ export const OllamaProvider = ({ children }) => {
         for (const line of lines) {
           try {
             const data = JSON.parse(line);
-            if (data.response) {
-              fullResponse += data.response;
+            // Chat API returns content in message.content
+            if (data.message?.content) {
+              fullResponse += data.message.content;
               onChunk(fullResponse);
             }
           } catch (e) {
@@ -210,9 +244,15 @@ export const OllamaProvider = ({ children }) => {
       return fullResponse;
     } catch (err) {
       console.error('Ollama streaming error:', err);
+      let errorContent = `Fehler: ${err.message}`;
+      
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        errorContent = 'Ollama ist nicht erreichbar. Bitte starte Ollama mit "ollama serve" oder überprüfe ob der Dienst läuft.';
+      }
+      
       const errorMessage = { 
         role: 'assistant', 
-        content: `Fehler: ${err.message}`,
+        content: errorContent,
         timestamp: Date.now(),
         isError: true
       };
@@ -224,28 +264,39 @@ export const OllamaProvider = ({ children }) => {
     }
   }, [isAvailable, isGenerating, chatHistory, activeModel, saveChatHistory]);
 
-  // Generate without adding to chat history (for email functions)
+  // Generate without adding to chat history (for email functions) - using /api/chat
   const generate = useCallback(async (prompt, systemPrompt = null) => {
     if (!isAvailable) return null;
 
     try {
-      const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+      const messages = [
+        { 
+          role: 'system', 
+          content: systemPrompt || 'Du bist ein hilfreicher E-Mail-Assistent. Antworte immer auf Deutsch.'
+        },
+        { role: 'user', content: prompt }
+      ];
+
+      const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: activeModel,
-          prompt: prompt,
-          system: systemPrompt || 'Du bist ein hilfreicher E-Mail-Assistent. Antworte immer auf Deutsch.',
+          messages: messages,
           stream: false
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status}`);
+        const errorText = await response.text().catch(() => '');
+        if (response.status === 404) {
+          throw new Error(`Modell "${activeModel}" nicht gefunden`);
+        }
+        throw new Error(`Ollama API Fehler: ${response.status}${errorText ? ` - ${errorText}` : ''}`);
       }
 
       const data = await response.json();
-      return data.response;
+      return data.message?.content || data.response || null;
     } catch (err) {
       console.error('Ollama generate error:', err);
       return null;
