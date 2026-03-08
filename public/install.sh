@@ -25,7 +25,7 @@ BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
 APPLICATIONS_DIR="$HOME/.local/share/applications"
 ICONS_DIR="$HOME/.local/share/icons"
-DOWNLOAD_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail%20Desktop-${VERSION}.AppImage"
+DOWNLOAD_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_URL="https://i.pinimg.com/736x/7b/10/de/7b10de9767ac5f50b38ebf3c17ecc248.jpg"
 
 print_banner() {
