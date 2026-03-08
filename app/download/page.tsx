@@ -69,7 +69,7 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400/20 to-cyan-400/20 border border-purple-400/40 rounded-full text-purple-400 text-sm font-mono mb-6 animate-pulse">
             <Bot className="w-4 h-4" />
-            <span>🚀 Desktop Client v1.7.1 - Bugfix Release!</span>
+            <span>🚀 Desktop Client v1.7.2 - Bugfix Release!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
@@ -96,17 +96,17 @@ export default function DownloadPage() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold">
-                    <span className="font-mono text-purple-400">// </span>Neu in v1.7.1
+                    <span className="font-mono text-purple-400">// </span>Neu in v1.7.2
                   </h2>
-                  <p className="text-gray-400 font-mono text-sm">Bugfix: Ollama Auto-Start und Foundations Theme jetzt sichtbar</p>
+                  <p className="text-gray-400 font-mono text-sm">Bugfix: Ollama API-Kommunikation funktioniert jetzt</p>
                 </div>
               </div>
 
               {/* Feature Badges */}
               <div className="flex flex-wrap justify-center gap-2 mb-4">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-400/10 border border-emerald-400/30 rounded-full">
-                  <Palette className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-400 text-sm font-semibold">NEU: Foundations Theme – Professionelles Design-System!</span>
+                  <Wrench className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400 text-sm font-semibold">Bugfix: Ollama API-Kommunikation</span>
                 </div>
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded-full">
                   <Sparkles className="w-4 h-4 text-cyan-400" />
