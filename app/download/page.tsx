@@ -69,7 +69,7 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400/20 to-cyan-400/20 border border-purple-400/40 rounded-full text-purple-400 text-sm font-mono mb-6 animate-pulse">
             <Bot className="w-4 h-4" />
-            <span>🚀 Desktop Client v1.7.2 - Bugfix Release!</span>
+            <span>🚀 Desktop Client v1.8.0 - Major Feature Update!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
@@ -96,21 +96,25 @@ export default function DownloadPage() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold">
-                    <span className="font-mono text-purple-400">// </span>Neu in v1.7.2
+                    <span className="font-mono text-purple-400">// </span>Neu in v1.8.0
                   </h2>
-                  <p className="text-gray-400 font-mono text-sm">Bugfix: Ollama API-Kommunikation funktioniert jetzt</p>
+                  <p className="text-gray-400 font-mono text-sm">Major Feature Update mit E-Mail-Aktionen & Exchange-Support</p>
                 </div>
               </div>
 
               {/* Feature Badges */}
               <div className="flex flex-wrap justify-center gap-2 mb-4">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-400/10 border border-emerald-400/30 rounded-full">
-                  <Wrench className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-400 text-sm font-semibold">Bugfix: Ollama API-Kommunikation</span>
+                  <Mail className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400 text-sm font-semibold">E-Mail-Aktionen</span>
                 </div>
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded-full">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
-                  <span className="text-cyan-400 text-sm font-semibold">7 Themes verfügbar!</span>
+                  <Zap className="w-4 h-4 text-cyan-400" />
+                  <span className="text-cyan-400 text-sm font-semibold">Performance-Boost</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-400/10 border border-purple-400/30 rounded-full">
+                  <RefreshCw className="w-4 h-4 text-purple-400" />
+                  <span className="text-purple-400 text-sm font-semibold">Exchange-Support</span>
                 </div>
               </div>
 
@@ -123,40 +127,58 @@ export default function DownloadPage() {
               </div>
               
               <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-purple-400/20">
-                  <div className="w-10 h-10 bg-purple-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MessageSquare className="w-5 h-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">KI-Chatbot Widget</h4>
-                    <p className="text-gray-400 text-sm">Dein persönlicher KI-Assistent direkt in CoreMail. Stelle Fragen, lass dir helfen – offline und privat.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-cyan-400/20">
-                  <div className="w-10 h-10 bg-cyan-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">E-Mails zusammenfassen</h4>
-                    <p className="text-gray-400 text-sm">Lange E-Mails auf einen Blick verstehen. Die KI fasst den Inhalt für dich zusammen.</p>
-                  </div>
-                </div>
                 <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-emerald-400/20">
                   <div className="w-10 h-10 bg-emerald-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Mail className="w-5 h-5 text-emerald-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">Antwort-Vorschläge</h4>
-                    <p className="text-gray-400 text-sm">Die KI generiert passende Antwort-Vorschläge basierend auf dem E-Mail-Inhalt.</p>
+                    <h4 className="font-bold text-white">E-Mail-Aktionen</h4>
+                    <p className="text-gray-400 text-sm">Löschen, Als gelesen markieren, Antworten, Allen antworten, Weiterleiten – alle wichtigen Aktionen direkt verfügbar.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-cyan-400/20">
+                  <div className="w-10 h-10 bg-cyan-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">Performance-Boost</h4>
+                    <p className="text-gray-400 text-sm">Intelligentes Caching und Lazy Loading für schnellere Ladezeiten und bessere Reaktionsfähigkeit.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-purple-400/20">
+                  <div className="w-10 h-10 bg-purple-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">Ordner-Struktur</h4>
+                    <p className="text-gray-400 text-sm">Postausgang, Gesendete E-Mails und Entwürfe – vollständige Ordnerunterstützung für alle Postfächer.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-yellow-400/20">
                   <div className="w-10 h-10 bg-yellow-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Wand2 className="w-5 h-5 text-yellow-400" />
+                    <PenTool className="w-5 h-5 text-yellow-400" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-white">Text verbessern</h4>
-                    <p className="text-gray-400 text-sm">Lass deine E-Mail-Texte professioneller klingen. Die KI verbessert Stil und Grammatik.</p>
+                    <h4 className="font-bold text-white">Kategorien bearbeiten</h4>
+                    <p className="text-gray-400 text-sm">Erstelle, bearbeite und lösche Kategorien für deine E-Mails – flexibles E-Mail-Management.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-pink-400/20">
+                  <div className="w-10 h-10 bg-pink-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-5 h-5 text-pink-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">KI-Zugriff auf Postfächer</h4>
+                    <p className="text-gray-400 text-sm">Die KI kann jetzt auf deine Postfächer zugreifen und intelligente Zusammenfassungen erstellen.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 bg-dark-800/70 backdrop-blur rounded-xl p-4 border border-orange-400/20">
+                  <div className="w-10 h-10 bg-orange-400/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <RefreshCw className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white">Exchange-Support</h4>
+                    <p className="text-gray-400 text-sm">Volle Microsoft Exchange-Unterstützung – verbinde dein Firmen-Postfach nahtlos.</p>
                   </div>
                 </div>
               </div>
@@ -271,7 +293,7 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Lädt CoreMail Desktop v1.6.0 von GitHub Releases herunter</span>
+                  <span>Lädt CoreMail Desktop v1.8.0 von GitHub Releases herunter</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -334,7 +356,7 @@ export default function DownloadPage() {
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
-              <span className="text-purple-400 font-bold">v1.6.0</span>
+              <span className="text-purple-400 font-bold">v1.8.0</span>
             </div>
 
             {/* Info Box */}
@@ -381,6 +403,21 @@ export default function DownloadPage() {
           <h2 className="text-xl font-bold mb-6 text-center text-gray-400">
             <span className="font-mono text-gray-500">// </span>Frühere Versionen
           </h2>
+
+          {/* v1.7.2 */}
+          <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6 mb-4">
+            <h3 className="font-bold text-gray-300 mb-3">v1.7.2 – Bugfix Release</h3>
+            <div className="grid md:grid-cols-2 gap-3 text-sm">
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>Ollama API-Kommunikation gefixt (404-Fehler behoben)</span>
+              </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle className="w-4 h-4 text-gray-600 mt-0.5 flex-shrink-0" />
+                <span>API-Endpoint korrigiert: Von /api/generate zu /api/chat</span>
+              </div>
+            </div>
+          </div>
 
           {/* v1.5.4 */}
           <div className="bg-dark-800/30 border border-dark-700 rounded-xl p-6 mb-4">
@@ -643,7 +680,7 @@ export default function DownloadPage() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-dark-700">
         <div className="max-w-4xl mx-auto text-center text-gray-500 text-sm">
-          <p>CoreMail Desktop v1.6.0 • Powered by Electron & Ollama</p>
+          <p>CoreMail Desktop v1.8.0 • Powered by Electron & Ollama</p>
           <p className="mt-2">
             <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
               Zur Web-App →

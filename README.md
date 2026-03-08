@@ -40,7 +40,18 @@ CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 CoreMail ist auch als Desktop-App für Linux verfügbar!
 
-### 🚀 v1.7.2 – Bugfix Release!
+### 🚀 v1.8.0 – Major Feature Update!
+
+**Das bisher größte Feature-Update mit vielen neuen Funktionen!**
+
+- **E-Mail-Aktionen**: Löschen, Als gelesen markieren, Antworten, Allen antworten, Weiterleiten – alle wichtigen Aktionen direkt verfügbar
+- **Performance-Verbesserungen**: Intelligentes Caching und Lazy Loading für schnellere Ladezeiten und bessere Reaktionsfähigkeit
+- **Ordner-Struktur**: Postausgang, Gesendete E-Mails und Entwürfe – vollständige Ordnerunterstützung für alle Postfächer
+- **Kategorien bearbeiten**: Erstelle, bearbeite und lösche Kategorien für deine E-Mails – flexibles E-Mail-Management
+- **KI-Zugriff auf Postfächer**: Die KI kann jetzt auf deine Postfächer zugreifen und intelligente Zusammenfassungen erstellen
+- **Exchange-Support**: Volle Microsoft Exchange-Unterstützung – verbinde dein Firmen-Postfach nahtlos
+
+### 🔧 v1.7.2 – Bugfix Release
 
 - **Ollama API-Kommunikation gefixt**: 404-Fehler behoben
 - **API-Endpoint korrigiert**: Von /api/generate zu /api/chat gewechselt
@@ -153,7 +164,7 @@ wget -qO- https://suremail.vercel.app/install.sh | bash
 ```
 
 Das Script:
-- Lädt CoreMail Desktop v1.6.0 von GitHub Releases herunter
+- Lädt CoreMail Desktop v1.8.0 von GitHub Releases herunter
 - Prüft und installiert automatisch FUSE (benötigt für AppImages)
 - **NEU:** In-App Ollama-Installation – keine externen Scripts mehr nötig!
 - Installiert nach `~/.local/bin/coremail-desktop`
