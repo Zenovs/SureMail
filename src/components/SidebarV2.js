@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
@@ -6,7 +6,19 @@ function SidebarV2({ currentView, onNavigate }) {
   const { currentTheme } = useTheme();
   const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId } = useAccounts();
   const [expandedCategories, setExpandedCategories] = useState(['work', 'personal', 'other']);
+  const [appVersion, setAppVersion] = useState('...');
   const c = currentTheme.colors;
+
+  // Load version dynamically from package.json via Electron
+  useEffect(() => {
+    const loadVersion = async () => {
+      if (window.electronAPI?.getVersion) {
+        const version = await window.electronAPI.getVersion();
+        setAppVersion(version);
+      }
+    };
+    loadVersion();
+  }, []);
 
   const toggleCategory = (catId) => {
     setExpandedCategories(prev => 
@@ -32,7 +44,7 @@ function SidebarV2({ currentView, onNavigate }) {
       {/* Logo */}
       <div className={`p-4 ${c.border} border-b`}>
         <h1 className={`text-xl font-bold ${c.accent}`}>CoreMail</h1>
-        <span className={`text-xs ${c.textSecondary}`}>v1.1.0</span>
+        <span className={`text-xs ${c.textSecondary}`}>v{appVersion}</span>
       </div>
 
       {/* Main Navigation */}

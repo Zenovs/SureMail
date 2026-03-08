@@ -2,6 +2,23 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.3.1] - 2026-03-08
+
+### 🐛 Bugfixes
+
+- **Versions-Anzeige korrigiert**: Die Version wird jetzt überall korrekt angezeigt
+  - SidebarV2: Version dynamisch aus package.json geladen statt hardcodiert
+  - UpdateSettings: Aktuelle Version wird beim Start geladen
+  - Keine hardcodierten Versionen mehr im UI
+
+### 🔧 Technisch
+
+- SidebarV2 nutzt jetzt `useEffect` zum dynamischen Laden der Version
+- UpdateSettings hat separaten State für `currentVersion`
+- Alle Komponenten nutzen `window.electronAPI.getVersion()`
+
+---
+
 ## [1.3.0] - 2026-03-08
 
 ### ✨ Neue Features

@@ -9,6 +9,7 @@ function UpdateSettings() {
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [updateInfo, setUpdateInfo] = useState(null);
+  const [currentVersion, setCurrentVersion] = useState('...');
   const [error, setError] = useState(null);
   const [downloadedPath, setDownloadedPath] = useState(null);
   const [settings, setSettings] = useState({
@@ -17,6 +18,7 @@ function UpdateSettings() {
 
   useEffect(() => {
     loadSettings();
+    loadCurrentVersion();
     
     // Listen for update progress
     if (window.electronAPI?.onUpdateProgress) {
@@ -25,6 +27,13 @@ function UpdateSettings() {
       });
     }
   }, []);
+
+  const loadCurrentVersion = async () => {
+    if (window.electronAPI?.getVersion) {
+      const version = await window.electronAPI.getVersion();
+      setCurrentVersion(version);
+    }
+  };
 
   const loadSettings = async () => {
     if (window.electronAPI?.getAppSettings) {
@@ -101,7 +110,7 @@ function UpdateSettings() {
         <h3 className={`text-lg font-semibold ${c.text} mb-4`}>Aktuelle Version</h3>
         <div className="flex items-center justify-between">
           <div>
-            <span className={`text-2xl font-bold ${c.accent}`}>v{updateInfo?.currentVersion || '1.2.0'}</span>
+            <span className={`text-2xl font-bold ${c.accent}`}>v{currentVersion}</span>
             <p className={`text-sm ${c.textSecondary} mt-1`}>CoreMail Desktop</p>
           </div>
           <button
@@ -199,7 +208,7 @@ function UpdateSettings() {
                 Sie verwenden die neueste Version
               </h3>
               <p className={`text-sm ${c.textSecondary}`}>
-                CoreMail Desktop v{updateInfo.currentVersion}
+                CoreMail Desktop v{currentVersion}
               </p>
             </div>
           </div>
