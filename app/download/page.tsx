@@ -56,14 +56,14 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded-full text-cyan-400 text-sm font-mono mb-6">
             <Monitor className="w-4 h-4" />
-            <span>Desktop Client v1.0.0</span>
+            <span>Desktop Client v1.1.0 - NEU!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
           </h1>
           <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-            Der native Desktop-Client für CoreMail. Lese und versende E-Mails direkt von deinem Desktop – 
-            mit vollem IMAP-Support und dem bekannten Darknet-Design.
+            Der native Desktop-Client für CoreMail. Verwalte mehrere IMAP-Konten, nutze das neue Dashboard, 
+            organisiere E-Mails in Kategorien und wähle aus 3 Themes – alles mit dem bekannten Darknet-Design.
           </p>
         </div>
       </section>
@@ -138,7 +138,7 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Lädt CoreMail Desktop v1.0.0 von GitHub Releases herunter</span>
+                  <span>Lädt CoreMail Desktop v1.1.0 von GitHub Releases herunter</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -197,7 +197,7 @@ export default function DownloadPage() {
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
-              <span>v1.0.0</span>
+              <span>v1.1.0</span>
             </div>
 
             {/* Info Box */}
@@ -238,6 +238,54 @@ export default function DownloadPage() {
         </div>
       </section>
 
+      {/* New in v1.1.0 Section */}
+      <section className="py-8 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-400/30 rounded-2xl p-8">
+            <h2 className="text-2xl font-bold mb-6 text-center">
+              <span className="font-mono text-cyan-400">// </span>Neu in v1.1.0
+            </h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
+                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold text-white">Mehrere IMAP-Konten</h4>
+                  <p className="text-gray-400 text-sm">Verwalte alle deine E-Mail-Konten an einem Ort.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
+                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold text-white">Kategorien & Gruppen</h4>
+                  <p className="text-gray-400 text-sm">Organisiere E-Mails mit benutzerdefinierten Kategorien.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
+                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold text-white">Dashboard</h4>
+                  <p className="text-gray-400 text-sm">Übersicht aller Konten und Statistiken auf einen Blick.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4">
+                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold text-white">E-Mail-Vorschau (Split-View)</h4>
+                  <p className="text-gray-400 text-sm">Vorschau von E-Mails direkt in der Listenansicht.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 bg-dark-800/50 rounded-xl p-4 md:col-span-2">
+                <CheckCircle className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-bold text-white">3 Themes: Dark, Light & Minimal</h4>
+                  <p className="text-gray-400 text-sm">Wähle dein bevorzugtes Design – von klassisch dunkel bis minimalistisch hell.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-16 px-6">
         <div className="max-w-4xl mx-auto">
@@ -259,9 +307,9 @@ export default function DownloadPage() {
               <div className="w-12 h-12 bg-emerald-400/10 rounded-lg flex items-center justify-center mb-4">
                 <Moon className="w-6 h-6 text-emerald-400" />
               </div>
-              <h3 className="font-bold mb-2">Darknet Design</h3>
+              <h3 className="font-bold mb-2">3 Themes</h3>
               <p className="text-gray-400 text-sm">
-                Das bekannte dunkle Design von CoreMail – jetzt auch auf dem Desktop. 
+                Dark, Light oder Minimal – wähle das Design, das zu dir passt.
                 Schonend für die Augen, auch bei langen Sessions.
               </p>
             </div>
@@ -404,7 +452,7 @@ export default function DownloadPage() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-dark-700">
         <div className="max-w-4xl mx-auto text-center text-gray-500 text-sm">
-          <p>CoreMail Desktop v1.0.0 • Powered by Electron</p>
+          <p>CoreMail Desktop v1.1.0 • Powered by Electron</p>
           <p className="mt-2">
             <Link href="/" className="text-cyan-400 hover:text-cyan-300 transition-colors">
               Zur Web-App →
