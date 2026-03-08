@@ -20,7 +20,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Konfiguration
-VERSION="1.5.3"
+VERSION="1.5.4"
 APP_NAME="CoreMail Desktop"
 BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
@@ -29,12 +29,20 @@ ICONS_DIR="$HOME/.local/share/icons"
 EXTRACTED_DIR="$HOME/.local/share/coremail"
 DOWNLOAD_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_URL="https://img.freepik.com/premium-vector/customer-service-representative-icon-with-phone-email-documents-other-communication-icons_150234-85805.jpg"
+LOG_FILE="/tmp/coremail-install.log"
 
 # Installationsmodus: appimage oder extracted
 INSTALL_MODE="appimage"
 
-# Ollama Installation (automatisch in v1.5.3+)
+# Ollama Installation (automatisch in v1.5.4+)
 INSTALL_OLLAMA="true"
+
+# ============ LOGGING FUNKTIONEN ============
+
+log() {
+    local message="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "$message" >> "$LOG_FILE"
+}
 
 print_banner() {
     echo -e "${CYAN}"
@@ -49,18 +57,22 @@ print_banner() {
 
 print_step() {
     echo -e "${CYAN}[*]${NC} $1"
+    log "STEP: $1"
 }
 
 print_success() {
     echo -e "${GREEN}[✓]${NC} $1"
+    log "SUCCESS: $1"
 }
 
 print_warning() {
     echo -e "${YELLOW}[!]${NC} $1"
+    log "WARNING: $1"
 }
 
 print_error() {
     echo -e "${RED}[✗]${NC} $1"
+    log "ERROR: $1"
 }
 
 # Frage Benutzer mit Ja/Nein
@@ -397,15 +409,16 @@ setup_path() {
     fi
 }
 
-# Automatische Ollama-Installation (v1.5.3+)
+# Automatische Ollama-Installation (v1.5.4+ mit verbessertem Logging)
 show_ollama_info() {
     echo ""
     echo -e "${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}║  ${CYAN}🤖 v1.5.3: Automatische KI-Installation mit Ollama${NC}       ${BOLD}║${NC}"
+    echo -e "${BOLD}║  ${CYAN}🤖 v1.5.4: Robustere Ollama-Installation${NC}                  ${BOLD}║${NC}"
     echo -e "${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  CoreMail Desktop v1.5.3 enthält ${BOLD}lokale KI-Funktionen${NC}:"
-    echo -e "    • Professionelles Chat-Icon"
+    echo -e "  CoreMail Desktop v1.5.4 enthält ${BOLD}verbesserte KI-Integration${NC}:"
+    echo -e "    • Robustere Ollama-Installation mit Logging"
+    echo -e "    • Verbesserte Einstellungs-UI (breitere Leiste, Scrolling)"
     echo -e "    • KI-Chatbot Widget"
     echo -e "    • E-Mails zusammenfassen"
     echo -e "    • Antwort-Vorschläge generieren"
@@ -415,9 +428,11 @@ show_ollama_info() {
     echo -e "  ${GREEN}✓ Deine E-Mails bleiben privat auf deinem Rechner.${NC}"
     echo -e "  ${GREEN}✓ Ollama wird automatisch installiert${NC}"
     echo ""
+    echo -e "  📋 ${YELLOW}Installation-Log: ${LOG_FILE}${NC}"
+    echo ""
 }
 
-# Installiere Ollama
+# Installiere Ollama mit verbesserter Fehlerbehandlung
 install_ollama() {
     if [ "$INSTALL_OLLAMA" != "true" ]; then
         return 0
@@ -425,20 +440,39 @@ install_ollama() {
     
     echo ""
     print_step "Installiere Ollama für lokale KI..."
+    log "Starte Ollama-Installation"
     
     # Prüfe ob Ollama bereits installiert ist
     if command -v ollama &> /dev/null; then
-        print_success "Ollama ist bereits installiert!"
+        local version=$(ollama --version 2>/dev/null || echo "unbekannt")
+        print_success "Ollama ist bereits installiert (Version: $version)!"
+        log "Ollama bereits installiert: $version"
         OLLAMA_ALREADY_INSTALLED="true"
     else
-        # Installiere Ollama
-        print_step "Lade Ollama herunter und installiere..."
-        if curl -fsSL https://ollama.com/install.sh | sh; then
-            print_success "Ollama wurde erfolgreich installiert!"
-        else
-            print_error "Ollama-Installation fehlgeschlagen!"
+        # Prüfe Internet-Verbindung
+        print_step "Prüfe Internet-Verbindung..."
+        if ! curl -s --connect-timeout 5 https://ollama.com > /dev/null 2>&1; then
+            print_warning "Keine Verbindung zu ollama.com möglich"
+            log "Internet-Verbindung zu ollama.com fehlgeschlagen"
             print_warning "Du kannst Ollama später manuell installieren:"
             echo -e "    ${CYAN}curl -fsSL https://ollama.com/install.sh | sh${NC}"
+            return 1
+        fi
+        
+        # Installiere Ollama
+        print_step "Lade Ollama herunter und installiere..."
+        log "Starte Ollama-Download"
+        
+        if curl -fsSL https://ollama.com/install.sh | sh >> "$LOG_FILE" 2>&1; then
+            print_success "Ollama wurde erfolgreich installiert!"
+            log "Ollama erfolgreich installiert"
+        else
+            print_error "Ollama-Installation fehlgeschlagen!"
+            log "Ollama-Installation fehlgeschlagen"
+            print_warning "Du kannst Ollama später manuell installieren:"
+            echo -e "    ${CYAN}curl -fsSL https://ollama.com/install.sh | sh${NC}"
+            echo ""
+            echo -e "    ${YELLOW}Details siehe: ${LOG_FILE}${NC}"
             return 1
         fi
     fi
@@ -446,18 +480,22 @@ install_ollama() {
     # Starte Ollama Service falls nicht läuft
     print_step "Starte Ollama-Service..."
     if ! pgrep -x "ollama" > /dev/null; then
-        ollama serve &>/dev/null &
+        nohup ollama serve >> "$LOG_FILE" 2>&1 &
         sleep 2
+        log "Ollama Service gestartet"
     fi
     
     # Lade Standard-Modell herunter
     print_step "Lade KI-Modell herunter (llama3.2:1b - ca. 1.3 GB)..."
     print_step "(Dies kann einige Minuten dauern...)"
+    log "Starte Modell-Download: llama3.2:1b"
     
-    if ollama pull llama3.2:1b; then
+    if ollama pull llama3.2:1b 2>&1 | tee -a "$LOG_FILE"; then
         print_success "KI-Modell 'llama3.2:1b' wurde erfolgreich heruntergeladen!"
+        log "Modell llama3.2:1b erfolgreich heruntergeladen"
     else
         print_warning "Modell-Download fehlgeschlagen."
+        log "Modell-Download fehlgeschlagen"
         print_warning "Du kannst es später manuell herunterladen:"
         echo -e "    ${CYAN}ollama pull llama3.2:1b${NC}"
     fi
@@ -499,6 +537,9 @@ print_success_message() {
         echo -e "    ${CYAN}${INSTALL_DIR}/${BINARY_NAME}${NC}"
     fi
     echo ""
+    echo "  📋 Installation-Log:"
+    echo -e "    ${CYAN}${LOG_FILE}${NC}"
+    echo ""
     echo "  Deinstallieren:"
     echo -e "    ${CYAN}curl -sSL https://suremail.vercel.app/uninstall.sh | bash${NC}"
     echo ""
@@ -506,6 +547,12 @@ print_success_message() {
 
 # Hauptfunktion
 main() {
+    # Initialisiere Log-Datei
+    echo "============================================" > "$LOG_FILE"
+    echo "CoreMail Desktop v${VERSION} Installation" >> "$LOG_FILE"
+    echo "Gestartet: $(date)" >> "$LOG_FILE"
+    echo "============================================" >> "$LOG_FILE"
+    
     print_banner
     check_downloader
     show_ollama_info
@@ -525,6 +572,8 @@ main() {
     install_ollama
     setup_path
     print_success_message
+    
+    log "Installation abgeschlossen"
 }
 
 main
