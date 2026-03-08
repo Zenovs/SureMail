@@ -40,6 +40,11 @@ CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermö
 
 CoreMail ist auch als Desktop-App für Linux verfügbar!
 
+### 🚀 v1.5.3 – Professioneller & Einfacher!
+
+- **Professionelles Chat-Icon**: Neues Chat-Icon statt Roboter-Icon für professionelleres Erscheinungsbild
+- **Automatische Ollama-Installation**: Ollama wird automatisch installiert – kein manuelles Nachfragen mehr
+
 ### 🔧 v1.5.2 – Bugfix Release
 
 - **OpenGL-Fehler vollständig behoben**: Finale Lösung für Kompatibilitätsprobleme

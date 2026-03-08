@@ -20,7 +20,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Konfiguration
-VERSION="1.5.2"
+VERSION="1.5.3"
 APP_NAME="CoreMail Desktop"
 BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
@@ -33,8 +33,8 @@ ICON_URL="https://img.freepik.com/premium-vector/customer-service-representative
 # Installationsmodus: appimage oder extracted
 INSTALL_MODE="appimage"
 
-# Ollama Installation
-INSTALL_OLLAMA="false"
+# Ollama Installation (automatisch in v1.5.3+)
+INSTALL_OLLAMA="true"
 
 print_banner() {
     echo -e "${CYAN}"
@@ -397,14 +397,15 @@ setup_path() {
     fi
 }
 
-# Frage nach Ollama-Installation
-ask_ollama_install() {
+# Automatische Ollama-Installation (v1.5.3+)
+show_ollama_info() {
     echo ""
     echo -e "${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}║  ${CYAN}🤖 NEU in v1.5.0: Lokale KI-Integration mit Ollama${NC}       ${BOLD}║${NC}"
+    echo -e "${BOLD}║  ${CYAN}🤖 v1.5.3: Automatische KI-Installation mit Ollama${NC}       ${BOLD}║${NC}"
     echo -e "${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  CoreMail Desktop v1.5.0 enthält ${BOLD}lokale KI-Funktionen${NC}:"
+    echo -e "  CoreMail Desktop v1.5.3 enthält ${BOLD}lokale KI-Funktionen${NC}:"
+    echo -e "    • Professionelles Chat-Icon"
     echo -e "    • KI-Chatbot Widget"
     echo -e "    • E-Mails zusammenfassen"
     echo -e "    • Antwort-Vorschläge generieren"
@@ -412,19 +413,8 @@ ask_ollama_install() {
     echo ""
     echo -e "  ${GREEN}✓ 100% lokal - Keine Cloud, keine Datenübertragung!${NC}"
     echo -e "  ${GREEN}✓ Deine E-Mails bleiben privat auf deinem Rechner.${NC}"
+    echo -e "  ${GREEN}✓ Ollama wird automatisch installiert${NC}"
     echo ""
-    
-    if ask_yes_no "  Möchtest du Ollama für die KI-Funktionen installieren?" "y"; then
-        INSTALL_OLLAMA="true"
-        return 0
-    else
-        echo ""
-        print_warning "Ollama wird nicht installiert."
-        echo "  Du kannst es später jederzeit manuell installieren:"
-        echo -e "    ${CYAN}curl -fsSL https://ollama.com/install.sh | sh${NC}"
-        echo ""
-        return 0
-    fi
 }
 
 # Installiere Ollama
@@ -518,7 +508,7 @@ print_success_message() {
 main() {
     print_banner
     check_downloader
-    ask_ollama_install
+    show_ollama_info
     handle_fuse_dependency
     create_directories
     download_appimage

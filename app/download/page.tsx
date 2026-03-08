@@ -69,7 +69,7 @@ export default function DownloadPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-400/20 to-cyan-400/20 border border-purple-400/40 rounded-full text-purple-400 text-sm font-mono mb-6 animate-pulse">
             <Bot className="w-4 h-4" />
-            <span>🚀 Desktop Client v1.5.2 - Bugfix Release</span>
+            <span>🚀 Desktop Client v1.5.3 - Professioneller & Einfacher!</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             CoreMail <span className="text-cyan-400">Desktop</span>
@@ -96,17 +96,21 @@ export default function DownloadPage() {
                 </div>
                 <div>
                   <h2 className="text-3xl font-bold">
-                    <span className="font-mono text-purple-400">// </span>Neu in v1.5.2
+                    <span className="font-mono text-purple-400">// </span>Neu in v1.5.3
                   </h2>
                   <p className="text-gray-400 font-mono text-sm">Lokale KI-Integration mit Ollama – 100% privat!</p>
                 </div>
               </div>
 
-              {/* Bugfix Badge */}
-              <div className="flex justify-center mb-4">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-400/10 border border-yellow-400/30 rounded-full">
-                  <Wrench className="w-4 h-4 text-yellow-400" />
-                  <span className="text-yellow-400 text-sm font-semibold">Bugfix in v1.5.2: OpenGL-Fehler vollständig behoben</span>
+              {/* New Features Badge */}
+              <div className="flex flex-wrap justify-center gap-2 mb-4">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-400/10 border border-cyan-400/30 rounded-full">
+                  <MessageSquare className="w-4 h-4 text-cyan-400" />
+                  <span className="text-cyan-400 text-sm font-semibold">NEU: Professionelles Chat-Icon</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-400/10 border border-emerald-400/30 rounded-full">
+                  <Zap className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400 text-sm font-semibold">Automatische Ollama-Installation</span>
                 </div>
               </div>
 
@@ -267,11 +271,11 @@ export default function DownloadPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Lädt CoreMail Desktop v1.5.2 von GitHub Releases herunter</span>
+                  <span>Lädt CoreMail Desktop v1.5.3 von GitHub Releases herunter</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                  <span>Bietet <strong className="text-purple-400">optionale Ollama-Installation</strong> für lokale KI</span>
+                  <span>Installiert <strong className="text-purple-400">Ollama automatisch</strong> für lokale KI</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
@@ -330,7 +334,7 @@ export default function DownloadPage() {
                 <Cpu className="w-4 h-4" />
                 Linux 64-bit
               </span>
-              <span className="text-purple-400 font-bold">v1.5.2</span>
+              <span className="text-purple-400 font-bold">v1.5.3</span>
             </div>
 
             {/* Info Box */}
