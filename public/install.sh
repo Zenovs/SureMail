@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# CoreMail Desktop - One-Liner Installation Script
+# CoreMail Desktop - One-Liner Installation Script v1.9.1
 # https://github.com/Zenovs/coremail
 #
 # Verwendung:
@@ -20,15 +20,17 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Konfiguration
-VERSION="1.8.0"
+VERSION="1.9.1"
 APP_NAME="CoreMail Desktop"
 BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
 APPLICATIONS_DIR="$HOME/.local/share/applications"
 ICONS_DIR="$HOME/.local/share/icons"
+PIXMAPS_DIR="$HOME/.local/share/pixmaps"
+HICOLOR_ICONS_DIR="$HOME/.local/share/icons/hicolor"
 EXTRACTED_DIR="$HOME/.local/share/coremail"
 DOWNLOAD_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
-ICON_URL="https://img.freepik.com/premium-vector/customer-service-representative-icon-with-phone-email-documents-other-communication-icons_150234-85805.jpg"
+ICON_URL="https://suremail.vercel.app/coremail-icon.png"
 LOG_FILE="/tmp/coremail-install.log"
 
 # Installationsmodus: appimage oder extracted
@@ -268,6 +270,13 @@ create_directories() {
     mkdir -p "$INSTALL_DIR"
     mkdir -p "$APPLICATIONS_DIR"
     mkdir -p "$ICONS_DIR"
+    mkdir -p "$PIXMAPS_DIR"
+    mkdir -p "$HICOLOR_ICONS_DIR/512x512/apps"
+    mkdir -p "$HICOLOR_ICONS_DIR/256x256/apps"
+    mkdir -p "$HICOLOR_ICONS_DIR/128x128/apps"
+    mkdir -p "$HICOLOR_ICONS_DIR/64x64/apps"
+    mkdir -p "$HICOLOR_ICONS_DIR/48x48/apps"
+    mkdir -p "$HICOLOR_ICONS_DIR/32x32/apps"
     
     if [ "$INSTALL_MODE" = "extracted" ]; then
         mkdir -p "$EXTRACTED_DIR"
@@ -345,9 +354,9 @@ create_wrapper_script() {
 EXTRACTED_APP="$HOME/.local/share/coremail/coremail-app"
 
 if [ -f "$EXTRACTED_APP/AppRun" ]; then
-    exec "$EXTRACTED_APP/AppRun" "$@"
+    exec "$EXTRACTED_APP/AppRun" --no-sandbox "$@"
 elif [ -f "$EXTRACTED_APP/coremail-desktop" ]; then
-    exec "$EXTRACTED_APP/coremail-desktop" "$@"
+    exec "$EXTRACTED_APP/coremail-desktop" --no-sandbox "$@"
 else
     echo "Fehler: CoreMail Desktop nicht gefunden!"
     echo "Erwartet in: $EXTRACTED_APP"
@@ -366,36 +375,88 @@ make_executable() {
     fi
 }
 
-# Lade Icon herunter (optional, fehler ignorieren)
+# Lade Icon herunter und installiere in alle Verzeichnisse
 download_icon() {
     print_step "Lade Icon herunter..."
-    $DOWNLOAD_CMD "${ICONS_DIR}/coremail.png" "$ICON_URL" 2>/dev/null || {
+    
+    local temp_icon="/tmp/coremail-icon.png"
+    
+    if [ "$DOWNLOADER" = "curl" ]; then
+        curl -fsSL -o "$temp_icon" "$ICON_URL" 2>/dev/null
+    else
+        wget -q -O "$temp_icon" "$ICON_URL" 2>/dev/null
+    fi
+    
+    if [ $? -ne 0 ] || [ ! -f "$temp_icon" ]; then
         print_warning "Icon konnte nicht heruntergeladen werden (optional)"
         return 0
-    }
+    fi
+    
+    print_step "Installiere Icon in System-Verzeichnisse..."
+    
+    # Kopiere Icon in alle relevanten Verzeichnisse
+    cp "$temp_icon" "${ICONS_DIR}/coremail.png"
+    cp "$temp_icon" "${PIXMAPS_DIR}/coremail.png"
+    cp "$temp_icon" "${HICOLOR_ICONS_DIR}/512x512/apps/coremail.png"
+    
+    # Erstelle skalierte Versionen falls ImageMagick verfügbar
+    if command -v convert &> /dev/null; then
+        print_step "Erstelle skalierte Icon-Versionen..."
+        convert "$temp_icon" -resize 256x256 "${HICOLOR_ICONS_DIR}/256x256/apps/coremail.png" 2>/dev/null || true
+        convert "$temp_icon" -resize 128x128 "${HICOLOR_ICONS_DIR}/128x128/apps/coremail.png" 2>/dev/null || true
+        convert "$temp_icon" -resize 64x64 "${HICOLOR_ICONS_DIR}/64x64/apps/coremail.png" 2>/dev/null || true
+        convert "$temp_icon" -resize 48x48 "${HICOLOR_ICONS_DIR}/48x48/apps/coremail.png" 2>/dev/null || true
+        convert "$temp_icon" -resize 32x32 "${HICOLOR_ICONS_DIR}/32x32/apps/coremail.png" 2>/dev/null || true
+    else
+        # Kopiere das 512x512 Icon auch in kleinere Verzeichnisse
+        cp "$temp_icon" "${HICOLOR_ICONS_DIR}/256x256/apps/coremail.png"
+        cp "$temp_icon" "${HICOLOR_ICONS_DIR}/128x128/apps/coremail.png"
+        cp "$temp_icon" "${HICOLOR_ICONS_DIR}/64x64/apps/coremail.png"
+        cp "$temp_icon" "${HICOLOR_ICONS_DIR}/48x48/apps/coremail.png"
+        cp "$temp_icon" "${HICOLOR_ICONS_DIR}/32x32/apps/coremail.png"
+    fi
+    
+    # Lösche temporäres Icon
+    rm -f "$temp_icon"
+    
+    # Aktualisiere Icon-Cache
+    if command -v gtk-update-icon-cache &> /dev/null; then
+        print_step "Aktualisiere Icon-Cache..."
+        gtk-update-icon-cache -f -t "$HICOLOR_ICONS_DIR" 2>/dev/null || true
+    fi
+    
+    if command -v update-icon-caches &> /dev/null; then
+        update-icon-caches "$HICOLOR_ICONS_DIR" 2>/dev/null || true
+    fi
+    
+    print_success "Icon wurde installiert"
 }
 
-# Erstelle Desktop-Entry
+# Erstelle Desktop-Entry mit --no-sandbox
 create_desktop_entry() {
     print_step "Erstelle Desktop-Eintrag..."
     
     cat > "${APPLICATIONS_DIR}/coremail.desktop" << EOF
 [Desktop Entry]
 Name=CoreMail Desktop
-Comment=E-Mail Marketing Tool mit Darknet Design
-Exec=${INSTALL_DIR}/${BINARY_NAME}
-Icon=${ICONS_DIR}/coremail.png
+Comment=Multi-Account E-Mail-Client mit lokaler KI-Integration
+Exec=${INSTALL_DIR}/${BINARY_NAME} --no-sandbox %U
+Icon=coremail
 Terminal=false
 Type=Application
 Categories=Network;Email;Office;
-StartupWMClass=CoreMail Desktop
+StartupWMClass=coremail-desktop
 Keywords=email;mail;marketing;newsletter;
+MimeType=x-scheme-handler/mailto;
+StartupNotify=true
 EOF
 
-    # Aktualisiere Desktop-Datenbank (optional)
+    # Aktualisiere Desktop-Datenbank
     if command -v update-desktop-database &> /dev/null; then
         update-desktop-database "$APPLICATIONS_DIR" 2>/dev/null || true
     fi
+    
+    print_success "Desktop-Eintrag erstellt"
 }
 
 # Füge zu PATH hinzu (falls nicht vorhanden)
@@ -413,20 +474,18 @@ setup_path() {
 show_ollama_info() {
     echo ""
     echo -e "${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}║  ${CYAN}🚀 v1.6.0: In-App Ollama-Installation!${NC}                    ${BOLD}║${NC}"
+    echo -e "${BOLD}║  ${CYAN}🚀 v1.9.1: Icon- und Desktop-Integration Fixes!${NC}          ${BOLD}║${NC}"
     echo -e "${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  CoreMail Desktop v1.6.0 enthält ${BOLD}revolutionäre Updates${NC}:"
-    echo -e "    • ${GREEN}NEU:${NC} In-App Ollama-Installation (beim ersten Start!)"
-    echo -e "    • ${GREEN}NEU:${NC} Alle 6 Themes funktionieren perfekt (Theme-Fixes)"
-    echo -e "    • KI-Chatbot Widget"
-    echo -e "    • E-Mails zusammenfassen"
-    echo -e "    • Antwort-Vorschläge generieren"
-    echo -e "    • Texte verbessern"
+    echo -e "  CoreMail Desktop v1.9.1 enthält ${BOLD}wichtige Fixes${NC}:"
+    echo -e "    • ${GREEN}FIX:${NC} Icon wird korrekt im App-Menü angezeigt"
+    echo -e "    • ${GREEN}FIX:${NC} Desktop-Integration (--no-sandbox)"
+    echo -e "    • ${GREEN}FIX:${NC} Icon in allen Größen installiert"
+    echo -e "    • In-App Ollama-Installation"
+    echo -e "    • KI-Chatbot mit Multi-Mailbox-Suche"
     echo ""
     echo -e "  ${GREEN}✓ 100% lokal - Keine Cloud, keine Datenübertragung!${NC}"
     echo -e "  ${GREEN}✓ Deine E-Mails bleiben privat auf deinem Rechner.${NC}"
-    echo -e "  ${GREEN}✓ Keine externen Scripts mehr nötig!${NC}"
     echo ""
     echo -e "  📋 ${YELLOW}Installation-Log: ${LOG_FILE}${NC}"
     echo ""
@@ -509,7 +568,7 @@ install_ollama() {
 print_success_message() {
     echo ""
     echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}  ✓ CoreMail Desktop wurde erfolgreich installiert!${NC}"
+    echo -e "${GREEN}  ✓ CoreMail Desktop v${VERSION} wurde erfolgreich installiert!${NC}"
     echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
     echo ""
     
