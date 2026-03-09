@@ -3,14 +3,31 @@ import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertC
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { getCurrentFont } from './FontSettings';
+
+// v1.11.1: Google Fonts list for email content styling
+const GOOGLE_FONTS = {
+  'inter': 'Inter',
+  'roboto': 'Roboto',
+  'opensans': 'Open Sans',
+  'lato': 'Lato',
+  'montserrat': 'Montserrat',
+  'poppins': 'Poppins',
+  'sourcesans': 'Source Sans 3',
+  'raleway': 'Raleway',
+  'ubuntu': 'Ubuntu',
+  'nunito': 'Nunito',
+  'firacode': 'Fira Code',
+  'jetbrains': 'JetBrains Mono'
+};
 
 // Folder column width constants (v1.8.1)
 const FOLDER_MIN_WIDTH = 150;
 const FOLDER_MAX_WIDTH = 350;
 const FOLDER_DEFAULT_WIDTH = 192;
 
-// v1.11.0: Preview column width constants
-const PREVIEW_MIN_WIDTH = 300;
+// v1.11.1: Preview column width constants (reduced min from 300 to 200)
+const PREVIEW_MIN_WIDTH = 200;
 const PREVIEW_MAX_WIDTH = 800;
 const PREVIEW_DEFAULT_WIDTH = 450;
 
@@ -190,7 +207,7 @@ const getFolderIcon = (type) => {
 
 function InboxSplitView({ onFullView }) {
   const { currentTheme } = useTheme();
-  const { activeAccountId, getActiveAccount } = useAccounts();
+  const { activeAccountId, getActiveAccount, updateAccountStats } = useAccounts();
   const [emails, setEmails] = useState([]);
   const [folders, setFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState('INBOX');
@@ -576,7 +593,54 @@ function InboxSplitView({ onFullView }) {
 
   const account = getActiveAccount();
 
-  // Flat folder list for display
+  // v1.11.1: Sort folders with INBOX first, then standard folders, then alphabetically
+  const sortedFolders = useMemo(() => {
+    // Priority order for standard folders
+    const folderPriority = {
+      'inbox': 1,
+      'sent': 2,
+      'drafts': 3,
+      'trash': 4,
+      'spam': 5,
+      'archive': 6
+    };
+    
+    const getSortPriority = (folder) => {
+      // Check folder type first
+      if (folder.type && folderPriority[folder.type]) {
+        return folderPriority[folder.type];
+      }
+      // Check folder name/path
+      const lowerName = (folder.name || folder.path || '').toLowerCase();
+      if (lowerName === 'inbox' || lowerName === 'posteingang') return 1;
+      if (lowerName.includes('sent') || lowerName.includes('gesendet')) return 2;
+      if (lowerName.includes('draft') || lowerName.includes('entwürfe') || lowerName.includes('entwurf')) return 3;
+      if (lowerName.includes('trash') || lowerName.includes('papierkorb') || lowerName.includes('gelöscht')) return 4;
+      if (lowerName.includes('spam') || lowerName.includes('junk')) return 5;
+      if (lowerName.includes('archiv') || lowerName.includes('archive')) return 6;
+      return 100; // Other folders
+    };
+    
+    const sortFolderList = (folderList) => {
+      return [...folderList].sort((a, b) => {
+        const priorityA = getSortPriority(a);
+        const priorityB = getSortPriority(b);
+        
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+        // Alphabetical for same priority
+        return (a.name || a.path || '').localeCompare(b.name || b.path || '', 'de');
+      }).map(folder => ({
+        ...folder,
+        children: folder.children?.length > 0 ? sortFolderList(folder.children) : folder.children
+      }));
+    };
+    
+    return sortFolderList(folders);
+  }, [folders]);
+
+  // Flat folder list for display (using sorted folders)
   const flatFolders = useMemo(() => {
     const flat = [];
     const flatten = (folderList, depth = 0) => {
@@ -587,14 +651,26 @@ function InboxSplitView({ onFullView }) {
         }
       });
     };
-    flatten(folders);
+    flatten(sortedFolders);
     return flat;
-  }, [folders]);
+  }, [sortedFolders]);
 
   // v1.11.0: Count unread emails
   const unreadCount = useMemo(() => {
     return emails.filter(e => !e.seen).length;
   }, [emails]);
+
+  // v1.11.1: Update account stats when emails are loaded (for sidebar unread badge)
+  useEffect(() => {
+    if (activeAccountId && currentFolder === 'INBOX' && emails.length > 0) {
+      const unread = emails.filter(e => !e.seen).length;
+      updateAccountStats(activeAccountId, {
+        unread,
+        total: emails.length,
+        lastUpdated: Date.now()
+      });
+    }
+  }, [activeAccountId, currentFolder, emails, updateAccountStats]);
 
   if (!activeAccountId) {
     return (
@@ -795,23 +871,31 @@ function InboxSplitView({ onFullView }) {
               </div>
             </div>
             <div className={`flex-1 overflow-auto p-6 ${c.bg}`}>
-              {selectedEmail.html ? (
-                <div
-                  className="email-content"
-                  dangerouslySetInnerHTML={{ __html: selectedEmail.html }}
-                  style={{ 
-                    backgroundColor: 'white', 
-                    color: 'black', 
-                    padding: '16px', 
-                    borderRadius: '8px',
-                    minHeight: '200px'
-                  }}
-                />
-              ) : (
-                <pre className={`${c.text} whitespace-pre-wrap font-sans`}>
-                  {selectedEmail.text}
-                </pre>
-              )}
+              {/* v1.11.1: Apply selected font to email content */}
+              {(() => {
+                const fontId = getCurrentFont();
+                const fontFamily = GOOGLE_FONTS[fontId] || 'Inter';
+                const fontStyle = `"${fontFamily}", system-ui, -apple-system, sans-serif`;
+                
+                return selectedEmail.html ? (
+                  <div
+                    className="email-content"
+                    dangerouslySetInnerHTML={{ __html: selectedEmail.html }}
+                    style={{ 
+                      backgroundColor: 'white', 
+                      color: 'black', 
+                      padding: '16px', 
+                      borderRadius: '8px',
+                      minHeight: '200px',
+                      fontFamily: fontStyle
+                    }}
+                  />
+                ) : (
+                  <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: fontStyle }}>
+                    {selectedEmail.text}
+                  </pre>
+                );
+              })()}
               {selectedEmail.attachments?.length > 0 && (
                 <div className={`mt-6 pt-4 ${c.border} border-t`}>
                   <h4 className={`font-medium ${c.text} mb-2`}>Anhänge ({selectedEmail.attachments.length})</h4>

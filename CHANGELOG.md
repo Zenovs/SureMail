@@ -2,6 +2,43 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.11.1] - 2026-03-09
+
+### 🆕 Verbesserungen
+
+#### ↔️ Vorschau-Spalte noch kleiner ziehen
+- **Min-Breite reduziert**: Von 300px auf 200px gesenkt
+- **Mehr Flexibilität**: Benutzer können die Vorschau-Spalte noch kompakter gestalten
+- **Konstante PREVIEW_MIN_WIDTH**: In `InboxSplitView.js` auf 200 gesetzt
+
+#### 🔤 Font auf E-Mail-Inhalt anwenden
+- **HTML-E-Mails**: Ausgewählte Google Font wird auf HTML-E-Mail-Inhalt angewendet
+- **Text-E-Mails**: Font wird auch auf reine Text-E-Mails angewendet
+- **getCurrentFont Import**: In `InboxSplitView.js` aus `FontSettings.js` importiert
+- **GOOGLE_FONTS Mapping**: Lokales Mapping für schnellen Font-Family-Lookup
+
+#### 📁 Inbox ganz oben in Ordner-Liste
+- **Sortierte Ordner-Liste**: INBOX wird immer als erstes angezeigt
+- **Standard-Ordner-Reihenfolge**: INBOX → Sent → Drafts → Trash → Spam → Archive
+- **Alphabetische Sortierung**: Alle anderen Ordner werden alphabetisch sortiert
+- **Deutsche Ordnernamen**: Erkennt auch "Posteingang", "Gesendet", "Entwürfe", "Papierkorb"
+- **Neue `sortedFolders` useMemo**: Sortiert Ordner vor dem Flatten
+
+#### 📊 Ungelesene Anzahl in Konto-Liste (Sidebar)
+- **Badge in Sidebar**: Blaues Badge mit Anzahl ungelesener E-Mails pro Konto
+- **accountStats Integration**: Nutzt `accountStats` aus `AccountContext`
+- **Automatische Aktualisierung**: Stats werden beim Laden von E-Mails aktualisiert
+- **Overflow-Handling**: "99+" wird angezeigt, wenn mehr als 99 ungelesene E-Mails
+
+### 📝 Geänderte Dateien
+- `InboxSplitView.js`: Min-Breite 200px, Font auf Content, Ordner-Sortierung, Stats-Update
+- `SidebarV2.js`: Ungelesene Anzahl Badge pro Account
+- `package.json`: Version 1.11.1
+- `README.md`: Neue Features dokumentiert
+- `CHANGELOG.md`: Diese Änderungen
+
+---
+
 ## [1.11.0] - 2026-03-09
 
 ### 🆕 Neue Features

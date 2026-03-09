@@ -6,7 +6,7 @@ import { getCategoryIcon } from '../pages/CategorySettings';
 
 function SidebarV2({ currentView, onNavigate }) {
   const { currentTheme } = useTheme();
-  const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId } = useAccounts();
+  const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId, accountStats } = useAccounts();
   const { settings, updateWidth, isResizing, setIsResizing } = useSidebar();
   const [expandedCategories, setExpandedCategories] = useState(['work', 'personal', 'other']);
   const [appVersion, setAppVersion] = useState('...');
@@ -158,22 +158,33 @@ function SidebarV2({ currentView, onNavigate }) {
                 
                 {isExpanded && accounts.length > 0 && (
                   <div className="ml-5 mt-1 space-y-0.5">
-                    {accounts.map(account => (
-                      <button
-                        key={account.id}
-                        onClick={() => {
-                          setActiveAccountId(account.id);
-                          onNavigate('inbox');
-                        }}
-                        className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors truncate ${
-                          activeAccountId === account.id
-                            ? `${c.bgTertiary} ${c.accent}`
-                            : `${c.textSecondary} ${c.hover}`
-                        }`}
-                      >
-                        {account.name}
-                      </button>
-                    ))}
+                    {accounts.map(account => {
+                      // v1.11.1: Get unread count for this account
+                      const stats = accountStats[account.id];
+                      const unreadCount = stats?.unread || 0;
+                      
+                      return (
+                        <button
+                          key={account.id}
+                          onClick={() => {
+                            setActiveAccountId(account.id);
+                            onNavigate('inbox');
+                          }}
+                          className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                            activeAccountId === account.id
+                              ? `${c.bgTertiary} ${c.accent}`
+                              : `${c.textSecondary} ${c.hover}`
+                          }`}
+                        >
+                          <span className="truncate">{account.name}</span>
+                          {unreadCount > 0 && (
+                            <span className="ml-2 px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium min-w-[18px] text-center flex-shrink-0">
+                              {unreadCount > 99 ? '99+' : unreadCount}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>

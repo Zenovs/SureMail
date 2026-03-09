@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.11.0",
-  "description": "CoreMail Desktop Client v1.11.0 - Multi-Account E-Mail-Client für Linux mit lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und verbesserter UI",
+  "version": "1.11.1",
+  "description": "CoreMail Desktop Client v1.11.1 - Multi-Account E-Mail-Client für Linux mit lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und verbesserter UI",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -1,8 +1,33 @@
-# 📧 CoreMail Desktop v1.11.0
+# 📧 CoreMail Desktop v1.11.1
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
-## 🆕 Neu in v1.11.0
+## 🆕 Neu in v1.11.1
+
+### ↔️ Vorschau-Spalte noch kleiner ziehen
+- **Min-Breite reduziert**: Von 300px auf 200px gesenkt
+- **Mehr Platz**: Mehr Flexibilität bei der E-Mail-Vorschau
+- **Gleiches Handling**: Smooth Resizing bleibt erhalten
+
+### 🔤 Font auf E-Mail-Inhalt
+- **Konsistente Schrift**: Ausgewählte Schriftart wird auf E-Mail-Inhalt angewendet
+- **HTML-Mails**: Font-Family wird auf HTML-E-Mails angewendet
+- **Text-Mails**: Font-Family auch auf reine Text-E-Mails
+
+### 📁 Inbox ganz oben in Ordner-Liste
+- **Sortierte Ordner**: INBOX, Gesendet, Entwürfe, Papierkorb, Spam zuerst
+- **Dann alphabetisch**: Alle anderen Ordner alphabetisch sortiert
+- **Automatische Erkennung**: Deutsche und englische Ordnernamen
+
+### 📊 Ungelesene Anzahl in Konto-Liste
+- **Badge in Sidebar**: Blaues Badge mit Anzahl ungelesener Mails
+- **Pro Konto**: Ungelesene Anzahl wird pro E-Mail-Konto angezeigt
+- **Automatisch aktualisiert**: Badge wird beim Laden von E-Mails aktualisiert
+- **Overflow-Handling**: Bei mehr als 99 wird "99+" angezeigt
+
+---
+
+## 📦 Version v1.11.0
 
 ### 🏷️ Kategorien anpassen
 - **Name bearbeiten**: Jede Kategorie kann umbenannt werden
