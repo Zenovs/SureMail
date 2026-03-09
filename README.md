@@ -1,23 +1,18 @@
-# 📧 CoreMail Desktop v1.9.0
+# 📧 CoreMail Desktop v1.9.1
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration und professionellem UI/UX.
 
-## 🆕 Neu in v1.9.0
+## 🆕 Neu in v1.9.1
 
+### 🐛 Bugfixes
+- **🖼️ Icon-Fix**: Icon wird jetzt korrekt im App-Menü angezeigt
+- **🖥️ Desktop-Integration**: --no-sandbox Flag für SUID Sandbox-Kompatibilität
+- **📦 Installer**: Icon wird in alle Standard-Verzeichnisse installiert
+
+### Vorherige Version (v1.9.0)
 - **🎨 Modernes UI/UX-Design**: Komplett überarbeitete Benutzeroberfläche
-  - Moderne Buttons mit Hover-Effekten und Transitions
-  - Verbesserte Karten-Designs mit Schatten und Borders
-  - Elegante Input-Felder mit Focus-Animationen
-  - Smooth Transitions in der gesamten App
-- **✨ Professionelle Animationen**:
-  - Fade-In-Effekte für E-Mails
-  - Slide-In für Sidebar
-  - Loading-Animationen mit verschiedenen Varianten
-  - Staggered Animations für Listen
-- **📐 Optimiertes Layout**:
-  - Verbesserte Typografie mit besseren Font-Größen
-  - Optimiertes Spacing (Padding, Margins)
-  - Responsive Design-Verbesserungen
+- **✨ Professionelle Animationen**: Fade-In, Slide-In, Loading-Animationen
+- **📐 Optimiertes Layout**: Verbesserte Typografie und Spacing
   - Moderne Scrollbars
 - **🖼️ Professionelles App-Icon**:
   - Neues SVG-basiertes Icon-Design

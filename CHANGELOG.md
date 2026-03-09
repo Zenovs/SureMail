@@ -2,6 +2,29 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.9.1] - 2026-03-09
+
+### 🐛 Bugfixes
+
+#### 🖼️ Icon-Installation Fix
+- **Icon-URL korrigiert**: Icon wird jetzt von suremail.vercel.app geladen
+- **Hicolor-Icons**: Icon wird in alle Standardgrößen installiert (512x512 bis 32x32)
+- **Pixmaps-Verzeichnis**: Icon wird auch in ~/.local/share/pixmaps/ installiert
+- **Icon-Cache**: Automatische Aktualisierung des GTK-Icon-Cache
+
+#### 🖥️ Desktop-Integration Fix
+- **--no-sandbox Flag**: Desktop-Entry verwendet jetzt --no-sandbox für Kompatibilität
+- **StartupWMClass**: Korrigiert für bessere Fenster-Zuordnung
+- **Mailto-Handler**: MIME-Type für E-Mail-Links registriert
+- **StartupNotify**: Aktiviert für besseres Feedback beim Start
+
+#### 📦 Installer-Verbesserungen
+- **Wrapper-Script**: Enthält jetzt --no-sandbox für extrahierte Installation
+- **Verzeichnisstruktur**: Alle Icon-Verzeichnisse werden korrekt erstellt
+- **ImageMagick-Integration**: Skalierte Icons werden erstellt falls verfügbar
+
+---
+
 ## [1.9.0] - 2026-03-08
 
 ### ✨ Neue Features
