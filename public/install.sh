@@ -1,12 +1,12 @@
 #!/bin/bash
 #
-# CoreMail Desktop - One-Liner Installation Script v1.9.1
+# CoreMail Desktop - One-Liner Installation Script v1.11.2
 # https://github.com/Zenovs/coremail
 #
 # Verwendung:
-#   curl -sSL https://suremail.vercel.app/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 #   oder
-#   wget -qO- https://suremail.vercel.app/install.sh | bash
+#   wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 #
 
 set -e
@@ -20,7 +20,7 @@ BOLD='\033[1m'
 NC='\033[0m' # No Color
 
 # Konfiguration
-VERSION="1.9.1"
+VERSION="1.11.2"
 APP_NAME="CoreMail Desktop"
 BINARY_NAME="coremail-desktop"
 INSTALL_DIR="$HOME/.local/bin"
@@ -30,7 +30,7 @@ PIXMAPS_DIR="$HOME/.local/share/pixmaps"
 HICOLOR_ICONS_DIR="$HOME/.local/share/icons/hicolor"
 EXTRACTED_DIR="$HOME/.local/share/coremail"
 DOWNLOAD_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
-ICON_URL="https://suremail.vercel.app/coremail-icon.png"
+ICON_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/coremail-icon.png"
 LOG_FILE="/tmp/coremail-install.log"
 
 # Installationsmodus: appimage oder extracted
@@ -474,15 +474,15 @@ setup_path() {
 show_ollama_info() {
     echo ""
     echo -e "${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}║  ${CYAN}🚀 v1.9.1: Icon- und Desktop-Integration Fixes!${NC}          ${BOLD}║${NC}"
+    echo -e "${BOLD}║  ${CYAN}🚀 v1.11.2: GitHub-Hosting, keine Vercel-Abhängigkeit!${NC}  ${BOLD}║${NC}"
     echo -e "${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "  CoreMail Desktop v1.9.1 enthält ${BOLD}wichtige Fixes${NC}:"
-    echo -e "    • ${GREEN}FIX:${NC} Icon wird korrekt im App-Menü angezeigt"
-    echo -e "    • ${GREEN}FIX:${NC} Desktop-Integration (--no-sandbox)"
-    echo -e "    • ${GREEN}FIX:${NC} Icon in allen Größen installiert"
-    echo -e "    • In-App Ollama-Installation"
-    echo -e "    • KI-Chatbot mit Multi-Mailbox-Suche"
+    echo -e "  CoreMail Desktop v1.11.2 Änderungen:"
+    echo -e "    • ${GREEN}NEU:${NC} Alle Assets auf GitHub gehostet"
+    echo -e "    • ${GREEN}NEU:${NC} Keine Vercel-Abhängigkeit mehr"
+    echo -e "    • ${GREEN}FIX:${NC} Zuverlässigere Installation"
+    echo -e "    • Multi-Account E-Mail-Client"
+    echo -e "    • Lokale KI-Integration mit Ollama"
     echo ""
     echo -e "  ${GREEN}✓ 100% lokal - Keine Cloud, keine Datenübertragung!${NC}"
     echo -e "  ${GREEN}✓ Deine E-Mails bleiben privat auf deinem Rechner.${NC}"
@@ -600,7 +600,7 @@ print_success_message() {
     echo -e "    ${CYAN}${LOG_FILE}${NC}"
     echo ""
     echo "  Deinstallieren:"
-    echo -e "    ${CYAN}curl -sSL https://suremail.vercel.app/uninstall.sh | bash${NC}"
+    echo -e "    ${CYAN}curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/uninstall.sh | bash${NC}"
     echo ""
 }
 

@@ -4,7 +4,7 @@
 # https://github.com/Zenovs/coremail
 #
 # Verwendung:
-#   curl -sSL https://suremail.vercel.app/uninstall.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/uninstall.sh | bash
 #
 
 set -e
@@ -109,7 +109,7 @@ print_success_message() {
     echo -e "${GREEN}════════════════════════════════════════════════════════${NC}"
     echo ""
     echo "  Neu installieren:"
-    echo -e "    ${CYAN}curl -sSL https://suremail.vercel.app/install.sh | bash${NC}"
+    echo -e "    ${CYAN}curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash${NC}"
     echo ""
 }
 
