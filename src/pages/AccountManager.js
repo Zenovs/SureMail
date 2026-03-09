@@ -94,27 +94,28 @@ function AccountManager() {
   const [selectedPreset, setSelectedPreset] = useState('custom');
   const c = currentTheme.colors;
   
-  // v1.10.1: OAuth2 state with improved detection
-  const [oauth2Status, setOauth2Status] = useState({ loading: false, error: null, success: false });
-  const [useOAuth2, setUseOAuth2] = useState(false);
-  const [oauth2Tokens, setOauth2Tokens] = useState(null);
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
-
-  // v1.10.1: Computed property to check if OAuth2 should be shown
-  const currentPreset = useMemo(() => {
-    return SERVER_PRESETS.find(p => p.id === selectedPreset);
-  }, [selectedPreset]);
-  
-  const showOAuth2Panel = useMemo(() => {
-    return currentPreset?.supportsOAuth2 || (editingAccount && accountForm?.oauth2);
-  }, [currentPreset, editingAccount, accountForm?.oauth2]);
-
+  // v1.10.2: Fixed hook ordering - accountForm must be defined before useMemo that references it
   const [accountForm, setAccountForm] = useState({
     name: '',
     categoryId: 'work',
     imap: { host: '', port: '993', username: '', password: '', tls: true },
     smtp: { host: '', port: '465', username: '', password: '', secure: true, fromEmail: '' }
   });
+
+  // v1.10.1: OAuth2 state with improved detection
+  const [oauth2Status, setOauth2Status] = useState({ loading: false, error: null, success: false });
+  const [useOAuth2, setUseOAuth2] = useState(false);
+  const [oauth2Tokens, setOauth2Tokens] = useState(null);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
+  // v1.10.2: Computed property to check if OAuth2 should be shown (fixed dependency)
+  const currentPreset = useMemo(() => {
+    return SERVER_PRESETS.find(p => p.id === selectedPreset);
+  }, [selectedPreset]);
+  
+  const showOAuth2Panel = useMemo(() => {
+    return currentPreset?.supportsOAuth2 || (editingAccount && accountForm?.oauth2);
+  }, [currentPreset, editingAccount, accountForm]);
 
   const [categoryForm, setCategoryForm] = useState({ name: '', color: '#3b82f6' });
 

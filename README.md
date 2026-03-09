@@ -1,8 +1,15 @@
-# 📧 CoreMail Desktop v1.10.1
+# 📧 CoreMail Desktop v1.10.2
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, OAuth2-Support und professionellem UI/UX.
 
-## 🆕 Neu in v1.10.1
+## 🆕 Neu in v1.10.2
+
+### 🐛 Kritischer Bugfix: Konten-Fenster funktioniert wieder
+- **Fix**: Das Konten-Fenster war schwarz/leer wenn man auf "Konten" klickte
+- **Ursache**: React Hook Reihenfolge-Fehler in AccountManager.js
+- **Lösung**: Hook-Definitionen in korrekte Reihenfolge gebracht
+
+## 📦 Version v1.10.1
 
 ### 🐛 Bugfix: OAuth2-Button wird jetzt korrekt angezeigt
 - **Fix**: Der "Mit Microsoft anmelden" Button wird nun korrekt angezeigt, wenn "Microsoft 365 / Exchange" oder "Outlook.com" ausgewählt wird

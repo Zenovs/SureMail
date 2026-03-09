@@ -2,6 +2,24 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.10.2] - 2026-03-09
+
+### 🐛 Kritischer Bugfix: Schwarzes Konten-Fenster
+
+#### 🔧 Behobener Fehler
+- **Schwarzes Konten-Fenster**: Das Konten-Fenster war komplett schwarz wenn der Benutzer auf "Konten" klickte
+  - **Ursache**: React Hook Reihenfolge-Verletzung in `AccountManager.js` - `useMemo` referenzierte `accountForm` bevor es definiert wurde (Zeile 109 referenzierte Zeile 112)
+  - **Lösung**: `accountForm` useState Hook vor die `useMemo` Hooks verschoben, die davon abhängen
+  - **Betroffen**: Zeile 97-118 in `AccountManager.js`
+
+#### 📝 Technische Details
+- React Hooks müssen in konsistenter Reihenfolge aufgerufen werden
+- `showOAuth2Panel` useMemo hatte Abhängigkeit auf `accountForm?.oauth2`
+- `accountForm` wurde erst nach dem useMemo definiert → JavaScript undefined error
+- Fix: Hook-Definition-Reihenfolge korrigiert
+
+---
+
 ## [1.10.1] - 2026-03-09
 
 ### 🐛 Bugfix: OAuth2-Button Anzeige
