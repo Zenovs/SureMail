@@ -4,11 +4,38 @@ const fs = require('fs');
 const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
+const url = require('url');
 const { execSync, spawn } = require('child_process');
 const Store = require('electron-store');
 const imapSimple = require('imap-simple');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
+
+// ============ OAUTH2 CONFIGURATION (v1.10.0) ============
+// Microsoft OAuth2 settings for IMAP/SMTP access
+const OAUTH2_CONFIG = {
+  microsoft: {
+    // Public client ID for desktop apps (common)
+    clientId: '08162f7c-0fd2-4200-a84a-f25a4db0b584', // Microsoft public client
+    authEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
+    tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    scopes: [
+      'https://outlook.office365.com/IMAP.AccessAsUser.All',
+      'https://outlook.office365.com/SMTP.Send',
+      'offline_access',
+      'openid',
+      'email',
+      'profile'
+    ],
+    redirectPort: 8847, // Port for OAuth callback
+    redirectUri: 'http://localhost:8847/oauth/callback'
+  }
+};
+
+// Track active OAuth servers
+let oauthServer = null;
+let oauthState = null;
+let oauthCodeVerifier = null;
 
 // ============ GPU/OPENGL FIX (v1.5.2) ============
 // Completely disable GPU/OpenGL to prevent "GetVSyncParametersIfAvailable() failed" errors
@@ -150,6 +177,399 @@ function getIconPath() {
     return path.join(process.resourcesPath, 'icon.png');
   }
   return path.join(__dirname, 'assets/icon.png');
+}
+
+// ============ OAUTH2 FUNCTIONS (v1.10.0) ============
+
+// Generate PKCE code verifier and challenge
+function generatePKCE() {
+  const verifier = crypto.randomBytes(32).toString('base64url');
+  const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+  return { verifier, challenge };
+}
+
+// Generate state for CSRF protection
+function generateState() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+// Start OAuth2 flow for Microsoft
+async function startMicrosoftOAuth() {
+  return new Promise((resolve, reject) => {
+    const config = OAUTH2_CONFIG.microsoft;
+    
+    // Generate PKCE and state
+    const pkce = generatePKCE();
+    oauthCodeVerifier = pkce.verifier;
+    oauthState = generateState();
+    
+    // Build authorization URL
+    const authParams = new URLSearchParams({
+      client_id: config.clientId,
+      response_type: 'code',
+      redirect_uri: config.redirectUri,
+      scope: config.scopes.join(' '),
+      state: oauthState,
+      code_challenge: pkce.challenge,
+      code_challenge_method: 'S256',
+      response_mode: 'query',
+      prompt: 'select_account'
+    });
+    
+    const authUrl = `${config.authEndpoint}?${authParams.toString()}`;
+    
+    // Create HTTP server for callback
+    if (oauthServer) {
+      try {
+        oauthServer.close();
+      } catch (e) {}
+    }
+    
+    oauthServer = http.createServer(async (req, res) => {
+      const parsedUrl = url.parse(req.url, true);
+      
+      if (parsedUrl.pathname === '/oauth/callback') {
+        const { code, state, error, error_description } = parsedUrl.query;
+        
+        // Send response to browser
+        const responseHtml = error 
+          ? `<html><head><style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a1a;color:#f00}</style></head><body><div style="text-align:center"><h1>❌ Fehler</h1><p>${error_description || error}</p><p>Sie können dieses Fenster schließen.</p></div></body></html>`
+          : `<html><head><style>body{font-family:system-ui;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a1a;color:#0f0}</style></head><body><div style="text-align:center"><h1>✅ Anmeldung erfolgreich!</h1><p>Sie können dieses Fenster jetzt schließen.</p></div></body></html>`;
+        
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(responseHtml);
+        
+        // Close server
+        setTimeout(() => {
+          if (oauthServer) {
+            oauthServer.close();
+            oauthServer = null;
+          }
+        }, 1000);
+        
+        if (error) {
+          reject(new Error(error_description || error));
+          return;
+        }
+        
+        // Verify state
+        if (state !== oauthState) {
+          reject(new Error('Ungültiger State-Parameter (CSRF-Schutz)'));
+          return;
+        }
+        
+        try {
+          // Exchange code for tokens
+          const tokens = await exchangeCodeForTokens(code, 'microsoft');
+          resolve(tokens);
+        } catch (err) {
+          reject(err);
+        }
+      } else {
+        res.writeHead(404);
+        res.end('Not Found');
+      }
+    });
+    
+    oauthServer.listen(config.redirectPort, '127.0.0.1', () => {
+      console.log(`[OAuth2] Callback server started on port ${config.redirectPort}`);
+      // Open browser for authentication
+      shell.openExternal(authUrl);
+    });
+    
+    oauthServer.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        reject(new Error(`Port ${config.redirectPort} ist bereits in Verwendung. Bitte schließen Sie andere OAuth-Fenster und versuchen Sie es erneut.`));
+      } else {
+        reject(err);
+      }
+    });
+    
+    // Timeout after 5 minutes
+    setTimeout(() => {
+      if (oauthServer) {
+        oauthServer.close();
+        oauthServer = null;
+        reject(new Error('OAuth2-Timeout: Anmeldung abgebrochen'));
+      }
+    }, 300000);
+  });
+}
+
+// Exchange authorization code for tokens
+async function exchangeCodeForTokens(code, provider) {
+  const config = OAUTH2_CONFIG[provider];
+  
+  const tokenParams = new URLSearchParams({
+    client_id: config.clientId,
+    grant_type: 'authorization_code',
+    code: code,
+    redirect_uri: config.redirectUri,
+    code_verifier: oauthCodeVerifier
+  });
+  
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'login.microsoftonline.com',
+      path: '/common/oauth2/v2.0/token',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(tokenParams.toString())
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const tokenData = JSON.parse(data);
+          
+          if (tokenData.error) {
+            reject(new Error(tokenData.error_description || tokenData.error));
+            return;
+          }
+          
+          // Parse ID token for user info (email)
+          let email = '';
+          if (tokenData.id_token) {
+            try {
+              const payload = JSON.parse(Buffer.from(tokenData.id_token.split('.')[1], 'base64').toString());
+              email = payload.preferred_username || payload.email || payload.upn || '';
+            } catch (e) {
+              console.log('[OAuth2] Could not parse id_token:', e.message);
+            }
+          }
+          
+          resolve({
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token,
+            expiresIn: tokenData.expires_in,
+            expiresAt: Date.now() + (tokenData.expires_in * 1000),
+            email: email,
+            provider: provider
+          });
+        } catch (e) {
+          reject(new Error('Fehler beim Parsen der Token-Antwort'));
+        }
+      });
+    });
+    
+    req.on('error', (err) => {
+      reject(new Error('Token-Anfrage fehlgeschlagen: ' + err.message));
+    });
+    
+    req.write(tokenParams.toString());
+    req.end();
+  });
+}
+
+// Refresh OAuth2 tokens
+async function refreshOAuthTokens(refreshToken, provider) {
+  const config = OAUTH2_CONFIG[provider];
+  
+  const tokenParams = new URLSearchParams({
+    client_id: config.clientId,
+    grant_type: 'refresh_token',
+    refresh_token: refreshToken,
+    scope: config.scopes.join(' ')
+  });
+  
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'login.microsoftonline.com',
+      path: '/common/oauth2/v2.0/token',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(tokenParams.toString())
+      }
+    };
+    
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const tokenData = JSON.parse(data);
+          
+          if (tokenData.error) {
+            reject(new Error(tokenData.error_description || tokenData.error));
+            return;
+          }
+          
+          resolve({
+            accessToken: tokenData.access_token,
+            refreshToken: tokenData.refresh_token || refreshToken, // Use new token or keep old
+            expiresIn: tokenData.expires_in,
+            expiresAt: Date.now() + (tokenData.expires_in * 1000),
+            provider: provider
+          });
+        } catch (e) {
+          reject(new Error('Fehler beim Parsen der Token-Antwort'));
+        }
+      });
+    });
+    
+    req.on('error', (err) => {
+      reject(new Error('Token-Refresh fehlgeschlagen: ' + err.message));
+    });
+    
+    req.write(tokenParams.toString());
+    req.end();
+  });
+}
+
+// Get valid access token (refresh if needed)
+async function getValidAccessToken(accountId) {
+  const account = getAccountById(accountId);
+  
+  if (!account || !account.oauth2) {
+    return null;
+  }
+  
+  const oauth = account.oauth2;
+  
+  // Check if token is still valid (with 5 min buffer)
+  if (oauth.expiresAt && Date.now() < (oauth.expiresAt - 300000)) {
+    return oauth.accessToken;
+  }
+  
+  // Need to refresh
+  if (!oauth.refreshToken) {
+    throw new Error('Kein Refresh-Token verfügbar. Bitte erneut anmelden.');
+  }
+  
+  console.log('[OAuth2] Refreshing access token for account:', accountId);
+  
+  try {
+    const newTokens = await refreshOAuthTokens(oauth.refreshToken, oauth.provider || 'microsoft');
+    
+    // Update account with new tokens
+    const accounts = store.get('accounts', []);
+    const accountIndex = accounts.findIndex(acc => acc.id === accountId);
+    
+    if (accountIndex !== -1) {
+      accounts[accountIndex].oauth2 = {
+        ...accounts[accountIndex].oauth2,
+        accessToken: newTokens.accessToken,
+        refreshToken: newTokens.refreshToken,
+        expiresAt: newTokens.expiresAt
+      };
+      store.set('accounts', accounts);
+    }
+    
+    return newTokens.accessToken;
+  } catch (err) {
+    console.error('[OAuth2] Token refresh failed:', err.message);
+    throw err;
+  }
+}
+
+// Create XOAUTH2 token string for IMAP/SMTP
+function createXOAuth2Token(email, accessToken) {
+  // Format: user=<email>\x01auth=Bearer <token>\x01\x01
+  const authString = `user=${email}\x01auth=Bearer ${accessToken}\x01\x01`;
+  return Buffer.from(authString).toString('base64');
+}
+
+// Get IMAP configuration for account (supports both password and OAuth2)
+async function getImapConfigForAccount(account) {
+  // Check if OAuth2 is configured and valid
+  if (account.oauth2 && account.oauth2.accessToken) {
+    try {
+      const accessToken = await getValidAccessToken(account.id);
+      const email = account.oauth2.email || account.imap.username;
+      const xoauth2Token = createXOAuth2Token(email, accessToken);
+      
+      return {
+        imap: {
+          user: email,
+          xoauth2: xoauth2Token,
+          host: account.imap.host || 'outlook.office365.com',
+          port: parseInt(account.imap.port) || 993,
+          tls: account.imap.tls !== false,
+          authTimeout: 15000
+        },
+        isOAuth2: true
+      };
+    } catch (err) {
+      console.error('[OAuth2] Failed to get config, falling back to password:', err.message);
+      // Fall back to password auth if OAuth2 fails
+    }
+  }
+  
+  // Standard password authentication
+  return {
+    imap: {
+      user: account.imap.username,
+      password: account.imap.password,
+      host: account.imap.host,
+      port: parseInt(account.imap.port),
+      tls: account.imap.tls !== false,
+      authTimeout: 15000
+    },
+    isOAuth2: false
+  };
+}
+
+// Get SMTP transporter for account (supports both password and OAuth2)
+async function getSmtpTransporterForAccount(account) {
+  // Check if OAuth2 is configured
+  if (account.oauth2 && account.oauth2.accessToken) {
+    try {
+      const accessToken = await getValidAccessToken(account.id);
+      const email = account.oauth2.email || account.smtp.fromEmail || account.imap.username;
+      
+      return {
+        transporter: nodemailer.createTransport({
+          host: account.smtp.host || 'smtp.office365.com',
+          port: parseInt(account.smtp.port) || 587,
+          secure: account.smtp.secure === true,
+          auth: {
+            type: 'OAuth2',
+            user: email,
+            accessToken: accessToken
+          },
+          tls: {
+            ciphers: 'SSLv3',
+            rejectUnauthorized: false
+          }
+        }),
+        fromEmail: email,
+        isOAuth2: true
+      };
+    } catch (err) {
+      console.error('[OAuth2] Failed to get SMTP config, falling back to password:', err.message);
+    }
+  }
+  
+  // Standard password authentication
+  const smtpConfig = {
+    host: account.smtp.host,
+    port: parseInt(account.smtp.port),
+    secure: account.smtp.secure === true,
+    auth: {
+      user: account.smtp.username,
+      pass: account.smtp.password
+    }
+  };
+  
+  // Add STARTTLS if port is 587 and not secure
+  if (parseInt(account.smtp.port) === 587 && !account.smtp.secure) {
+    smtpConfig.requireTLS = true;
+    smtpConfig.tls = {
+      ciphers: 'SSLv3',
+      rejectUnauthorized: false
+    };
+  }
+  
+  return {
+    transporter: nodemailer.createTransport(smtpConfig),
+    fromEmail: account.smtp.fromEmail || account.smtp.username,
+    isOAuth2: false
+  };
 }
 
 // ============ UPDATE FUNCTIONS ============
@@ -699,6 +1119,90 @@ ipcMain.handle('ollama:downloadModel', async (event, modelName) => {
   }
 });
 
+// === OAUTH2 (v1.10.0) ===
+ipcMain.handle('oauth2:startMicrosoft', async () => {
+  try {
+    console.log('[OAuth2] Starting Microsoft OAuth flow...');
+    const tokens = await startMicrosoftOAuth();
+    console.log('[OAuth2] Authentication successful for:', tokens.email);
+    return { 
+      success: true, 
+      tokens: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: tokens.expiresAt,
+        email: tokens.email,
+        provider: tokens.provider
+      }
+    };
+  } catch (error) {
+    console.error('[OAuth2] Error:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('oauth2:refreshToken', async (event, accountId) => {
+  try {
+    const accessToken = await getValidAccessToken(accountId);
+    return { success: true, accessToken };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('oauth2:testConnection', async (event, accountId) => {
+  try {
+    const account = getAccountById(accountId);
+    
+    if (!account || !account.oauth2) {
+      return { success: false, error: 'Kein OAuth2-Konto' };
+    }
+    
+    // Get valid token (refresh if needed)
+    const accessToken = await getValidAccessToken(accountId);
+    const email = account.oauth2.email || account.imap.username;
+    
+    // Test IMAP connection with XOAUTH2
+    const xoauth2Token = createXOAuth2Token(email, accessToken);
+    
+    const config = {
+      imap: {
+        user: email,
+        xoauth2: xoauth2Token,
+        host: 'outlook.office365.com',
+        port: 993,
+        tls: true,
+        authTimeout: 15000
+      }
+    };
+    
+    const connection = await imapSimple.connect(config);
+    await connection.end();
+    
+    return { success: true, message: 'OAuth2-Verbindung erfolgreich!' };
+  } catch (error) {
+    console.error('[OAuth2] Test connection failed:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('oauth2:revokeAccount', async (event, accountId) => {
+  try {
+    // Remove OAuth2 tokens from account
+    const accounts = store.get('accounts', []);
+    const accountIndex = accounts.findIndex(acc => acc.id === accountId);
+    
+    if (accountIndex !== -1 && accounts[accountIndex].oauth2) {
+      delete accounts[accountIndex].oauth2;
+      store.set('accounts', accounts);
+    }
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
 // === SIGNATURES ===
 ipcMain.handle('signatures:save', async (event, signatures) => {
   store.set('signatures', signatures);
@@ -829,7 +1333,7 @@ ipcMain.handle('imap:test', async (event, settings) => {
   }
 });
 
-// Fetch emails for specific account
+// Fetch emails for specific account (v1.10.0: OAuth2 support)
 ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = {}) => {
   const account = getAccountById(accountId);
   
@@ -840,16 +1344,8 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
   const { folder = 'INBOX', limit = 50 } = options;
 
   try {
-    const config = {
-      imap: {
-        user: account.imap.username,
-        password: account.imap.password,
-        host: account.imap.host,
-        port: parseInt(account.imap.port),
-        tls: account.imap.tls !== false,
-        authTimeout: 15000
-      }
-    };
+    // v1.10.0: Use OAuth2-aware config helper
+    const config = await getImapConfigForAccount(account);
 
     const connection = await imapSimple.connect(config);
     await connection.openBox(folder);
@@ -922,6 +1418,7 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
 });
 
 // Fetch single email for specific account
+// v1.10.0: OAuth2 support for single email fetch
 ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid) => {
   const account = getAccountById(accountId);
   
@@ -930,16 +1427,8 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid) => {
   }
 
   try {
-    const config = {
-      imap: {
-        user: account.imap.username,
-        password: account.imap.password,
-        host: account.imap.host,
-        port: parseInt(account.imap.port),
-        tls: account.imap.tls !== false,
-        authTimeout: 15000
-      }
-    };
+    // v1.10.0: Use OAuth2-aware config helper
+    const config = await getImapConfigForAccount(account);
 
     const connection = await imapSimple.connect(config);
     await connection.openBox('INBOX');
@@ -1159,6 +1648,7 @@ ipcMain.handle('smtp:send', async (event, emailData) => {
 });
 
 // Send email for specific account
+// v1.10.0: OAuth2 support for SMTP
 ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
   const account = getAccountById(accountId);
   
@@ -1180,18 +1670,11 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: account.smtp.host,
-      port: parseInt(account.smtp.port),
-      secure: account.smtp.secure !== false,
-      auth: {
-        user: account.smtp.username,
-        pass: account.smtp.password
-      }
-    });
+    // v1.10.0: Use OAuth2-aware SMTP transporter
+    const { transporter, fromEmail } = await getSmtpTransporterForAccount(account);
 
     const mailOptions = {
-      from: account.smtp.fromEmail || account.smtp.username,
+      from: fromEmail,
       to: emailData.to,
       subject: emailData.subject,
       text: finalText,
@@ -1229,6 +1712,7 @@ ipcMain.handle('smtp:test', async (event, settings) => {
 // ============ NEW v1.8.0 IMAP OPERATIONS ============
 
 // Delete email
+// v1.10.0: OAuth2 support for delete
 ipcMain.handle('imap:deleteEmail', async (event, accountId, uid, folder = 'INBOX') => {
   const account = getAccountById(accountId);
   
@@ -1237,16 +1721,7 @@ ipcMain.handle('imap:deleteEmail', async (event, accountId, uid, folder = 'INBOX
   }
 
   try {
-    const config = {
-      imap: {
-        user: account.imap.username,
-        password: account.imap.password,
-        host: account.imap.host,
-        port: parseInt(account.imap.port),
-        tls: account.imap.tls !== false,
-        authTimeout: 15000
-      }
-    };
+    const config = await getImapConfigForAccount(account);
 
     const connection = await imapSimple.connect(config);
     await connection.openBox(folder);
@@ -1264,6 +1739,7 @@ ipcMain.handle('imap:deleteEmail', async (event, accountId, uid, folder = 'INBOX
 });
 
 // Mark email as read/unread
+// v1.10.0: OAuth2 support
 ipcMain.handle('imap:markAsRead', async (event, accountId, uid, isRead = true, folder = 'INBOX') => {
   const account = getAccountById(accountId);
   
@@ -1272,16 +1748,7 @@ ipcMain.handle('imap:markAsRead', async (event, accountId, uid, isRead = true, f
   }
 
   try {
-    const config = {
-      imap: {
-        user: account.imap.username,
-        password: account.imap.password,
-        host: account.imap.host,
-        port: parseInt(account.imap.port),
-        tls: account.imap.tls !== false,
-        authTimeout: 15000
-      }
-    };
+    const config = await getImapConfigForAccount(account);
 
     const connection = await imapSimple.connect(config);
     await connection.openBox(folder);
@@ -1301,6 +1768,7 @@ ipcMain.handle('imap:markAsRead', async (event, accountId, uid, isRead = true, f
 });
 
 // Move email to folder
+// v1.10.0: OAuth2 support
 ipcMain.handle('imap:moveEmail', async (event, accountId, uid, sourceFolder, destFolder) => {
   const account = getAccountById(accountId);
   
@@ -1309,16 +1777,7 @@ ipcMain.handle('imap:moveEmail', async (event, accountId, uid, sourceFolder, des
   }
 
   try {
-    const config = {
-      imap: {
-        user: account.imap.username,
-        password: account.imap.password,
-        host: account.imap.host,
-        port: parseInt(account.imap.port),
-        tls: account.imap.tls !== false,
-        authTimeout: 15000
-      }
-    };
+    const config = await getImapConfigForAccount(account);
 
     const connection = await imapSimple.connect(config);
     await connection.openBox(sourceFolder);
@@ -1339,6 +1798,7 @@ ipcMain.handle('imap:moveEmail', async (event, accountId, uid, sourceFolder, des
 });
 
 // List folders for account
+// v1.10.0: OAuth2 support
 ipcMain.handle('imap:listFolders', async (event, accountId) => {
   const account = getAccountById(accountId);
   
@@ -1347,16 +1807,7 @@ ipcMain.handle('imap:listFolders', async (event, accountId) => {
   }
 
   try {
-    const config = {
-      imap: {
-        user: account.imap.username,
-        password: account.imap.password,
-        host: account.imap.host,
-        port: parseInt(account.imap.port),
-        tls: account.imap.tls !== false,
-        authTimeout: 15000
-      }
-    };
+    const config = await getImapConfigForAccount(account);
 
     const connection = await imapSimple.connect(config);
     const boxes = await connection.getBoxes();
@@ -1400,6 +1851,7 @@ ipcMain.handle('imap:listFolders', async (event, accountId) => {
 });
 
 // Fetch emails from specific folder
+// v1.10.0: OAuth2 support
 ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, options = {}) => {
   const account = getAccountById(accountId);
   
@@ -1410,16 +1862,7 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
   const { limit = 50, offset = 0 } = options;
 
   try {
-    const config = {
-      imap: {
-        user: account.imap.username,
-        password: account.imap.password,
-        host: account.imap.host,
-        port: parseInt(account.imap.port),
-        tls: account.imap.tls !== false,
-        authTimeout: 15000
-      }
-    };
+    const config = await getImapConfigForAccount(account);
 
     const connection = await imapSimple.connect(config);
     

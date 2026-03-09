@@ -2,6 +2,50 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.10.0] - 2026-03-09
+
+### 🔐 OAuth2-Integration für Microsoft 365/Exchange
+
+#### ✨ Neue Features
+- **Microsoft OAuth2-Login**: Ein-Klick-Anmeldung über Browser
+  - PKCE (Proof Key for Code Exchange) für maximale Sicherheit
+  - State-Parameter für CSRF-Schutz
+  - Automatische Token-Extraktion aus Callback
+- **XOAUTH2 für IMAP/SMTP**: Sichere E-Mail-Kommunikation ohne Passwörter
+  - Access Tokens für IMAP-Verbindungen
+  - Access Tokens für SMTP-Versand
+  - Automatischer Fallback zu Passwort-Authentifizierung
+- **Token-Verwaltung**:
+  - Sichere Speicherung in verschlüsseltem Store
+  - Automatischer Token-Refresh bei Ablauf
+  - 5-Minuten-Puffer für rechtzeitiges Refresh
+- **UI-Integration**:
+  - "Mit Microsoft anmelden" Button im Kontomanager
+  - OAuth2-Badge in der Kontenliste
+  - Status-Anzeige (Verbunden/Fehler)
+  - Deaktivierte Passwortfelder bei aktivem OAuth2
+
+#### 🔧 Technische Details
+- Microsoft OAuth2 Endpoints:
+  - Authorization: login.microsoftonline.com/common/oauth2/v2.0/authorize
+  - Token: login.microsoftonline.com/common/oauth2/v2.0/token
+- Scopes:
+  - IMAP.AccessAsUser.All
+  - SMTP.Send
+  - offline_access (Refresh Token)
+  - openid, email, profile
+- HTTP-Server auf Port 8847 für OAuth-Callback
+- ID-Token-Parsing für E-Mail-Extraktion
+
+#### 🏢 Unterstützte Anbieter
+- Microsoft 365 (Firmenkonten)
+- Exchange Online
+- Outlook.com
+- Hotmail
+- Live.com
+
+---
+
 ## [1.9.1] - 2026-03-09
 
 ### 🐛 Bugfixes

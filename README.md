@@ -1,15 +1,30 @@
-# 📧 CoreMail Desktop v1.9.1
+# 📧 CoreMail Desktop v1.10.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration und professionellem UI/UX.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, OAuth2-Support und professionellem UI/UX.
 
-## 🆕 Neu in v1.9.1
+## 🆕 Neu in v1.10.0
 
-### 🐛 Bugfixes
+### 🔐 OAuth2-Integration für Microsoft 365/Exchange
+- **Mit Microsoft anmelden**: Ein-Klick-Login über Browser
+- **Sicherer als Passwort**: OAuth2-Tokens statt Passwörter
+- **2FA-kompatibel**: Funktioniert auch mit aktivierter Zwei-Faktor-Authentifizierung
+- **Automatische Token-Refresh**: Tokens werden automatisch erneuert
+- **PKCE-Sicherheit**: State-of-the-Art-Sicherheit für Desktop-Apps
+- **XOAUTH2 für IMAP/SMTP**: Volle E-Mail-Funktionalität über OAuth2
+
+### Wie OAuth2 funktioniert:
+1. Wähle "Microsoft 365 / Exchange" oder "Outlook.com" als Server-Vorlage
+2. Klicke auf "Mit Microsoft anmelden"
+3. Ein Browser öffnet sich zur Microsoft-Anmeldung
+4. Nach erfolgreicher Anmeldung werden IMAP/SMTP automatisch konfiguriert
+5. Konto speichern - fertig!
+
+### Vorherige Version (v1.9.1)
 - **🖼️ Icon-Fix**: Icon wird jetzt korrekt im App-Menü angezeigt
 - **🖥️ Desktop-Integration**: --no-sandbox Flag für SUID Sandbox-Kompatibilität
 - **📦 Installer**: Icon wird in alle Standard-Verzeichnisse installiert
 
-### Vorherige Version (v1.9.0)
+### Version v1.9.0
 - **🎨 Modernes UI/UX-Design**: Komplett überarbeitete Benutzeroberfläche
 - **✨ Professionelle Animationen**: Fade-In, Slide-In, Loading-Animationen
 - **📐 Optimiertes Layout**: Verbesserte Typografie und Spacing

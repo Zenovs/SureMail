@@ -63,5 +63,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // SMTP
   testSmtp: (settings) => ipcRenderer.invoke('smtp:test', settings),
   sendEmail: (emailData) => ipcRenderer.invoke('smtp:send', emailData),
-  sendEmailForAccount: (accountId, emailData) => ipcRenderer.invoke('smtp:sendForAccount', accountId, emailData)
+  sendEmailForAccount: (accountId, emailData) => ipcRenderer.invoke('smtp:sendForAccount', accountId, emailData),
+  
+  // OAuth2 (v1.10.0)
+  oauth2StartMicrosoft: () => ipcRenderer.invoke('oauth2:startMicrosoft'),
+  oauth2RefreshToken: (accountId) => ipcRenderer.invoke('oauth2:refreshToken', accountId),
+  oauth2TestConnection: (accountId) => ipcRenderer.invoke('oauth2:testConnection', accountId),
+  oauth2RevokeAccount: (accountId) => ipcRenderer.invoke('oauth2:revokeAccount', accountId)
 });

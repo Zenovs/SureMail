@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, AlertCircle, Settings, Mail, Loader } from 'lucide-react';
+import { CheckCircle, AlertCircle, Settings, Mail, Loader, LogIn, Shield, RefreshCw } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
-// v1.8.2: Improved Server Presets with better Microsoft/Exchange support
+// v1.10.0: Server Presets with OAuth2 support for Microsoft
 const SERVER_PRESETS = [
   { 
     id: 'custom', 
@@ -28,7 +28,8 @@ const SERVER_PRESETS = [
     imap: { host: 'outlook.office365.com', port: '993', tls: true },
     smtp: { host: 'smtp.office365.com', port: '587', secure: false, starttls: true },
     note: 'Outlook.com, Hotmail, Live.com',
-    autoFillUsername: true
+    autoFillUsername: true,
+    supportsOAuth2: true  // v1.10.0: OAuth2 available
   },
   { 
     id: 'exchange', 
@@ -38,7 +39,8 @@ const SERVER_PRESETS = [
     smtp: { host: 'smtp.office365.com', port: '587', secure: false, starttls: true },
     note: 'Für Firmen-Exchange mit IMAP aktiviert',
     help: 'https://support.microsoft.com/de-de/office/pop-imap-und-smtp-einstellungen',
-    autoFillUsername: true
+    autoFillUsername: true,
+    supportsOAuth2: true  // v1.10.0: OAuth2 available
   },
   { 
     id: 'icloud', 
@@ -91,6 +93,11 @@ function AccountManager() {
   const [testResults, setTestResults] = useState({ imap: null, smtp: null });
   const [selectedPreset, setSelectedPreset] = useState('custom');
   const c = currentTheme.colors;
+  
+  // v1.10.0: OAuth2 state
+  const [oauth2Status, setOauth2Status] = useState({ loading: false, error: null, success: false });
+  const [useOAuth2, setUseOAuth2] = useState(false);
+  const [oauth2Tokens, setOauth2Tokens] = useState(null);
 
   const [accountForm, setAccountForm] = useState({
     name: '',
@@ -155,6 +162,45 @@ function AccountManager() {
     }));
   };
 
+  // v1.10.0: OAuth2 Microsoft Login
+  const handleMicrosoftOAuth2Login = async () => {
+    setOauth2Status({ loading: true, error: null, success: false });
+    try {
+      const result = await window.electronAPI.oauth2StartMicrosoft();
+      if (result.success) {
+        setOauth2Tokens(result.tokens);
+        setOauth2Status({ loading: false, error: null, success: true });
+        
+        // Auto-fill form with OAuth2 data
+        setAccountForm(f => ({
+          ...f,
+          name: f.name || `Microsoft (${result.tokens.email})`,
+          imap: {
+            ...f.imap,
+            host: 'outlook.office365.com',
+            port: '993',
+            username: result.tokens.email,
+            password: '', // OAuth2 doesn't use password
+            tls: true
+          },
+          smtp: {
+            ...f.smtp,
+            host: 'smtp.office365.com',
+            port: '587',
+            username: result.tokens.email,
+            password: '', // OAuth2 doesn't use password
+            secure: false,
+            fromEmail: result.tokens.email
+          }
+        }));
+      } else {
+        setOauth2Status({ loading: false, error: result.error, success: false });
+      }
+    } catch (err) {
+      setOauth2Status({ loading: false, error: err.message, success: false });
+    }
+  };
+
   const resetForm = () => {
     setAccountForm({
       name: '',
@@ -166,19 +212,41 @@ function AccountManager() {
     setShowAccountForm(false);
     setTestResults({ imap: null, smtp: null });
     setSelectedPreset('custom');
+    // v1.10.0: Reset OAuth2 state
+    setOauth2Status({ loading: false, error: null, success: false });
+    setOauth2Tokens(null);
+    setUseOAuth2(false);
   };
 
   const handleEditAccount = (account) => {
     setAccountForm(account);
     setEditingAccount(account.id);
     setShowAccountForm(true);
+    // v1.10.0: Check if account uses OAuth2
+    if (account.oauth2) {
+      setUseOAuth2(true);
+      setOauth2Tokens(account.oauth2);
+      setOauth2Status({ loading: false, error: null, success: true });
+    }
   };
 
   const handleSaveAccount = async () => {
+    // v1.10.0: Include OAuth2 tokens if available
+    const accountData = { ...accountForm };
+    if (useOAuth2 && oauth2Tokens) {
+      accountData.oauth2 = {
+        accessToken: oauth2Tokens.accessToken,
+        refreshToken: oauth2Tokens.refreshToken,
+        expiresAt: oauth2Tokens.expiresAt,
+        email: oauth2Tokens.email,
+        provider: oauth2Tokens.provider || 'microsoft'
+      };
+    }
+    
     if (editingAccount) {
-      await updateAccount(editingAccount, accountForm);
+      await updateAccount(editingAccount, accountData);
     } else {
-      await addAccount(accountForm);
+      await addAccount(accountData);
     }
     resetForm();
   };
@@ -300,7 +368,16 @@ function AccountManager() {
                   <div className="flex items-center gap-4">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat?.color || '#888' }} />
                     <div>
-                      <div className={`font-medium ${c.text}`}>{account.name}</div>
+                      <div className={`font-medium ${c.text} flex items-center gap-2`}>
+                        {account.name}
+                        {/* v1.10.0: OAuth2 badge */}
+                        {account.oauth2 && (
+                          <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded flex items-center gap-1">
+                            <Shield className="w-3 h-3" />
+                            OAuth2
+                          </span>
+                        )}
+                      </div>
                       <div className={`text-sm ${c.textSecondary}`}>{account.imap.username}</div>
                     </div>
                   </div>
@@ -391,9 +468,112 @@ function AccountManager() {
                   </div>
                 )}
 
-                {/* IMAP */}
-                <div className={`${c.bgTertiary} p-4 rounded-lg`}>
-                  <h4 className={`font-medium ${c.text} mb-3`}>IMAP (Empfang)</h4>
+                {/* v1.10.0: OAuth2 Panel for Microsoft */}
+                {(selectedPreset === 'outlook' || selectedPreset === 'exchange' || (editingAccount && accountForm.oauth2)) && (
+                  <div className={`${c.bgTertiary} p-4 rounded-lg border-2 ${oauth2Status.success ? 'border-green-500/50' : 'border-blue-500/50'}`}>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className={`font-medium ${c.text} flex items-center gap-2`}>
+                        <Shield className="w-4 h-4 text-blue-400" />
+                        Microsoft OAuth2 Anmeldung
+                      </h4>
+                      {oauth2Status.success && (
+                        <span className="text-xs text-green-400 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Verbunden
+                        </span>
+                      )}
+                    </div>
+                    
+                    {!oauth2Status.success ? (
+                      <div className="space-y-3">
+                        <p className={`text-sm ${c.textSecondary}`}>
+                          Melden Sie sich sicher mit Ihrem Microsoft-Konto an. Es öffnet sich ein Browser-Fenster zur Anmeldung.
+                        </p>
+                        <button
+                          onClick={handleMicrosoftOAuth2Login}
+                          disabled={oauth2Status.loading}
+                          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                        >
+                          {oauth2Status.loading ? (
+                            <>
+                              <Loader className="w-5 h-5 animate-spin" />
+                              Browser öffnet sich...
+                            </>
+                          ) : (
+                            <>
+                              <LogIn className="w-5 h-5" />
+                              Mit Microsoft anmelden
+                            </>
+                          )}
+                        </button>
+                        {oauth2Status.error && (
+                          <div className="text-sm text-red-400 flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4" />
+                            {oauth2Status.error}
+                          </div>
+                        )}
+                        <p className={`text-xs ${c.textSecondary}`}>
+                          💡 OAuth2 ist sicherer als Passwort-basierte Anmeldung und funktioniert auch wenn 2FA aktiviert ist.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className={`flex items-center gap-3 p-3 ${c.card} rounded-lg`}>
+                          <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                            <Mail className="w-5 h-5 text-blue-400" />
+                          </div>
+                          <div>
+                            <p className={`font-medium ${c.text}`}>{oauth2Tokens?.email}</p>
+                            <p className={`text-xs ${c.textSecondary}`}>OAuth2 verbunden</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleMicrosoftOAuth2Login}
+                            className={`flex-1 px-3 py-2 text-sm ${c.hover} ${c.text} rounded-lg flex items-center justify-center gap-1`}
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            Neu verbinden
+                          </button>
+                          <button
+                            onClick={() => {
+                              setOauth2Status({ loading: false, error: null, success: false });
+                              setOauth2Tokens(null);
+                              setUseOAuth2(false);
+                            }}
+                            className="px-3 py-2 text-sm text-red-400 hover:bg-red-900/20 rounded-lg"
+                          >
+                            Trennen
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Toggle between OAuth2 and Password */}
+                    {!oauth2Status.success && (
+                      <div className={`mt-3 pt-3 border-t ${c.border}`}>
+                        <button
+                          onClick={() => setUseOAuth2(!useOAuth2)}
+                          className={`text-xs ${c.textSecondary} hover:${c.accent}`}
+                        >
+                          {useOAuth2 ? '↩️ Stattdessen Passwort verwenden' : '🔒 OAuth2 überspringen (nicht empfohlen)'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* IMAP - v1.10.0: Hide password field when OAuth2 is active */}
+                <div className={`${c.bgTertiary} p-4 rounded-lg ${oauth2Status.success ? 'opacity-75' : ''}`}>
+                  <h4 className={`font-medium ${c.text} mb-3 flex items-center justify-between`}>
+                    IMAP (Empfang)
+                    {oauth2Status.success && (
+                      <span className="text-xs text-blue-400 flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        OAuth2 aktiv
+                      </span>
+                    )}
+                  </h4>
                   <div className="grid grid-cols-2 gap-3">
                     <input
                       type="text"
@@ -401,6 +581,7 @@ function AccountManager() {
                       value={accountForm.imap.host}
                       onChange={e => setAccountForm(f => ({ ...f, imap: { ...f.imap, host: e.target.value }}))}
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      disabled={oauth2Status.success}
                     />
                     <input
                       type="text"
@@ -408,6 +589,7 @@ function AccountManager() {
                       value={accountForm.imap.port}
                       onChange={e => setAccountForm(f => ({ ...f, imap: { ...f.imap, port: e.target.value }}))}
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      disabled={oauth2Status.success}
                     />
                     <input
                       type="email"
@@ -415,14 +597,23 @@ function AccountManager() {
                       value={accountForm.imap.username}
                       onChange={e => handleEmailChange(e.target.value)}
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      disabled={oauth2Status.success}
                     />
-                    <input
-                      type="password"
-                      placeholder="Passwort"
-                      value={accountForm.imap.password}
-                      onChange={e => setAccountForm(f => ({ ...f, imap: { ...f.imap, password: e.target.value }}))}
-                      className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
-                    />
+                    {!oauth2Status.success && (
+                      <input
+                        type="password"
+                        placeholder="Passwort"
+                        value={accountForm.imap.password}
+                        onChange={e => setAccountForm(f => ({ ...f, imap: { ...f.imap, password: e.target.value }}))}
+                        className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      />
+                    )}
+                    {oauth2Status.success && (
+                      <div className={`px-3 py-2 rounded-lg ${c.input} text-sm text-green-400 flex items-center gap-1`}>
+                        <CheckCircle className="w-4 h-4" />
+                        OAuth2 Token
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center justify-between mt-3">
                     <label className={`flex items-center gap-2 ${c.textSecondary} text-sm`}>
@@ -430,19 +621,22 @@ function AccountManager() {
                         type="checkbox"
                         checked={accountForm.imap.tls}
                         onChange={e => setAccountForm(f => ({ ...f, imap: { ...f.imap, tls: e.target.checked }}))}
+                        disabled={oauth2Status.success}
                       />
                       TLS/SSL
                     </label>
-                    <button
-                      onClick={handleTestImap}
-                      disabled={testing.imap}
-                      className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded flex items-center gap-1`}
-                    >
-                      {testing.imap ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                      {testing.imap ? 'Teste...' : 'Testen'}
-                    </button>
+                    {!oauth2Status.success && (
+                      <button
+                        onClick={handleTestImap}
+                        disabled={testing.imap}
+                        className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded flex items-center gap-1`}
+                      >
+                        {testing.imap ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                        {testing.imap ? 'Teste...' : 'Testen'}
+                      </button>
+                    )}
                   </div>
-                  {testResults.imap && (
+                  {testResults.imap && !oauth2Status.success && (
                     <div className={`mt-2 text-sm flex items-center gap-1 ${testResults.imap.success ? 'text-green-400' : 'text-red-400'}`}>
                       {testResults.imap.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                       {testResults.imap.success ? 'Verbindung OK' : testResults.imap.error}
@@ -450,18 +644,28 @@ function AccountManager() {
                   )}
                 </div>
 
-                {/* SMTP */}
-                <div className={`${c.bgTertiary} p-4 rounded-lg`}>
+                {/* SMTP - v1.10.0: OAuth2 support */}
+                <div className={`${c.bgTertiary} p-4 rounded-lg ${oauth2Status.success ? 'opacity-75' : ''}`}>
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className={`font-medium ${c.text}`}>SMTP (Versand)</h4>
-                    <button
-                      onClick={copyImapToSmtp}
-                      className={`text-xs ${c.accent} hover:underline flex items-center gap-1`}
-                      title="IMAP-Zugangsdaten übernehmen"
-                    >
-                      <Mail className="w-3 h-3" />
-                      Von IMAP kopieren
-                    </button>
+                    <h4 className={`font-medium ${c.text} flex items-center gap-2`}>
+                      SMTP (Versand)
+                      {oauth2Status.success && (
+                        <span className="text-xs text-blue-400 flex items-center gap-1">
+                          <Shield className="w-3 h-3" />
+                          OAuth2 aktiv
+                        </span>
+                      )}
+                    </h4>
+                    {!oauth2Status.success && (
+                      <button
+                        onClick={copyImapToSmtp}
+                        className={`text-xs ${c.accent} hover:underline flex items-center gap-1`}
+                        title="IMAP-Zugangsdaten übernehmen"
+                      >
+                        <Mail className="w-3 h-3" />
+                        Von IMAP kopieren
+                      </button>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <input
@@ -470,6 +674,7 @@ function AccountManager() {
                       value={accountForm.smtp.host}
                       onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, host: e.target.value }}))}
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      disabled={oauth2Status.success}
                     />
                     <input
                       type="text"
@@ -477,6 +682,7 @@ function AccountManager() {
                       value={accountForm.smtp.port}
                       onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, port: e.target.value }}))}
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      disabled={oauth2Status.success}
                     />
                     <input
                       type="text"
@@ -484,20 +690,30 @@ function AccountManager() {
                       value={accountForm.smtp.username}
                       onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, username: e.target.value }}))}
                       className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      disabled={oauth2Status.success}
                     />
-                    <input
-                      type="password"
-                      placeholder="Passwort"
-                      value={accountForm.smtp.password}
-                      onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, password: e.target.value }}))}
-                      className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
-                    />
+                    {!oauth2Status.success && (
+                      <input
+                        type="password"
+                        placeholder="Passwort"
+                        value={accountForm.smtp.password}
+                        onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, password: e.target.value }}))}
+                        className={`px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      />
+                    )}
+                    {oauth2Status.success && (
+                      <div className={`px-3 py-2 rounded-lg ${c.input} text-sm text-green-400 flex items-center gap-1`}>
+                        <CheckCircle className="w-4 h-4" />
+                        OAuth2 Token
+                      </div>
+                    )}
                     <input
                       type="email"
                       placeholder="Absender E-Mail"
                       value={accountForm.smtp.fromEmail}
                       onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, fromEmail: e.target.value }}))}
                       className={`col-span-2 px-3 py-2 rounded-lg ${c.input} text-sm`}
+                      disabled={oauth2Status.success}
                     />
                   </div>
                   <div className="flex items-center justify-between mt-3">
@@ -506,19 +722,22 @@ function AccountManager() {
                         type="checkbox"
                         checked={accountForm.smtp.secure}
                         onChange={e => setAccountForm(f => ({ ...f, smtp: { ...f.smtp, secure: e.target.checked }}))}
+                        disabled={oauth2Status.success}
                       />
                       SSL/TLS {accountForm.smtp.port === '587' && <span className="text-xs text-yellow-400">(STARTTLS)</span>}
                     </label>
-                    <button
-                      onClick={handleTestSmtp}
-                      disabled={testing.smtp}
-                      className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded flex items-center gap-1`}
-                    >
-                      {testing.smtp ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                      {testing.smtp ? 'Teste...' : 'Testen'}
-                    </button>
+                    {!oauth2Status.success && (
+                      <button
+                        onClick={handleTestSmtp}
+                        disabled={testing.smtp}
+                        className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded flex items-center gap-1`}
+                      >
+                        {testing.smtp ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                        {testing.smtp ? 'Teste...' : 'Testen'}
+                      </button>
+                    )}
                   </div>
-                  {testResults.smtp && (
+                  {testResults.smtp && !oauth2Status.success && (
                     <div className={`mt-2 text-sm flex items-center gap-1 ${testResults.smtp.success ? 'text-green-400' : 'text-red-400'}`}>
                       {testResults.smtp.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                       {testResults.smtp.success ? 'Verbindung OK' : testResults.smtp.error}
