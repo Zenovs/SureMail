@@ -2,6 +2,32 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.10.1] - 2026-03-09
+
+### 🐛 Bugfix: OAuth2-Button Anzeige
+
+#### 🔧 Behobene Fehler
+- **OAuth2-Button nicht sichtbar**: Der "Mit Microsoft anmelden" Button wurde nicht angezeigt, obwohl "Microsoft 365 / Exchange" ausgewählt war
+  - **Ursache**: Die Bedingung prüfte nur den Preset-Namen statt das `supportsOAuth2` Flag
+  - **Lösung**: Neue `useMemo` Logik mit `showOAuth2Panel` Variable für robuste Erkennung
+
+#### ✨ Verbesserungen
+- **Prominenterer OAuth2-Button**: Größerer Button mit Schatten-Effekt und besserer Sichtbarkeit
+- **"Empfohlen"-Badge**: Grünes Badge zeigt an, dass OAuth2 die bevorzugte Methode ist
+- **Aufklappbare Erweiterte Einstellungen**: IMAP/SMTP-Felder sind standardmäßig ausgeblendet
+  - "Alternative: Manuelle IMAP/SMTP-Konfiguration" Button zum Aufklappen
+  - Reduziert visuelle Unordnung
+- **Verbesserte Fehlermeldungen**: Fehler werden in rotem Box mit Icon angezeigt
+- **Bessere Hinweisbox**: OAuth2-Vorteile werden klar kommuniziert
+
+#### 📝 Änderungen in AccountManager.js
+- Neue Imports: `useMemo`, `ChevronDown`, `ChevronUp`
+- Neue State-Variable: `showAdvancedSettings`
+- Neue Memos: `currentPreset`, `showOAuth2Panel`
+- Bedingte Anzeige von IMAP/SMTP-Sektionen
+
+---
+
 ## [1.10.0] - 2026-03-09
 
 ### 🔐 OAuth2-Integration für Microsoft 365/Exchange

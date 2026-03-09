@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, AlertCircle, Settings, Mail, Loader, LogIn, Shield, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { CheckCircle, AlertCircle, Settings, Mail, Loader, LogIn, Shield, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
-// v1.10.0: Server Presets with OAuth2 support for Microsoft
+// v1.10.1: Server Presets with OAuth2 support for Microsoft
 const SERVER_PRESETS = [
   { 
     id: 'custom', 
@@ -94,10 +94,20 @@ function AccountManager() {
   const [selectedPreset, setSelectedPreset] = useState('custom');
   const c = currentTheme.colors;
   
-  // v1.10.0: OAuth2 state
+  // v1.10.1: OAuth2 state with improved detection
   const [oauth2Status, setOauth2Status] = useState({ loading: false, error: null, success: false });
   const [useOAuth2, setUseOAuth2] = useState(false);
   const [oauth2Tokens, setOauth2Tokens] = useState(null);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+
+  // v1.10.1: Computed property to check if OAuth2 should be shown
+  const currentPreset = useMemo(() => {
+    return SERVER_PRESETS.find(p => p.id === selectedPreset);
+  }, [selectedPreset]);
+  
+  const showOAuth2Panel = useMemo(() => {
+    return currentPreset?.supportsOAuth2 || (editingAccount && accountForm?.oauth2);
+  }, [currentPreset, editingAccount, accountForm?.oauth2]);
 
   const [accountForm, setAccountForm] = useState({
     name: '',
@@ -212,10 +222,11 @@ function AccountManager() {
     setShowAccountForm(false);
     setTestResults({ imap: null, smtp: null });
     setSelectedPreset('custom');
-    // v1.10.0: Reset OAuth2 state
+    // v1.10.1: Reset OAuth2 state
     setOauth2Status({ loading: false, error: null, success: false });
     setOauth2Tokens(null);
     setUseOAuth2(false);
+    setShowAdvancedSettings(false);
   };
 
   const handleEditAccount = (account) => {
@@ -468,69 +479,79 @@ function AccountManager() {
                   </div>
                 )}
 
-                {/* v1.10.0: OAuth2 Panel for Microsoft */}
-                {(selectedPreset === 'outlook' || selectedPreset === 'exchange' || (editingAccount && accountForm.oauth2)) && (
-                  <div className={`${c.bgTertiary} p-4 rounded-lg border-2 ${oauth2Status.success ? 'border-green-500/50' : 'border-blue-500/50'}`}>
+                {/* v1.10.1: OAuth2 Panel for Microsoft - FIXED: Now shows correctly when Microsoft preset is selected */}
+                {showOAuth2Panel && (
+                  <div className={`p-4 rounded-lg border-2 ${oauth2Status.success ? 'border-green-500/50 bg-green-900/10' : 'border-blue-500 bg-blue-900/20'}`}>
                     <div className="flex items-center justify-between mb-3">
                       <h4 className={`font-medium ${c.text} flex items-center gap-2`}>
-                        <Shield className="w-4 h-4 text-blue-400" />
+                        <Shield className="w-5 h-5 text-blue-400" />
                         Microsoft OAuth2 Anmeldung
+                        {!oauth2Status.success && (
+                          <span className="px-2 py-0.5 text-xs bg-green-500/20 text-green-400 rounded-full">
+                            ✓ Empfohlen
+                          </span>
+                        )}
                       </h4>
                       {oauth2Status.success && (
-                        <span className="text-xs text-green-400 flex items-center gap-1">
-                          <CheckCircle className="w-3 h-3" />
+                        <span className="text-sm text-green-400 flex items-center gap-1 font-medium">
+                          <CheckCircle className="w-4 h-4" />
                           Verbunden
                         </span>
                       )}
                     </div>
                     
                     {!oauth2Status.success ? (
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <p className={`text-sm ${c.textSecondary}`}>
                           Melden Sie sich sicher mit Ihrem Microsoft-Konto an. Es öffnet sich ein Browser-Fenster zur Anmeldung.
                         </p>
+                        
+                        {/* v1.10.1: Prominent OAuth2 Button */}
                         <button
                           onClick={handleMicrosoftOAuth2Login}
                           disabled={oauth2Status.loading}
-                          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                          className="w-full px-4 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-lg hover:shadow-blue-500/25 text-lg font-medium"
                         >
                           {oauth2Status.loading ? (
                             <>
-                              <Loader className="w-5 h-5 animate-spin" />
+                              <Loader className="w-6 h-6 animate-spin" />
                               Browser öffnet sich...
                             </>
                           ) : (
                             <>
-                              <LogIn className="w-5 h-5" />
+                              <LogIn className="w-6 h-6" />
                               Mit Microsoft anmelden
                             </>
                           )}
                         </button>
+                        
                         {oauth2Status.error && (
-                          <div className="text-sm text-red-400 flex items-center gap-1">
-                            <AlertCircle className="w-4 h-4" />
+                          <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg text-sm text-red-400 flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
                             {oauth2Status.error}
                           </div>
                         )}
-                        <p className={`text-xs ${c.textSecondary}`}>
-                          💡 OAuth2 ist sicherer als Passwort-basierte Anmeldung und funktioniert auch wenn 2FA aktiviert ist.
-                        </p>
+                        
+                        <div className={`flex items-start gap-2 text-xs ${c.textSecondary} bg-black/20 p-3 rounded-lg`}>
+                          <span className="text-lg">💡</span>
+                          <span>OAuth2 ist sicherer als Passwort-basierte Anmeldung und funktioniert auch wenn 2FA aktiviert ist. Kein App-Passwort erforderlich!</span>
+                        </div>
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        <div className={`flex items-center gap-3 p-3 ${c.card} rounded-lg`}>
-                          <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                            <Mail className="w-5 h-5 text-blue-400" />
+                        <div className={`flex items-center gap-3 p-3 ${c.card} rounded-lg border ${c.border}`}>
+                          <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+                            <Mail className="w-6 h-6 text-blue-400" />
                           </div>
                           <div>
                             <p className={`font-medium ${c.text}`}>{oauth2Tokens?.email}</p>
-                            <p className={`text-xs ${c.textSecondary}`}>OAuth2 verbunden</p>
+                            <p className={`text-xs text-green-400`}>✓ OAuth2 verbunden - Sichere Authentifizierung aktiv</p>
                           </div>
                         </div>
                         <div className="flex gap-2">
                           <button
                             onClick={handleMicrosoftOAuth2Login}
-                            className={`flex-1 px-3 py-2 text-sm ${c.hover} ${c.text} rounded-lg flex items-center justify-center gap-1`}
+                            className={`flex-1 px-3 py-2 text-sm ${c.hover} ${c.text} rounded-lg flex items-center justify-center gap-1 border ${c.border}`}
                           >
                             <RefreshCw className="w-4 h-4" />
                             Neu verbinden
@@ -541,7 +562,7 @@ function AccountManager() {
                               setOauth2Tokens(null);
                               setUseOAuth2(false);
                             }}
-                            className="px-3 py-2 text-sm text-red-400 hover:bg-red-900/20 rounded-lg"
+                            className="px-3 py-2 text-sm text-red-400 hover:bg-red-900/20 rounded-lg border border-red-500/30"
                           >
                             Trennen
                           </button>
@@ -549,21 +570,32 @@ function AccountManager() {
                       </div>
                     )}
                     
-                    {/* Toggle between OAuth2 and Password */}
+                    {/* v1.10.1: Toggle to show manual IMAP/SMTP settings */}
                     {!oauth2Status.success && (
-                      <div className={`mt-3 pt-3 border-t ${c.border}`}>
+                      <div className={`mt-4 pt-3 border-t ${c.border}`}>
                         <button
-                          onClick={() => setUseOAuth2(!useOAuth2)}
-                          className={`text-xs ${c.textSecondary} hover:${c.accent}`}
+                          onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+                          className={`text-sm ${c.textSecondary} hover:${c.text} flex items-center gap-1 transition-colors`}
                         >
-                          {useOAuth2 ? '↩️ Stattdessen Passwort verwenden' : '🔒 OAuth2 überspringen (nicht empfohlen)'}
+                          {showAdvancedSettings ? (
+                            <>
+                              <ChevronUp className="w-4 h-4" />
+                              Erweiterte Einstellungen ausblenden
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-4 h-4" />
+                              Alternative: Manuelle IMAP/SMTP-Konfiguration
+                            </>
+                          )}
                         </button>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* IMAP - v1.10.0: Hide password field when OAuth2 is active */}
+                {/* IMAP - v1.10.1: Show only if OAuth2 not available, OAuth2 successful, or advanced settings toggled */}
+                {(!showOAuth2Panel || oauth2Status.success || showAdvancedSettings) && (
                 <div className={`${c.bgTertiary} p-4 rounded-lg ${oauth2Status.success ? 'opacity-75' : ''}`}>
                   <h4 className={`font-medium ${c.text} mb-3 flex items-center justify-between`}>
                     IMAP (Empfang)
@@ -643,8 +675,10 @@ function AccountManager() {
                     </div>
                   )}
                 </div>
+                )}
 
-                {/* SMTP - v1.10.0: OAuth2 support */}
+                {/* SMTP - v1.10.1: Show only if OAuth2 not available, OAuth2 successful, or advanced settings toggled */}
+                {(!showOAuth2Panel || oauth2Status.success || showAdvancedSettings) && (
                 <div className={`${c.bgTertiary} p-4 rounded-lg ${oauth2Status.success ? 'opacity-75' : ''}`}>
                   <div className="flex items-center justify-between mb-3">
                     <h4 className={`font-medium ${c.text} flex items-center gap-2`}>
@@ -744,6 +778,7 @@ function AccountManager() {
                     </div>
                   )}
                 </div>
+                )}
 
                 {/* Buttons */}
                 <div className="flex justify-end gap-3 pt-4">
