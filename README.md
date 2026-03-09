@@ -1,8 +1,35 @@
-# 📧 CoreMail Desktop v1.10.2
+# 📧 CoreMail Desktop v1.11.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, OAuth2-Support und professionellem UI/UX.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
-## 🆕 Neu in v1.10.2
+## 🆕 Neu in v1.11.0
+
+### 🏷️ Kategorien anpassen
+- **Name bearbeiten**: Jede Kategorie kann umbenannt werden
+- **Farbe wählen**: 12 Vordefinierten Farben + Custom Color Picker
+- **Icon wählen**: 14 Lucide Icons zur Auswahl (Briefcase, Star, Heart, etc.)
+- **Sidebar-Integration**: Icons werden in der Sidebar angezeigt
+
+### 📧 Ungelesene Mails besser markieren
+- **Blaue Linie links**: 3px blaue Border für ungelesene E-Mails
+- **Blauer Punkt**: Pulsierender Indikator neben dem Absender
+- **Heller Hintergrund**: Dezent blauer Hintergrund für bessere Sichtbarkeit
+- **"Neu" Badge**: Badge in der E-Mail-Zeile
+- **Ordner-Badge**: Ungelesene Anzahl im Ordner-Baum
+
+### 🔤 Google Fonts Auswahl
+- **12 beliebte Schriftarten**: Inter, Roboto, Open Sans, Montserrat, Poppins, etc.
+- **Live-Vorschau**: Sofortige Vorschau beim Auswählen
+- **Code-Fonts**: Fira Code und JetBrains Mono für Entwickler
+- **Automatische Speicherung**: Font wird beim App-Start geladen
+
+### ↔️ Vorschau-Leiste anpassbar
+- **Resizable**: Breite per Drag anpassbar (300-800px)
+- **Persistenz**: Breite wird in localStorage gespeichert
+- **Visuelles Handle**: Grip-Icon zum Ziehen
+- **Smooth Transitions**: Flüssige Größenänderung
+
+## 📦 Version v1.10.2
 
 ### 🐛 Kritischer Bugfix: Konten-Fenster funktioniert wieder
 - **Fix**: Das Konten-Fenster war schwarz/leer wenn man auf "Konten" klickte

@@ -13,6 +13,10 @@ import ComposeEmail from './pages/ComposeEmail';
 import SettingsV2 from './pages/SettingsV2';
 import AccountManager from './pages/AccountManager';
 import EmailView from './pages/EmailView';
+import { applySavedFont } from './pages/FontSettings';
+
+// v1.11.0: Apply saved font on app load
+applySavedFont();
 
 function AppContent() {
   const { currentTheme } = useTheme();

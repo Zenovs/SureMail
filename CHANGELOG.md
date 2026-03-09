@@ -2,6 +2,57 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.11.0] - 2026-03-09
+
+### 🆕 Neue Features
+
+#### 🏷️ Kategorien anpassen
+- **Icon-Auswahl**: 14 Lucide Icons zur Auswahl (Briefcase, User, Star, Tag, Heart, Flag, Bookmark, Zap, Coffee, Globe, Mail, Home, Shield, Folder)
+- **Farb-Picker**: 12 vordefinierte Farben + Custom Color Picker
+- **Icon-Picker UI**: Neues Dropdown mit Raster-Ansicht aller Icons
+- **Sidebar-Integration**: Kategorie-Icons werden in der Sidebar mit farbigem Hintergrund angezeigt
+- **Persistenz**: Icons werden mit Kategorien in localStorage gespeichert
+
+#### 📧 Ungelesene Mails besser markieren
+- **Blaue Linie links**: 3px `border-left` in Blau für alle ungelesenen E-Mails
+- **Blauer Punkt**: Pulsierender 2px Punkt neben dem Absender (mit `animate-pulse`)
+- **Heller Hintergrund**: Dezent blauer Hintergrund (`bg-blue-500/5`) für ungelesene Mails
+- **"Neu" Badge**: Kleines blaues Badge mit "Neu" Text in der E-Mail-Zeile
+- **Fette Schrift**: Absender und Betreff in `font-semibold` für ungelesene Mails
+- **Ordner-Badge**: Ungelesene Anzahl als blaues Badge im Ordner-Baum
+
+#### 🔤 Google Fonts Auswahl
+- **12 beliebte Schriftarten**:
+  - Inter (Standard)
+  - Roboto, Open Sans, Lato
+  - Montserrat, Poppins, Raleway
+  - Source Sans 3, Ubuntu, Nunito
+  - Fira Code, JetBrains Mono (Monospace)
+- **Live-Vorschau**: Font-Vorschau mit anpassbarem Text
+- **Dynamisches Laden**: Google Fonts werden per `<link>` Tag geladen
+- **Persistenz**: Font wird in localStorage gespeichert und beim App-Start geladen
+- **Neue Komponente**: `FontSettings.js` mit `applySavedFont()`, `loadGoogleFont()`, `getCurrentFont()`
+
+#### ↔️ Vorschau-Leiste anpassbar
+- **Resizable**: Vorschau-Breite per Drag anpassbar
+- **Min/Max**: 300px - 800px Breite
+- **Visuelles Handle**: `GripVertical` Icon als visueller Hinweis zum Ziehen
+- **Cursor-Feedback**: `col-resize` Cursor beim Hovern über Handle
+- **Persistenz**: Breite wird in `inbox.previewColumnWidth` gespeichert
+- **Smooth Resize**: Body-Styles während Resize für bessere UX
+
+### 📝 Geänderte Dateien
+- `CategorySettings.js`: Icon-Picker, erweiterte UI
+- `SidebarV2.js`: Import von `getCategoryIcon`, Icon-Rendering
+- `InboxSplitView.js`: Verbessertes `EmailListItem`, resizable Preview
+- `FontSettings.js`: Neue Komponente
+- `SettingsV2.js`: Neuer "Schriftart" Tab, Import von FontSettings
+- `App.js`: Import und Aufruf von `applySavedFont()`
+- `package.json`: Version 1.11.0
+- `README.md`: Neue Features dokumentiert
+
+---
+
 ## [1.10.2] - 2026-03-09
 
 ### 🐛 Kritischer Bugfix: Schwarzes Konten-Fenster

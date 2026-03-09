@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Type } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
@@ -8,6 +8,7 @@ import SidebarSettings from './SidebarSettings';
 import OllamaSettings from './OllamaSettings';
 import CategorySettings from './CategorySettings';
 import EmailSettings from './EmailSettings';
+import FontSettings from './FontSettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
@@ -49,6 +50,7 @@ function SettingsV2() {
   const tabs = [
     { id: 'general', name: 'Allgemein', icon: '⚙️' },
     { id: 'email', name: 'E-Mail', icon: '📧' },
+    { id: 'font', name: 'Schriftart', icon: <Type className="w-5 h-5" /> },
     { id: 'ai', name: 'KI-Assistent', icon: <MessageCircle className="w-5 h-5" /> },
     { id: 'sidebar', name: 'Sidebar', icon: '📐' },
     { id: 'categories', name: 'Kategorien', icon: '🏷️' },
@@ -161,25 +163,29 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.8.1</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.11.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📧</span>
-                  <span>Einstellung "Als gelesen markieren": Beim Klick, Beim Öffnen oder nur durch Icon</span>
+                  <span className="text-purple-400">🏷️</span>
+                  <span>Kategorien anpassen: Name, Farbe und Icon für jede Kategorie wählbar</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-blue-400">📧</span>
+                  <span>Ungelesene Mails: Verbesserte Markierung mit blauer Linie, Badge und Hintergrund</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-cyan-400">🔤</span>
+                  <span>Schriftart wählen: 12 Google Fonts zur Auswahl mit Live-Vorschau</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-orange-400">↔️</span>
-                  <span>Ordnerspalte verschiebbar: Breite anpassbar per Drag (150-350px)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-purple-400">🏷️</span>
-                  <span>Kategorien bearbeiten: Umbenennen und Farben ändern jetzt möglich</span>
+                  <span>Vorschau-Leiste: Breite anpassbar per Drag (300-800px)</span>
                 </li>
               </ul>
-              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.8.0</h4>
+              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.10.2</h4>
               <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
-                <li>• E-Mail-Aktionen, Performance-Verbesserungen, Ordner-Struktur</li>
-                <li>• Kategorien-Verwaltung, KI-Kontext, Exchange/Office 365</li>
+                <li>• Kritischer Bugfix: Schwarzes Konten-Fenster behoben</li>
+                <li>• OAuth2-Support für Microsoft 365/Exchange</li>
               </ul>
             </div>
           </div>
@@ -187,6 +193,9 @@ function SettingsV2() {
       
       case 'email':
         return <EmailSettings />;
+      
+      case 'font':
+        return <FontSettings />;
       
       case 'ai':
         return <OllamaSettings />;

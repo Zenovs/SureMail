@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Check, Palette } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Check, Palette, Briefcase, User, Star, Tag, Heart, Flag, Bookmark, Zap, Coffee, Globe, Mail, Home, Shield, Folder } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
@@ -18,16 +18,43 @@ const PRESET_COLORS = [
   '#a855f7', // Violet
 ];
 
+// v1.11.0: Icon options for categories
+const CATEGORY_ICONS = [
+  { id: 'briefcase', icon: Briefcase, name: 'Arbeit' },
+  { id: 'user', icon: User, name: 'Person' },
+  { id: 'star', icon: Star, name: 'Stern' },
+  { id: 'tag', icon: Tag, name: 'Tag' },
+  { id: 'heart', icon: Heart, name: 'Herz' },
+  { id: 'flag', icon: Flag, name: 'Flagge' },
+  { id: 'bookmark', icon: Bookmark, name: 'Lesezeichen' },
+  { id: 'zap', icon: Zap, name: 'Blitz' },
+  { id: 'coffee', icon: Coffee, name: 'Kaffee' },
+  { id: 'globe', icon: Globe, name: 'Globus' },
+  { id: 'mail', icon: Mail, name: 'Mail' },
+  { id: 'home', icon: Home, name: 'Haus' },
+  { id: 'shield', icon: Shield, name: 'Schild' },
+  { id: 'folder', icon: Folder, name: 'Ordner' },
+];
+
+// Get icon component by id
+export const getCategoryIcon = (iconId) => {
+  const iconDef = CATEGORY_ICONS.find(i => i.id === iconId);
+  return iconDef ? iconDef.icon : Tag;
+};
+
 function CategorySettings() {
   const { currentTheme } = useTheme();
   const { categories, addCategory, updateCategory, deleteCategory, getAccountsByCategory } = useAccounts();
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
+  const [editIcon, setEditIcon] = useState('tag');
   const [showColorPicker, setShowColorPicker] = useState(null);
+  const [showIconPicker, setShowIconPicker] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('#3b82f6');
+  const [newIcon, setNewIcon] = useState('tag');
   const [error, setError] = useState('');
   const c = currentTheme.colors;
 
@@ -35,7 +62,9 @@ function CategorySettings() {
     setEditingId(category.id);
     setEditName(category.name);
     setEditColor(category.color);
+    setEditIcon(category.icon || 'tag');
     setShowColorPicker(null);
+    setShowIconPicker(null);
     setIsAdding(false);
   };
 
@@ -47,12 +76,14 @@ function CategorySettings() {
     
     await updateCategory(editingId, {
       name: editName.trim(),
-      color: editColor
+      color: editColor,
+      icon: editIcon
     });
     
     setEditingId(null);
     setEditName('');
     setEditColor('');
+    setEditIcon('tag');
     setError('');
   };
 
@@ -60,6 +91,7 @@ function CategorySettings() {
     setEditingId(null);
     setEditName('');
     setEditColor('');
+    setEditIcon('tag');
     setError('');
   };
 
@@ -78,6 +110,7 @@ function CategorySettings() {
     setIsAdding(true);
     setNewName('');
     setNewColor('#3b82f6');
+    setNewIcon('tag');
     setEditingId(null);
     setError('');
   };
@@ -90,12 +123,14 @@ function CategorySettings() {
     
     await addCategory({
       name: newName.trim(),
-      color: newColor
+      color: newColor,
+      icon: newIcon
     });
     
     setIsAdding(false);
     setNewName('');
     setNewColor('#3b82f6');
+    setNewIcon('tag');
     setError('');
   };
 
@@ -103,12 +138,46 @@ function CategorySettings() {
     setIsAdding(false);
     setNewName('');
     setNewColor('#3b82f6');
+    setNewIcon('tag');
     setError('');
   };
 
   // Check if category is deletable (not default categories)
   const isDeletable = (categoryId) => {
     return !['work', 'personal', 'other'].includes(categoryId);
+  };
+
+  // Icon Picker Component
+  const IconPicker = ({ value, onChange, pickerId }) => {
+    const IconComponent = getCategoryIcon(value);
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setShowIconPicker(showIconPicker === pickerId ? null : pickerId)}
+          className={`w-10 h-10 rounded-lg border-2 ${c.border} flex items-center justify-center ${c.bgTertiary} hover:bg-opacity-80 transition-colors`}
+          title="Icon wählen"
+        >
+          <IconComponent className="w-5 h-5" style={{ color: editingId ? editColor : newColor }} />
+        </button>
+        {showIconPicker === pickerId && (
+          <div className={`absolute top-12 left-0 z-20 p-3 ${c.card} ${c.border} border rounded-xl shadow-xl min-w-[200px]`}>
+            <p className={`text-xs ${c.textSecondary} mb-2`}>Icon wählen:</p>
+            <div className="grid grid-cols-5 gap-2">
+              {CATEGORY_ICONS.map(({ id, icon: Icon, name }) => (
+                <button
+                  key={id}
+                  onClick={() => { onChange(id); setShowIconPicker(null); }}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 ${value === id ? 'ring-2 ring-cyan-500 bg-cyan-500/20' : c.hover}`}
+                  title={name}
+                >
+                  <Icon className="w-4 h-4" style={{ color: editingId ? editColor : newColor }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -142,7 +211,10 @@ function CategorySettings() {
         {isAdding && (
           <div className={`mb-4 p-4 ${c.bgSecondary} rounded-xl ${c.border} border`}>
             <h4 className={`font-medium ${c.text} mb-3`}>Neue Kategorie erstellen</h4>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              {/* Icon Picker */}
+              <IconPicker value={newIcon} onChange={setNewIcon} pickerId="new-icon" />
+              
               <div className="flex-1">
                 <input
                   type="text"
@@ -208,15 +280,19 @@ function CategorySettings() {
           {categories.map(category => {
             const accounts = getAccountsByCategory(category.id);
             const isEditing = editingId === category.id;
+            const IconComponent = getCategoryIcon(category.icon || 'tag');
             
             return (
               <div
                 key={category.id}
-                className={`p-4 ${c.bgSecondary} rounded-xl ${c.border} border flex items-center gap-4`}
+                className={`p-4 ${c.bgSecondary} rounded-xl ${c.border} border flex items-center gap-3`}
               >
                 {isEditing ? (
                   // Edit Mode
                   <>
+                    {/* Icon Picker */}
+                    <IconPicker value={editIcon} onChange={setEditIcon} pickerId={`edit-${category.id}`} />
+                    
                     <div className="relative">
                       <button
                         onClick={() => setShowColorPicker(showColorPicker === category.id ? null : category.id)}
@@ -275,9 +351,11 @@ function CategorySettings() {
                   // View Mode
                   <>
                     <div
-                      className="w-10 h-10 rounded-lg flex-shrink-0"
+                      className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center"
                       style={{ backgroundColor: category.color }}
-                    />
+                    >
+                      <IconComponent className="w-5 h-5 text-white" />
+                    </div>
                     <div className="flex-1">
                       <h4 className={`font-medium ${c.text}`}>{category.name}</h4>
                       <p className={`text-sm ${c.textSecondary}`}>
@@ -313,6 +391,7 @@ function CategorySettings() {
         <h4 className={`font-medium ${c.text} mb-3`}>💡 Tipps</h4>
         <ul className={`text-sm ${c.textSecondary} space-y-2`}>
           <li>• Kategorien helfen dir, deine E-Mail-Konten zu organisieren</li>
+          <li>• Wähle ein passendes Icon für jede Kategorie</li>
           <li>• Die Standard-Kategorien (Arbeit, Privat, Sonstiges) können nicht gelöscht werden</li>
           <li>• Beim Löschen einer Kategorie werden die Konten zu "Sonstiges" verschoben</li>
           <li>• Wähle aussagekräftige Farben für eine bessere Übersicht</li>

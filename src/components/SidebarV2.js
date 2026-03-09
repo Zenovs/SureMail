@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
+import { getCategoryIcon } from '../pages/CategorySettings';
 
 function SidebarV2({ currentView, onNavigate }) {
   const { currentTheme } = useTheme();
@@ -139,10 +140,18 @@ function SidebarV2({ currentView, onNavigate }) {
                   className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg ${c.hover} ${c.text} text-sm`}
                 >
                   <span className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
-                  <div 
-                    className="w-2.5 h-2.5 rounded-full" 
-                    style={{ backgroundColor: category.color }}
-                  />
+                  {/* v1.11.0: Show category icon */}
+                  {(() => {
+                    const IconComponent = getCategoryIcon(category.icon);
+                    return (
+                      <div 
+                        className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0" 
+                        style={{ backgroundColor: category.color }}
+                      >
+                        <IconComponent className="w-3 h-3 text-white" />
+                      </div>
+                    );
+                  })()}
                   <span className="truncate">{category.name}</span>
                   <span className={`ml-auto text-xs ${c.textSecondary}`}>{accounts.length}</span>
                 </button>

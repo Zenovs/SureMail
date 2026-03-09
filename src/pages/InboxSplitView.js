@@ -9,6 +9,11 @@ const FOLDER_MIN_WIDTH = 150;
 const FOLDER_MAX_WIDTH = 350;
 const FOLDER_DEFAULT_WIDTH = 192;
 
+// v1.11.0: Preview column width constants
+const PREVIEW_MIN_WIDTH = 300;
+const PREVIEW_MAX_WIDTH = 800;
+const PREVIEW_DEFAULT_WIDTH = 450;
+
 // Email cache for performance (v1.8.0)
 const emailCache = new Map();
 const folderCache = new Map();
@@ -87,34 +92,54 @@ const loadEmailsFromIndexedDB = async (accountId, folder) => {
   }
 };
 
-// Memoized Email List Item for performance
+// v1.11.0: Improved Email List Item with better unread marking
 const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onToggleRead, c, actionLoading }) => {
+  const isUnread = !email.seen;
+  
   return (
     <div
       onClick={() => onSelect(index)}
-      className={`p-4 cursor-pointer transition-colors ${c.border} border-b ${
-        isSelected ? c.bgTertiary : c.hover
-      } ${!email.seen ? 'font-medium' : ''} group relative`}
+      className={`p-4 cursor-pointer transition-all ${c.border} border-b relative group
+        ${isSelected ? c.bgTertiary : isUnread ? 'bg-blue-500/5 hover:bg-blue-500/10' : c.hover}
+        ${isUnread ? 'border-l-3 border-l-blue-500' : 'border-l-3 border-l-transparent'}
+      `}
+      style={{ borderLeftWidth: '3px' }}
     >
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <div className={`text-sm truncate ${c.text} ${!email.seen ? c.accent : ''}`}>
-            {email.from}
+          {/* Sender with unread indicator */}
+          <div className={`text-sm truncate flex items-center gap-2 ${isUnread ? `${c.accent} font-semibold` : c.text}`}>
+            {isUnread && (
+              <span className="inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse" />
+            )}
+            <span className="truncate">{email.from}</span>
           </div>
-          <div className={`text-sm truncate ${c.text} mt-1`}>
-            {!email.seen && <span className="inline-block w-2 h-2 bg-cyan-500 rounded-full mr-2" />}
+          
+          {/* Subject */}
+          <div className={`text-sm truncate mt-1 ${isUnread ? `${c.text} font-semibold` : c.text}`}>
             {email.subject}
           </div>
+          
+          {/* Preview */}
           <div className={`text-xs ${c.textSecondary} mt-1 truncate`}>
             {email.preview}
           </div>
-          <div className={`text-xs ${c.textSecondary} mt-2`}>
-            {new Date(email.date).toLocaleDateString('de-DE', {
-              day: '2-digit',
-              month: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
+          
+          {/* Date and unread badge */}
+          <div className={`text-xs ${c.textSecondary} mt-2 flex items-center gap-2`}>
+            <span>
+              {new Date(email.date).toLocaleDateString('de-DE', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </span>
+            {isUnread && (
+              <span className="px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium">
+                Neu
+              </span>
+            )}
           </div>
         </div>
         
@@ -185,34 +210,56 @@ function InboxSplitView({ onFullView }) {
     const saved = localStorage.getItem('inbox.folderColumnWidth');
     return saved ? parseInt(saved, 10) : FOLDER_DEFAULT_WIDTH;
   });
-  const [isResizing, setIsResizing] = useState(false);
-  const resizeRef = useRef(null);
+  const [isResizingFolder, setIsResizingFolder] = useState(false);
+  
+  // v1.11.0: Resizable preview column
+  const [previewWidth, setPreviewWidth] = useState(() => {
+    const saved = localStorage.getItem('inbox.previewColumnWidth');
+    return saved ? parseInt(saved, 10) : PREVIEW_DEFAULT_WIDTH;
+  });
+  const [isResizingPreview, setIsResizingPreview] = useState(false);
   
   // Handle folder column resize
   useEffect(() => {
     const handleMouseMove = (e) => {
-      if (!isResizing) return;
-      const newWidth = Math.max(FOLDER_MIN_WIDTH, Math.min(FOLDER_MAX_WIDTH, e.clientX - 60)); // 60 = sidebar offset approx
-      setFolderWidth(newWidth);
-    };
-    
-    const handleMouseUp = () => {
-      if (isResizing) {
-        setIsResizing(false);
-        localStorage.setItem('inbox.folderColumnWidth', folderWidth.toString());
+      if (isResizingFolder) {
+        const newWidth = Math.max(FOLDER_MIN_WIDTH, Math.min(FOLDER_MAX_WIDTH, e.clientX - 60));
+        setFolderWidth(newWidth);
+      }
+      if (isResizingPreview) {
+        // Calculate from right side
+        const containerWidth = window.innerWidth - 60 - folderWidth; // Subtract sidebar and folder column
+        const previewAreaStart = 60 + folderWidth + 300; // sidebar + folder + email list min width
+        const newWidth = Math.max(PREVIEW_MIN_WIDTH, Math.min(PREVIEW_MAX_WIDTH, window.innerWidth - e.clientX));
+        setPreviewWidth(newWidth);
       }
     };
     
-    if (isResizing) {
+    const handleMouseUp = () => {
+      if (isResizingFolder) {
+        setIsResizingFolder(false);
+        localStorage.setItem('inbox.folderColumnWidth', folderWidth.toString());
+      }
+      if (isResizingPreview) {
+        setIsResizingPreview(false);
+        localStorage.setItem('inbox.previewColumnWidth', previewWidth.toString());
+      }
+    };
+    
+    if (isResizingFolder || isResizingPreview) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
     }
     
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
     };
-  }, [isResizing, folderWidth]);
+  }, [isResizingFolder, isResizingPreview, folderWidth, previewWidth]);
 
   // Generate cache key
   const getCacheKey = useCallback((accountId, folder) => `${accountId}:${folder}`, []);
@@ -544,6 +591,11 @@ function InboxSplitView({ onFullView }) {
     return flat;
   }, [folders]);
 
+  // v1.11.0: Count unread emails
+  const unreadCount = useMemo(() => {
+    return emails.filter(e => !e.seen).length;
+  }, [emails]);
+
   if (!activeAccountId) {
     return (
       <div className={`flex-1 flex items-center justify-center ${c.bg}`}>
@@ -601,7 +653,13 @@ function InboxSplitView({ onFullView }) {
               style={{ paddingLeft: `${(folder.depth * 12) + 12}px` }}
             >
               {getFolderIcon(folder.type)}
-              <span className="truncate">{folder.name}</span>
+              <span className="truncate flex-1">{folder.name}</span>
+              {/* v1.11.0: Show unread count badge for inbox */}
+              {folder.path === 'INBOX' && unreadCount > 0 && (
+                <span className="px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium min-w-[20px] text-center">
+                  {unreadCount}
+                </span>
+              )}
             </button>
           ))}
           
@@ -615,6 +673,11 @@ function InboxSplitView({ onFullView }) {
               >
                 <Inbox className="w-4 h-4" />
                 Posteingang
+                {unreadCount > 0 && (
+                  <span className="ml-auto px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
               </button>
             </div>
           )}
@@ -622,20 +685,22 @@ function InboxSplitView({ onFullView }) {
         
         {/* Resize Handle */}
         <div
-          ref={resizeRef}
-          onMouseDown={() => setIsResizing(true)}
-          className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 transition-colors ${isResizing ? 'bg-cyan-500' : ''}`}
+          onMouseDown={() => setIsResizingFolder(true)}
+          className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 transition-colors ${isResizingFolder ? 'bg-cyan-500' : ''}`}
           title="Ziehen zum Ändern der Breite"
         />
       </div>
 
       {/* Email List */}
-      <div className={`w-1/3 min-w-[300px] ${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden`}>
+      <div className={`min-w-[300px] ${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden relative`} style={{ flex: '1 1 auto' }}>
         <div className={`p-4 ${c.border} border-b flex items-center justify-between`}>
           <div>
             <h2 className={`font-semibold ${c.text}`}>{account?.name || 'Posteingang'}</h2>
             <p className={`text-sm ${c.textSecondary}`}>
               {emails.length} E-Mails {currentFolder !== 'INBOX' && `in ${currentFolder}`}
+              {unreadCount > 0 && (
+                <span className="ml-2 text-blue-400">({unreadCount} ungelesen)</span>
+              )}
             </p>
           </div>
           <button
@@ -685,10 +750,24 @@ function InboxSplitView({ onFullView }) {
             </>
           )}
         </div>
+        
+        {/* v1.11.0: Resize Handle for email list / preview separator */}
+        <div
+          onMouseDown={() => setIsResizingPreview(true)}
+          className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 transition-colors z-10 ${isResizingPreview ? 'bg-cyan-500' : ''}`}
+          title="Ziehen zum Ändern der Vorschau-Breite"
+        >
+          <div className="absolute top-1/2 -translate-y-1/2 -left-2 w-5 h-10 flex items-center justify-center">
+            <GripVertical className={`w-4 h-4 ${c.textSecondary} opacity-50`} />
+          </div>
+        </div>
       </div>
 
-      {/* Email Preview */}
-      <div className={`flex-1 flex flex-col overflow-hidden ${c.bg}`}>
+      {/* Email Preview - Resizable (v1.11.0) */}
+      <div 
+        className={`flex flex-col overflow-hidden ${c.bg}`}
+        style={{ width: `${previewWidth}px`, minWidth: `${PREVIEW_MIN_WIDTH}px`, maxWidth: `${PREVIEW_MAX_WIDTH}px` }}
+      >
         {loadingPreview ? (
           <div className="flex-1 flex items-center justify-center">
             <LoadingSpinner />
