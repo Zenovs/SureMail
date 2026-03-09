@@ -1,8 +1,35 @@
-# 📧 CoreMail Desktop v1.11.1
+# 📧 CoreMail Desktop v1.11.2
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
-## 🆕 Neu in v1.11.1
+## 🚀 Schnellinstallation
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
+```
+
+oder
+
+```bash
+wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
+```
+
+## 🆕 Neu in v1.11.2
+
+### 🌐 Vercel entfernt - Alles auf GitHub
+- **GitHub Raw URLs**: Alle Assets werden jetzt von GitHub gehostet
+- **Keine Vercel-Abhängigkeit**: Installation funktioniert ohne externe Dienste
+- **Zuverlässiger**: Direkter Download von GitHub Releases
+- **Einfacher**: Eine Quelle für alles (Code, Assets, Scripts)
+
+### 📥 Aktualisierte Installation
+- **install.sh**: Lädt Icon von GitHub Raw
+- **uninstall.sh**: Zeigt korrekte GitHub URLs
+- **Dokumentation**: Alle URLs aktualisiert
+
+---
+
+## 📦 Version v1.11.1
 
 ### ↔️ Vorschau-Spalte noch kleiner ziehen
 - **Min-Breite reduziert**: Von 300px auf 200px gesenkt

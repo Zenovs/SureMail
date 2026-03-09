@@ -2,6 +2,29 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.11.2] - 2026-03-09
+
+### 🌐 Infrastruktur-Update: Vercel entfernt
+
+#### 🚀 GitHub-Hosting
+- **Keine Vercel-Abhängigkeit mehr**: Alle Assets werden jetzt von GitHub gehostet
+- **GitHub Raw URLs**: install.sh, uninstall.sh und Icon werden von GitHub Raw geladen
+- **Zuverlässigere Installation**: Keine externen Dienste mehr notwendig
+
+#### 📥 Aktualisierte URLs
+- **install.sh**: `https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh`
+- **uninstall.sh**: `https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/uninstall.sh`
+- **Icon**: `https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/coremail-icon.png`
+
+#### 📝 Geänderte Dateien
+- `public/install.sh`: Alle Vercel-URLs auf GitHub Raw geändert
+- `public/uninstall.sh`: Alle Vercel-URLs auf GitHub Raw geändert
+- `package.json`: Version 1.11.2
+- `README.md`: Schnellinstallation mit GitHub URLs
+- `CHANGELOG.md`: Diese Änderungen
+
+---
+
 ## [1.11.1] - 2026-03-09
 
 ### 🆕 Verbesserungen

@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# CoreMail Desktop Installer v1.9.0
+# CoreMail Desktop Installer v1.11.2
 # Installiert CoreMail Desktop als AppImage mit Desktop-Integration
 # Inklusive verbesserter Ollama KI-Integration mit robuster Fehlerbehandlung
-# v1.9.0: Neues professionelles Icon und UI/UX-Verbesserungen
+# v1.11.2: GitHub-Hosting, keine Vercel-Abhängigkeit mehr
 
 set -e
 
-VERSION="1.9.0"
+VERSION="1.11.2"
 APP_NAME="CoreMail Desktop"
 APPIMAGE_NAME="CoreMail.Desktop-${VERSION}.AppImage"
 INSTALL_DIR="$HOME/.local/share/coremail"
