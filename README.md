@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.12.1
+# 📧 CoreMail Desktop v1.12.2
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
@@ -13,6 +13,31 @@ oder
 ```bash
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
+
+## 🆕 v1.12.2 - Resizable Mail-Liste
+
+### 📏 Mail-Liste-Spalte resizable
+- **Frei skalierbar**: Die mittlere Spalte (Mail-Liste) kann jetzt beliebig verkleinert werden
+- **Min-Breite 100px**: Spalte kann sehr schmal gemacht werden
+- **Max-Breite 600px**: Maximale Breite für optimale Lesbarkeit
+- **Speicherung**: Breite wird in localStorage gespeichert
+
+### 📝 Text-Wrapping aktiviert
+- **Betreff umbrechen**: Lange Betreffzeilen werden umgebrochen
+- **Absender umbrechen**: Lange E-Mail-Adressen werden angezeigt
+- **Vorschau umbrechen**: Preview-Text passt sich der Breite an
+
+### 📐 Dynamische Höhe
+- **Flexible Items**: Mail-Items passen ihre Höhe dem Inhalt an
+- **Min-Height**: Mindesthöhe für konsistentes Aussehen
+- **Bessere Lesbarkeit**: Text wird nicht mehr abgeschnitten
+
+### 🎨 Verbessertes Layout
+- **Alle 3 Spalten resizable**: Ordner, Mail-Liste und Vorschau
+- **Unabhängige Breiten**: Jede Spalte kann separat angepasst werden
+- **Grip-Handle**: Visueller Indikator zum Ziehen
+
+---
 
 ## 🐛 v1.12.1 - Kritische Bugfixes
 

@@ -2,6 +2,35 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.12.2] - 2026-03-10
+
+### 🆕 Neue Funktionen
+
+#### 📏 Mail-Liste-Spalte resizable
+- **Feature**: Die mittlere Spalte (Mail-Liste) ist jetzt resizable
+- **Min-Breite**: 100px - Spalte kann sehr schmal gemacht werden
+- **Max-Breite**: 600px - Maximale Breite für optimale Lesbarkeit
+- **Speicherung**: Breite wird in `localStorage` unter `inbox.emailListColumnWidth` gespeichert
+
+#### 📝 Text-Wrapping aktiviert
+- **Feature**: Text in Mail-Items wird jetzt umgebrochen statt abgeschnitten
+- **Betreff**: Lange Betreffzeilen werden vollständig angezeigt
+- **Absender**: E-Mail-Adressen werden umgebrochen
+- **Vorschau**: Preview-Text passt sich der Spaltenbreite an
+
+#### 📐 Dynamische Höhe für Mail-Items
+- **Feature**: Mail-Items passen ihre Höhe dem Inhalt an
+- **min-height**: 60px Mindesthöhe für konsistentes Aussehen
+- **CSS-Eigenschaften**: `overflow-wrap: break-word`, `word-break: break-word`
+
+### 📝 Geänderte Dateien
+- `src/pages/InboxSplitView.js` - Email-Liste resizable mit Konstanten, Text-Wrapping in EmailListItem
+- `package.json` - Version 1.12.2
+- `README.md` - Dokumentation für v1.12.2
+- `CHANGELOG.md` - Dieser Eintrag
+
+---
+
 ## [1.12.1] - 2026-03-10
 
 ### 🐛 Kritische Bugfixes

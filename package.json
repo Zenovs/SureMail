@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.12.1",
-  "description": "CoreMail Desktop Client v1.12.1 - Kritische Bugfixes: Gelöschte Mails, Microsoft Auth, Schriftart, Kategorien-Bearbeitung",
+  "version": "1.12.2",
+  "description": "CoreMail Desktop Client v1.12.2 - Resizable Mail-Liste mit Text-Wrapping",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -26,6 +26,11 @@ const FOLDER_MIN_WIDTH = 150;
 const FOLDER_MAX_WIDTH = 350;
 const FOLDER_DEFAULT_WIDTH = 192;
 
+// v1.12.2: Email list column width constants (resizable)
+const EMAIL_LIST_MIN_WIDTH = 100;
+const EMAIL_LIST_MAX_WIDTH = 600;
+const EMAIL_LIST_DEFAULT_WIDTH = 350;
+
 // v1.12.0: Preview column width constants (reduced min from 200 to 100)
 const PREVIEW_MIN_WIDTH = 100;
 const PREVIEW_MAX_WIDTH = 800;
@@ -136,41 +141,50 @@ const removeEmailFromIndexedDB = async (accountId, folder, uid) => {
   }
 };
 
-// v1.11.0: Improved Email List Item with better unread marking
+// v1.12.2: Improved Email List Item with text wrapping and dynamic height
 const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onToggleRead, c, actionLoading }) => {
   const isUnread = !email.seen;
   
   return (
     <div
       onClick={() => onSelect(index)}
-      className={`p-4 cursor-pointer transition-all ${c.border} border-b relative group
+      className={`p-3 cursor-pointer transition-all ${c.border} border-b relative group
         ${isSelected ? c.bgTertiary : isUnread ? 'bg-blue-500/5 hover:bg-blue-500/10' : c.hover}
         ${isUnread ? 'border-l-3 border-l-blue-500' : 'border-l-3 border-l-transparent'}
       `}
-      style={{ borderLeftWidth: '3px' }}
+      style={{ borderLeftWidth: '3px', minHeight: '60px' }}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          {/* Sender with unread indicator */}
-          <div className={`text-sm truncate flex items-center gap-2 ${isUnread ? `${c.accent} font-semibold` : c.text}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          {/* Sender with unread indicator - v1.12.2: text wrapping */}
+          <div 
+            className={`text-sm flex items-start gap-2 ${isUnread ? `${c.accent} font-semibold` : c.text}`}
+            style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}
+          >
             {isUnread && (
-              <span className="inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse" />
+              <span className="inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse mt-1.5" />
             )}
-            <span className="truncate">{email.from}</span>
+            <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{email.from}</span>
           </div>
           
-          {/* Subject */}
-          <div className={`text-sm truncate mt-1 ${isUnread ? `${c.text} font-semibold` : c.text}`}>
+          {/* Subject - v1.12.2: text wrapping enabled */}
+          <div 
+            className={`text-sm mt-1 ${isUnread ? `${c.text} font-semibold` : c.text}`}
+            style={{ overflowWrap: 'break-word', wordBreak: 'break-word', lineHeight: '1.4' }}
+          >
             {email.subject}
           </div>
           
-          {/* Preview */}
-          <div className={`text-xs ${c.textSecondary} mt-1 truncate`}>
+          {/* Preview - v1.12.2: text wrapping enabled */}
+          <div 
+            className={`text-xs ${c.textSecondary} mt-1`}
+            style={{ overflowWrap: 'break-word', wordBreak: 'break-word', lineHeight: '1.3' }}
+          >
             {email.preview}
           </div>
           
           {/* Date and unread badge */}
-          <div className={`text-xs ${c.textSecondary} mt-2 flex items-center gap-2`}>
+          <div className={`text-xs ${c.textSecondary} mt-2 flex items-center gap-2 flex-wrap`}>
             <span>
               {new Date(email.date).toLocaleDateString('de-DE', {
                 day: '2-digit',
@@ -256,6 +270,13 @@ function InboxSplitView({ onFullView }) {
   });
   const [isResizingFolder, setIsResizingFolder] = useState(false);
   
+  // v1.12.2: Resizable email list column
+  const [emailListWidth, setEmailListWidth] = useState(() => {
+    const saved = localStorage.getItem('inbox.emailListColumnWidth');
+    return saved ? parseInt(saved, 10) : EMAIL_LIST_DEFAULT_WIDTH;
+  });
+  const [isResizingEmailList, setIsResizingEmailList] = useState(false);
+  
   // v1.11.0: Resizable preview column
   const [previewWidth, setPreviewWidth] = useState(() => {
     const saved = localStorage.getItem('inbox.previewColumnWidth');
@@ -263,17 +284,21 @@ function InboxSplitView({ onFullView }) {
   });
   const [isResizingPreview, setIsResizingPreview] = useState(false);
   
-  // Handle folder column resize
+  // Handle column resize (v1.12.2: added email list resizing)
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (isResizingFolder) {
         const newWidth = Math.max(FOLDER_MIN_WIDTH, Math.min(FOLDER_MAX_WIDTH, e.clientX - 60));
         setFolderWidth(newWidth);
       }
+      if (isResizingEmailList) {
+        // Calculate email list width from left edge of email list column
+        const emailListStart = 60 + folderWidth; // sidebar + folder column
+        const newWidth = Math.max(EMAIL_LIST_MIN_WIDTH, Math.min(EMAIL_LIST_MAX_WIDTH, e.clientX - emailListStart));
+        setEmailListWidth(newWidth);
+      }
       if (isResizingPreview) {
         // Calculate from right side
-        const containerWidth = window.innerWidth - 60 - folderWidth; // Subtract sidebar and folder column
-        const previewAreaStart = 60 + folderWidth + 300; // sidebar + folder + email list min width
         const newWidth = Math.max(PREVIEW_MIN_WIDTH, Math.min(PREVIEW_MAX_WIDTH, window.innerWidth - e.clientX));
         setPreviewWidth(newWidth);
       }
@@ -284,13 +309,17 @@ function InboxSplitView({ onFullView }) {
         setIsResizingFolder(false);
         localStorage.setItem('inbox.folderColumnWidth', folderWidth.toString());
       }
+      if (isResizingEmailList) {
+        setIsResizingEmailList(false);
+        localStorage.setItem('inbox.emailListColumnWidth', emailListWidth.toString());
+      }
       if (isResizingPreview) {
         setIsResizingPreview(false);
         localStorage.setItem('inbox.previewColumnWidth', previewWidth.toString());
       }
     };
     
-    if (isResizingFolder || isResizingPreview) {
+    if (isResizingFolder || isResizingEmailList || isResizingPreview) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = 'col-resize';
@@ -303,7 +332,7 @@ function InboxSplitView({ onFullView }) {
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
-  }, [isResizingFolder, isResizingPreview, folderWidth, previewWidth]);
+  }, [isResizingFolder, isResizingEmailList, isResizingPreview, folderWidth, emailListWidth, previewWidth]);
 
   // Generate cache key
   const getCacheKey = useCallback((accountId, folder) => `${accountId}:${folder}`, []);
@@ -798,8 +827,11 @@ function InboxSplitView({ onFullView }) {
         />
       </div>
 
-      {/* Email List */}
-      <div className={`min-w-[300px] ${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden relative`} style={{ flex: '1 1 auto' }}>
+      {/* Email List - v1.12.2: Resizable */}
+      <div 
+        className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden relative`} 
+        style={{ width: `${emailListWidth}px`, minWidth: `${EMAIL_LIST_MIN_WIDTH}px`, maxWidth: `${EMAIL_LIST_MAX_WIDTH}px` }}
+      >
         <div className={`p-4 ${c.border} border-b flex items-center justify-between`}>
           <div>
             <h2 className={`font-semibold ${c.text}`}>{account?.name || 'Posteingang'}</h2>
@@ -858,11 +890,11 @@ function InboxSplitView({ onFullView }) {
           )}
         </div>
         
-        {/* v1.11.0: Resize Handle for email list / preview separator */}
+        {/* v1.12.2: Resize Handle for email list column */}
         <div
-          onMouseDown={() => setIsResizingPreview(true)}
-          className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 transition-colors z-10 ${isResizingPreview ? 'bg-cyan-500' : ''}`}
-          title="Ziehen zum Ändern der Vorschau-Breite"
+          onMouseDown={() => setIsResizingEmailList(true)}
+          className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 transition-colors z-10 ${isResizingEmailList ? 'bg-cyan-500' : ''}`}
+          title="Ziehen zum Ändern der Mail-Liste-Breite"
         >
           <div className="absolute top-1/2 -translate-y-1/2 -left-2 w-5 h-10 flex items-center justify-center">
             <GripVertical className={`w-4 h-4 ${c.textSecondary} opacity-50`} />
@@ -870,10 +902,10 @@ function InboxSplitView({ onFullView }) {
         </div>
       </div>
 
-      {/* Email Preview - Resizable (v1.11.0) */}
+      {/* Email Preview - v1.12.2: Takes remaining space */}
       <div 
-        className={`flex flex-col overflow-hidden ${c.bg}`}
-        style={{ width: `${previewWidth}px`, minWidth: `${PREVIEW_MIN_WIDTH}px`, maxWidth: `${PREVIEW_MAX_WIDTH}px` }}
+        className={`flex-1 flex flex-col overflow-hidden ${c.bg}`}
+        style={{ minWidth: `${PREVIEW_MIN_WIDTH}px` }}
       >
         {loadingPreview ? (
           <div className="flex-1 flex items-center justify-center">
