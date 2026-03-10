@@ -2,6 +2,42 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.12.0] - 2026-03-10
+
+### 🆕 Neue Features
+
+#### ✏️ Kategorien-Bearbeitung verbessert
+- **Stift-Icon beim Hover**: Edit/Delete-Buttons erscheinen nur beim Hover über Kategorien
+- **Alle Kategorien bearbeitbar**: Auch Standard-Kategorien können Name, Farbe und Icon ändern
+- **Cleaner UI**: Aufgeräumtere Oberfläche ohne ständig sichtbare Buttons
+- **group-hover CSS**: Verwendet Tailwind group-hover für elegante Interaktion
+
+#### ↔️ Vorschau noch kleiner ziehen
+- **PREVIEW_MIN_WIDTH**: Von 200px auf 100px reduziert
+- **Maximale Flexibilität**: Benutzer können die Vorschau extrem kompakt machen
+- **Responsives Design**: Vorschau bleibt auch bei 100px noch funktional
+
+#### 📐 Alle Seitenleisten resizable
+- **Haupt-Sidebar (SidebarV2)**: 200-400px, mit SidebarContext und localStorage-Persistenz
+- **Ordner-Liste**: 150-350px, resizable mit Drag-Handle
+- **Vorschau-Spalte**: 100-800px, flexibel einstellbar
+- **Smooth Resizing**: Alle Resize-Handles mit visueller Feedback
+
+#### 🔤 Font auf E-Mail-Inhalt
+- **Google Font Integration**: Ausgewählte Schriftart wird auf E-Mail-Inhalt angewendet
+- **HTML-Mails**: fontFamily wird inline auf HTML-Container gesetzt
+- **Text-Mails**: fontFamily wird auf pre-Tag angewendet
+- **GOOGLE_FONTS Mapping**: Schneller Font-Lookup in InboxSplitView
+
+### 📝 Geänderte Dateien
+- `src/pages/CategorySettings.js`: group-hover für Edit/Delete-Buttons
+- `src/pages/InboxSplitView.js`: PREVIEW_MIN_WIDTH auf 100px
+- `package.json`: Version 1.12.0
+- `README.md`: Neue Features dokumentiert
+- `CHANGELOG.md`: Diese Änderungen
+
+---
+
 ## [1.11.2] - 2026-03-09
 
 ### 🌐 Infrastruktur-Update: Vercel entfernt

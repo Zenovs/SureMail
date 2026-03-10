@@ -163,29 +163,30 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.11.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.12.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-400">🏷️</span>
-                  <span>Kategorien anpassen: Name, Farbe und Icon für jede Kategorie wählbar</span>
+                  <span className="text-purple-400">✏️</span>
+                  <span>Kategorien-Bearbeitung: Edit-Button erscheint nur beim Hover</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-400">📧</span>
-                  <span>Ungelesene Mails: Verbesserte Markierung mit blauer Linie, Badge und Hintergrund</span>
+                  <span className="text-blue-400">↔️</span>
+                  <span>Vorschau noch kleiner: Min-Breite auf 100px reduziert</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🔤</span>
-                  <span>Schriftart wählen: 12 Google Fonts zur Auswahl mit Live-Vorschau</span>
+                  <span className="text-cyan-400">📐</span>
+                  <span>Alle Seitenleisten resizable: Sidebar, Ordner, Vorschau</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-orange-400">↔️</span>
-                  <span>Vorschau-Leiste: Breite anpassbar per Drag (300-800px)</span>
+                  <span className="text-orange-400">🔤</span>
+                  <span>Font auf E-Mail-Inhalt: Ausgewählte Schrift wird angewendet</span>
                 </li>
               </ul>
-              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.10.2</h4>
+              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.11.x</h4>
               <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
-                <li>• Kritischer Bugfix: Schwarzes Konten-Fenster behoben</li>
-                <li>• OAuth2-Support für Microsoft 365/Exchange</li>
+                <li>• Kategorien anpassen: Name, Farbe und Icon wählbar</li>
+                <li>• Google Fonts Auswahl mit Live-Vorschau</li>
+                <li>• GitHub-Hosting ohne Vercel-Abhängigkeit</li>
               </ul>
             </div>
           </div>

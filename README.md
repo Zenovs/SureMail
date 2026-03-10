@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.11.2
+# 📧 CoreMail Desktop v1.12.0
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
@@ -14,18 +14,34 @@ oder
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
 
-## 🆕 Neu in v1.11.2
+## 🆕 Neu in v1.12.0
+
+### ✏️ Kategorien-Bearbeitung verbessert
+- **Stift-Icon beim Hover**: Edit/Delete-Buttons erscheinen nur beim Hover über die Kategorie
+- **Alle Kategorien bearbeitbar**: Auch Standard-Kategorien (Arbeit, Privat, Sonstiges) können bearbeitet werden
+- **Cleaner UI**: Aufgeräumtere Oberfläche ohne ständig sichtbare Buttons
+
+### ↔️ Vorschau noch kleiner ziehen
+- **Min-Breite reduziert**: Von 200px auf 100px gesenkt
+- **Mehr Flexibilität**: Maximale Kontrolle über das Layout
+
+### 📐 Alle Seitenleisten resizable
+- **Haupt-Sidebar**: 200-400px, mit localStorage-Speicherung
+- **Ordner-Liste**: 150-350px, anpassbar per Drag
+- **Vorschau-Spalte**: 100-800px, flexibel einstellbar
+
+### 🔤 Font auf E-Mail-Inhalt
+- **Ausgewählte Schrift**: Google Font wird auf E-Mail-Inhalt angewendet
+- **HTML & Text**: Funktioniert für beide E-Mail-Typen
+
+---
+
+## 📦 Version v1.11.2
 
 ### 🌐 Vercel entfernt - Alles auf GitHub
 - **GitHub Raw URLs**: Alle Assets werden jetzt von GitHub gehostet
 - **Keine Vercel-Abhängigkeit**: Installation funktioniert ohne externe Dienste
 - **Zuverlässiger**: Direkter Download von GitHub Releases
-- **Einfacher**: Eine Quelle für alles (Code, Assets, Scripts)
-
-### 📥 Aktualisierte Installation
-- **install.sh**: Lädt Icon von GitHub Raw
-- **uninstall.sh**: Zeigt korrekte GitHub URLs
-- **Dokumentation**: Alle URLs aktualisiert
 
 ---
 

@@ -26,8 +26,8 @@ const FOLDER_MIN_WIDTH = 150;
 const FOLDER_MAX_WIDTH = 350;
 const FOLDER_DEFAULT_WIDTH = 192;
 
-// v1.11.1: Preview column width constants (reduced min from 300 to 200)
-const PREVIEW_MIN_WIDTH = 200;
+// v1.12.0: Preview column width constants (reduced min from 200 to 100)
+const PREVIEW_MIN_WIDTH = 100;
 const PREVIEW_MAX_WIDTH = 800;
 const PREVIEW_DEFAULT_WIDTH = 450;
 
