@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.12.0
+# 📧 CoreMail Desktop v1.12.1
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
@@ -14,7 +14,31 @@ oder
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
 
-## 🆕 Neu in v1.12.0
+## 🐛 v1.12.1 - Kritische Bugfixes
+
+### 🗑️ Gelöschte E-Mails bleiben gelöscht
+- **IndexedDB-Sync**: Gelöschte E-Mails werden jetzt auch aus dem lokalen Cache entfernt
+- **Kein Wiederauftauchen**: Nach dem Refresh bleiben gelöschte E-Mails gelöscht
+- **IMAP-Expunge**: Korrekte IMAP-Löschung mit `\\Deleted`-Flag und `expunge()`
+
+### 🔐 Microsoft Auth (OAuth2) korrigiert
+- **TLS-Einstellungen**: Korrekte TLS-Konfiguration für Microsoft 365/Exchange
+- **Timeout erhöht**: Verbindungs-Timeout auf 30 Sekunden erhöht
+- **Bessere Fehlerbehandlung**: Logging für OAuth2-Debugging hinzugefügt
+
+### 🔤 Schriftart wird übernommen
+- **CSS-Fix**: Entfernte hartcodierte Font-Family (`JetBrains Mono`)
+- **Dynamische Fonts**: Benutzerdefinierte Google Fonts werden jetzt korrekt angewendet
+- **Alle Bereiche**: Font gilt für die gesamte App inklusive E-Mail-Inhalt
+
+### ✏️ Kategorien-Bearbeitung funktioniert
+- **CSS-Hover-Fix**: Korrigierte Tailwind-CSS-Klassen für Hover-Effekte
+- **Edit-Button sichtbar**: Bearbeiten-Button erscheint beim Hover korrekt
+- **Theme-unabhängig**: Funktioniert mit allen Themes
+
+---
+
+## 🆕 v1.12.0 Features
 
 ### ✏️ Kategorien-Bearbeitung verbessert
 - **Stift-Icon beim Hover**: Edit/Delete-Buttons erscheinen nur beim Hover über die Kategorie

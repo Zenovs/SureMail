@@ -109,6 +109,33 @@ const loadEmailsFromIndexedDB = async (accountId, folder) => {
   }
 };
 
+// v1.12.1: Remove deleted email from IndexedDB to prevent re-fetching
+const removeEmailFromIndexedDB = async (accountId, folder, uid) => {
+  try {
+    const db = await openEmailDB();
+    const tx = db.transaction('emails', 'readwrite');
+    const store = tx.objectStore('emails');
+    
+    const id = `${accountId}:${folder}`;
+    const result = await new Promise((resolve, reject) => {
+      const request = store.get(id);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    if (result && result.emails) {
+      // Filter out the deleted email
+      result.emails = result.emails.filter(e => e.uid !== uid);
+      result.timestamp = Date.now();
+      await store.put(result);
+    }
+    
+    db.close();
+  } catch (e) {
+    console.error('Failed to remove email from IndexedDB:', e);
+  }
+};
+
 // v1.11.0: Improved Email List Item with better unread marking
 const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onToggleRead, c, actionLoading }) => {
   const isUnread = !email.seen;
@@ -505,6 +532,7 @@ function InboxSplitView({ onFullView }) {
   };
 
   // Email Actions
+  // v1.12.1: Fixed - now also removes from IndexedDB to prevent deleted emails from reappearing
   const handleDelete = useCallback(async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
     
@@ -516,9 +544,12 @@ function InboxSplitView({ onFullView }) {
         const newEmails = emails.filter(e => e.uid !== uid);
         setEmails(newEmails);
         
-        // Update cache
+        // Update memory cache
         const cacheKey = getCacheKey(activeAccountId, currentFolder);
         emailCache.set(cacheKey, { data: newEmails, hasMore, timestamp: Date.now() });
+        
+        // v1.12.1: Also remove from IndexedDB to prevent re-fetching
+        await removeEmailFromIndexedDB(activeAccountId, currentFolder, uid);
         
         // Select next email
         if (selectedIndex >= newEmails.length) {

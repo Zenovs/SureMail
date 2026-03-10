@@ -2,6 +2,45 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.12.1] - 2026-03-10
+
+### 🐛 Kritische Bugfixes
+
+#### 🗑️ Bug 1: Gelöschte E-Mails werden wieder abgerufen
+- **Problem**: Nach dem Löschen und Refresh erschienen gelöschte E-Mails wieder
+- **Ursache**: IndexedDB wurde nicht aktualisiert, nur Memory-Cache
+- **Fix**: `removeEmailFromIndexedDB()` Funktion hinzugefügt
+- **Geändert**: `src/pages/InboxSplitView.js` - handleDelete ruft jetzt IndexedDB-Sync auf
+
+#### 🔐 Bug 2: Microsoft Auth funktioniert nicht richtig
+- **Problem**: OAuth2-Verbindung zu Microsoft 365 schlug fehl
+- **Ursache**: Falsche TLS-Einstellungen und zu kurzes Timeout
+- **Fix**: IMAP-Konfiguration korrigiert mit `tlsOptions` und 30s Timeout
+- **Geändert**: `main.js` - getImapConfigForAccount() verbessert
+
+#### 🔤 Bug 3: Schriftart wird nicht übernommen
+- **Problem**: Benutzerdefinierte Fonts wurden nicht angewendet
+- **Ursache**: `* { font-family: 'JetBrains Mono' }` überschrieb alles
+- **Fix**: Entfernte globale Font-Regel, Font wird jetzt dynamisch via JS gesetzt
+- **Geändert**: `src/styles/index.css` - Entfernte hartcodierte Font-Family
+
+#### ✏️ Bug 4: Kategorien lassen sich nicht bearbeiten
+- **Problem**: Edit-Button beim Hover nicht sichtbar/klickbar
+- **Ursache**: `hover:${c.text}` funktioniert nicht (dynamische Tailwind-Klassen)
+- **Fix**: Statische Tailwind-Klassen für Hover-Effekte verwendet
+- **Geändert**: `src/pages/CategorySettings.js` - CSS-Klassen korrigiert
+
+### 📝 Geänderte Dateien
+- `main.js`: OAuth2 IMAP-Konfiguration verbessert (TLS, Timeout)
+- `src/pages/InboxSplitView.js`: removeEmailFromIndexedDB() hinzugefügt
+- `src/pages/CategorySettings.js`: Hover-CSS korrigiert
+- `src/styles/index.css`: Globale Font-Regel entfernt
+- `package.json`: Version 1.12.1
+- `README.md`: Bugfixes dokumentiert
+- `CHANGELOG.md`: Diese Änderungen
+
+---
+
 ## [1.12.0] - 2026-03-10
 
 ### 🆕 Neue Features

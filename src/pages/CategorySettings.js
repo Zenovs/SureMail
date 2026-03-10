@@ -362,11 +362,11 @@ function CategorySettings() {
                         {accounts.length} Konto{accounts.length !== 1 ? 'en' : ''}
                       </p>
                     </div>
-                    {/* v1.12.0: Buttons erscheinen nur beim Hover */}
+                    {/* v1.12.1: Fixed - Buttons erscheinen nur beim Hover, hover-Effekt korrigiert */}
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleStartEdit(category)}
-                        className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.text}`}
+                        className={`p-2 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-700`}
                         title="Bearbeiten"
                       >
                         <Edit2 className="w-5 h-5" />
@@ -374,7 +374,7 @@ function CategorySettings() {
                       {isDeletable(category.id) && (
                         <button
                           onClick={() => handleDelete(category.id)}
-                          className={`p-2 ${c.hover} rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
+                          className={`p-2 rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
                           title="Löschen"
                         >
                           <Trash2 className="w-5 h-5" />

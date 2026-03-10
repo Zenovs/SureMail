@@ -5,14 +5,15 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  font-family: 'JetBrains Mono', monospace;
-}
+/* v1.12.1: Removed fixed font-family to allow user-selected fonts to work
+   The font is now set dynamically via FontSettings.js and applied to document.body */
 
 body {
   @apply bg-dark-900 text-gray-100;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Default fallback font - will be overridden by FontSettings.js */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* Animation für Loading States */
@@ -108,8 +109,9 @@ body {
 }
 
 /* ============ RETRO THEME ============ */
+/* v1.12.1: Retro theme font is only applied when theme is active */
 .theme-retro {
-  font-family: 'VT323', monospace;
+  /* Font is applied via JS when Retro theme is selected */
 }
 
 .retro-text {

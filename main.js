@@ -475,6 +475,7 @@ function createXOAuth2Token(email, accessToken) {
 }
 
 // Get IMAP configuration for account (supports both password and OAuth2)
+// v1.12.1: Fixed OAuth2 configuration with correct TLS and timeout settings
 async function getImapConfigForAccount(account) {
   // Check if OAuth2 is configured and valid
   if (account.oauth2 && account.oauth2.accessToken) {
@@ -483,14 +484,21 @@ async function getImapConfigForAccount(account) {
       const email = account.oauth2.email || account.imap.username;
       const xoauth2Token = createXOAuth2Token(email, accessToken);
       
+      console.log('[OAuth2] Creating IMAP config for:', email);
+      
       return {
         imap: {
           user: email,
           xoauth2: xoauth2Token,
           host: account.imap.host || 'outlook.office365.com',
           port: parseInt(account.imap.port) || 993,
-          tls: account.imap.tls !== false,
-          authTimeout: 15000
+          tls: true, // v1.12.1: Always use TLS for OAuth2
+          tlsOptions: {
+            rejectUnauthorized: false,
+            servername: account.imap.host || 'outlook.office365.com'
+          },
+          authTimeout: 30000, // v1.12.1: Increased timeout for OAuth2
+          connTimeout: 30000
         },
         isOAuth2: true
       };
@@ -508,7 +516,12 @@ async function getImapConfigForAccount(account) {
       host: account.imap.host,
       port: parseInt(account.imap.port),
       tls: account.imap.tls !== false,
-      authTimeout: 15000
+      tlsOptions: account.imap.tls !== false ? {
+        rejectUnauthorized: false,
+        servername: account.imap.host
+      } : undefined,
+      authTimeout: 20000,
+      connTimeout: 20000
     },
     isOAuth2: false
   };
