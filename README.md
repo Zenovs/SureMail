@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.12.2
+# 📧 CoreMail Desktop v1.12.3
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
@@ -13,6 +13,22 @@ oder
 ```bash
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
+
+## 🆕 v1.12.3 - Kategorien-Bearbeitung GEFIXT
+
+### ✏️ Kategorien-Bearbeitung funktioniert jetzt WIRKLICH
+- **Buttons immer sichtbar**: Edit/Delete-Buttons sind IMMER sichtbar (nicht nur bei Hover)
+- **Klare UI**: "Bearbeiten" und "Löschen" Buttons mit Text und Icons
+- **Sofortige Bearbeitung**: Ein Klick auf "Bearbeiten" öffnet den Edit-Modus
+- **Zuverlässig**: Keine versteckten Hover-Effekte mehr, die nicht funktionieren
+
+### 🔧 Was wurde geändert
+- `opacity-0 group-hover:opacity-100` entfernt - Buttons waren unsichtbar
+- Neue deutlich sichtbare Buttons mit Text: "Bearbeiten" / "Löschen"
+- Bessere Farbgestaltung für Edit (grau) und Delete (rot) Buttons
+- Responsive Layout mit `flex-shrink-0` für stabile Button-Positionen
+
+---
 
 ## 🆕 v1.12.2 - Resizable Mail-Liste
 

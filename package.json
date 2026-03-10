@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.12.2",
-  "description": "CoreMail Desktop Client v1.12.2 - Resizable Mail-Liste mit Text-Wrapping",
+  "version": "1.12.3",
+  "description": "CoreMail Desktop Client v1.12.3 - Kategorien-Bearbeitung WIRKLICH gefixt",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

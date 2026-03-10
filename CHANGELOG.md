@@ -2,6 +2,31 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.12.3] - 2026-03-10
+
+### 🐛 Kritischer Bugfix: Kategorien-Bearbeitung WIRKLICH gefixt
+
+#### ✏️ Problem: Edit-Buttons waren unsichtbar
+- **Problem**: Die Edit/Delete-Buttons bei Kategorien waren mit `opacity-0` versteckt
+- **Symptom**: Benutzer konnten die Bearbeitungs-Buttons nicht sehen oder anklicken
+- **Ursache**: CSS-Klasse `opacity-0 group-hover:opacity-100` versteckte die Buttons
+- **Hover funktionierte nicht**: Der Hover-Effekt wurde nie ausgelöst
+
+#### ✅ Lösung: Buttons IMMER sichtbar
+- **Fix**: `opacity-0 group-hover:opacity-100` entfernt
+- **Neue UI**: Deutlich sichtbare Buttons mit Text "Bearbeiten" und "Löschen"
+- **Icons + Text**: Edit2 und Trash2 Icons mit beschreibendem Text
+- **Bessere Farben**: Grauer Button für Edit, roter Button für Delete
+- **Stabile Position**: `flex-shrink-0` verhindert Layout-Probleme
+
+### 📝 Geänderte Dateien
+- `src/pages/CategorySettings.js` - Edit/Delete-Buttons immer sichtbar
+- `package.json` - Version 1.12.3
+- `README.md` - Dokumentation für v1.12.3
+- `CHANGELOG.md` - Dieser Eintrag
+
+---
+
 ## [1.12.2] - 2026-03-10
 
 ### 🆕 Neue Funktionen

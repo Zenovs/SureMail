@@ -285,7 +285,7 @@ function CategorySettings() {
             return (
               <div
                 key={category.id}
-                className={`p-4 ${c.bgSecondary} rounded-xl ${c.border} border flex items-center gap-3 group`}
+                className={`p-4 ${c.bgSecondary} rounded-xl ${c.border} border flex items-center gap-3`}
               >
                 {isEditing ? (
                   // Edit Mode
@@ -348,7 +348,7 @@ function CategorySettings() {
                     </button>
                   </>
                 ) : (
-                  // View Mode - v1.12.0: Edit/Delete icons appear on hover
+                  // View Mode - v1.12.3: Edit/Delete Buttons IMMER sichtbar (nicht nur Hover)
                   <>
                     <div
                       className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center"
@@ -356,28 +356,30 @@ function CategorySettings() {
                     >
                       <IconComponent className="w-5 h-5 text-white" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h4 className={`font-medium ${c.text}`}>{category.name}</h4>
                       <p className={`text-sm ${c.textSecondary}`}>
                         {accounts.length} Konto{accounts.length !== 1 ? 'en' : ''}
                       </p>
                     </div>
-                    {/* v1.12.1: Fixed - Buttons erscheinen nur beim Hover, hover-Effekt korrigiert */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* v1.12.3: FIXED - Buttons sind IMMER sichtbar, nicht nur bei Hover */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <button
                         onClick={() => handleStartEdit(category)}
-                        className={`p-2 rounded-lg transition-colors text-gray-400 hover:text-white hover:bg-gray-700`}
-                        title="Bearbeiten"
+                        className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 hover:text-white`}
+                        title="Kategorie bearbeiten"
                       >
-                        <Edit2 className="w-5 h-5" />
+                        <Edit2 className="w-4 h-4" />
+                        <span>Bearbeiten</span>
                       </button>
                       {isDeletable(category.id) && (
                         <button
                           onClick={() => handleDelete(category.id)}
-                          className={`p-2 rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
-                          title="Löschen"
+                          className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300`}
+                          title="Kategorie löschen"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4" />
+                          <span>Löschen</span>
                         </button>
                       )}
                     </div>
