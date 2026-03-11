@@ -2,6 +2,28 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.13.1] - 2026-03-11
+
+### 🔐 Bugfix: Microsoft OAuth2 Admin-Consent Problem
+
+#### 🐛 Problem
+- Microsoft 365 OAuth2 zeigte "Administratorgenehmigung erforderlich" Fehlermeldung
+- Benutzer in Enterprise-Umgebungen konnten sich nicht anmelden
+- Thunderbird-Client-ID erforderte Admin-Consent in strikt konfigurierten M365-Umgebungen
+
+#### ✅ Lösung
+- **Client-ID gewechselt**: Von Thunderbird (`08162f7c-0fd2-4200-a84a-f25a4db0b584`) auf Microsoft Office native (`d3590ed6-52b3-4102-aeff-aad2292ab01c`)
+- **User-Delegated Permissions**: Keine Admin-Genehmigung mehr erforderlich
+- **Verbesserte Kompatibilität**: Funktioniert mit Enterprise Microsoft 365 Umgebungen
+
+### 📝 Geänderte Dateien
+- `main.js` - OAuth2-Konfiguration aktualisiert (Client-ID, Kommentare)
+- `package.json` - Version 1.13.1
+- `README.md` - Dokumentation für v1.13.1
+- `CHANGELOG.md` - Dieser Eintrag
+
+---
+
 ## [1.13.0] - 2026-03-11
 
 ### 🔍 Neues Feature: Globale Suchfunktion

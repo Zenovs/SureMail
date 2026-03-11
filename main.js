@@ -11,14 +11,17 @@ const imapSimple = require('imap-simple');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
 
-// ============ OAUTH2 CONFIGURATION (v1.10.0) ============
+// ============ OAUTH2 CONFIGURATION (v1.13.1) ============
 // Microsoft OAuth2 settings for IMAP/SMTP access
+// v1.13.1: Changed from Thunderbird client ID to Microsoft Office public client ID
+// to avoid admin consent requirements in enterprise environments
 const OAUTH2_CONFIG = {
   microsoft: {
-    // Public client ID for desktop apps (common)
-    clientId: '08162f7c-0fd2-4200-a84a-f25a4db0b584', // Microsoft public client
+    // Microsoft Office Desktop Apps public client ID (no admin consent required for delegated permissions)
+    clientId: 'd3590ed6-52b3-4102-aeff-aad2292ab01c', // Microsoft Office native client
     authEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
     tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+    // v1.13.1: Optimized scopes - user-delegated permissions only
     scopes: [
       'https://outlook.office365.com/IMAP.AccessAsUser.All',
       'https://outlook.office365.com/SMTP.Send',

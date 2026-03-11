@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.13.0
+# 📧 CoreMail Desktop v1.13.1
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
@@ -13,6 +13,20 @@ oder
 ```bash
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
+
+## 🆕 v1.13.1 - OAuth2 Admin-Consent Fix
+
+### 🔐 Microsoft 365 OAuth2 Verbesserung
+- **Admin-Consent Problem behoben**: Wechsel von Thunderbird-Client-ID auf Microsoft Office native Client-ID
+- **Keine Administrator-Genehmigung mehr nötig**: User-Delegated Permissions ohne Admin-Consent
+- **Verbesserte Kompatibilität**: Funktioniert jetzt mit Enterprise Microsoft 365 Umgebungen
+
+### 🔧 Technische Änderungen
+- Client-ID geändert von `08162f7c-0fd2-4200-a84a-f25a4db0b584` (Thunderbird) auf `d3590ed6-52b3-4102-aeff-aad2292ab01c` (Microsoft Office)
+- Optimierte Scopes für User-Delegated Permissions
+- Kommentare in OAuth2-Konfiguration aktualisiert
+
+---
 
 ## 🆕 v1.13.0 - Globale Suchfunktion
 

@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.13.0",
-  "description": "CoreMail Desktop Client v1.13.0 - Globale Suchfunktion",
+  "version": "1.13.1",
+  "description": "CoreMail Desktop Client v1.13.1 - OAuth2 Admin-Consent Fix",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
