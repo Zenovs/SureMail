@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.12.4
+# 📧 CoreMail Desktop v1.13.0
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
@@ -13,6 +13,40 @@ oder
 ```bash
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
+
+## 🆕 v1.13.0 - Globale Suchfunktion
+
+### 🔍 Präzise Mail-Suche über alle Konten
+- **Globale Suche**: Durchsuche alle E-Mail-Konten und Ordner gleichzeitig
+- **Schnellzugriff**: `Ctrl+K` oder `Cmd+K` öffnet die Suchleiste sofort
+- **Suchleiste in Sidebar**: Prominente Suchleiste direkt in der Navigation
+
+### 🎯 Erweiterte Suchfilter
+- **Konto-Filter**: Suche nur in bestimmten Konten
+- **Ordner-Filter**: Alle Ordner, Posteingang, Gesendet, Entwürfe, Archiv
+- **Datum-Filter**: Von/Bis Datum eingrenzen
+- **Status-Filter**: Nur ungelesene, nur markierte Mails
+- **Anhang-Filter**: Nur Mails mit Anhängen
+
+### ⚡ Schnelle Ergebnisse
+- **Live-Vorschläge**: Autocomplete während der Eingabe (300ms Debouncing)
+- **Highlighting**: Suchbegriff wird in Ergebnissen hervorgehoben
+- **Gruppierung**: Ergebnisse nach Konto gruppiert
+- **Match-Indikator**: Zeigt wo der Suchbegriff gefunden wurde (Betreff, Absender, Text)
+
+### 🎨 Übersichtliche Darstellung
+- **Such-Modal**: Elegantes Overlay mit Backdrop-Blur
+- **Ergebnis-Preview**: Betreff, Absender, Datum, Vorschau-Text
+- **Ordner-Anzeige**: Zeigt in welchem Ordner die Mail liegt
+- **Status-Icons**: Gelesen/Ungelesen, Markiert, Mit Anhängen
+
+### 🔧 Technische Details
+- IMAP SEARCH über alle Postfächer
+- Suche in: Betreff, Absender, Empfänger, Nachrichtentext
+- Max. 200 Ergebnisse (sortiert nach Datum)
+- Fehlertoleranz: Nicht erreichbare Konten werden übersprungen
+
+---
 
 ## 🆕 v1.12.4 - Kategorien-Bearbeitung UX verbessert
 

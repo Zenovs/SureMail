@@ -1934,3 +1934,285 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
     return { success: false, error: error.message };
   }
 });
+
+
+
+// ============ GLOBAL SEARCH (v1.13.0) ============
+// Search emails across all accounts and folders with advanced filters
+
+ipcMain.handle('search:globalSearch', async (event, searchParams) => {
+  const {
+    query,
+    accountIds = [], // Empty = all accounts
+    folders = [],    // Empty = all folders
+    filters = {}     // Advanced filters
+  } = searchParams;
+
+  if (!query || query.trim().length < 2) {
+    return { success: false, error: 'Suchbegriff muss mindestens 2 Zeichen haben' };
+  }
+
+  const accounts = store.get('accounts', []);
+  const searchableAccounts = accountIds.length > 0 
+    ? accounts.filter(a => accountIds.includes(a.id))
+    : accounts;
+
+  if (searchableAccounts.length === 0) {
+    return { success: false, error: 'Keine Konten zum Durchsuchen gefunden' };
+  }
+
+  const results = [];
+  const errors = [];
+  const searchTerm = query.toLowerCase().trim();
+
+  for (const account of searchableAccounts) {
+    try {
+      const config = await getImapConfigForAccount(account);
+      const connection = await imapSimple.connect(config);
+      
+      // Get folders to search
+      let foldersToSearch = folders.length > 0 ? folders : ['INBOX'];
+      
+      // If searching all folders, get folder list
+      if (folders.length === 0 || folders.includes('*')) {
+        try {
+          const boxes = await connection.getBoxes();
+          foldersToSearch = extractFolderPaths(boxes);
+        } catch (e) {
+          foldersToSearch = ['INBOX'];
+        }
+      }
+
+      for (const folder of foldersToSearch) {
+        try {
+          await connection.openBox(folder);
+          
+          // Build IMAP search criteria
+          const searchCriteria = buildSearchCriteria(searchTerm, filters);
+          
+          const fetchOptions = {
+            bodies: ['HEADER', 'TEXT', ''],
+            markSeen: false,
+            struct: true
+          };
+
+          const messages = await connection.search(searchCriteria, fetchOptions);
+          
+          // Filter and process results
+          for (const message of messages.slice(-100)) { // Limit per folder
+            try {
+              const all = message.parts.find(p => p.which === '');
+              const parsed = await simpleParser(all.body);
+              
+              // Apply additional filters in memory
+              if (matchesFilters(parsed, message, filters, searchTerm)) {
+                const isUnread = !message.attributes.flags.includes('\\Seen');
+                const isFlagged = message.attributes.flags.includes('\\Flagged');
+                
+                results.push({
+                  uid: message.attributes.uid,
+                  accountId: account.id,
+                  accountName: account.name,
+                  folder: folder,
+                  subject: parsed.subject || '(Kein Betreff)',
+                  from: parsed.from?.text || 'Unbekannt',
+                  fromName: parsed.from?.value?.[0]?.name || parsed.from?.text?.split('<')[0]?.trim() || 'Unbekannt',
+                  fromEmail: parsed.from?.value?.[0]?.address || '',
+                  to: parsed.to?.text || '',
+                  date: parsed.date || new Date(),
+                  seen: !isUnread,
+                  flagged: isFlagged,
+                  hasAttachments: parsed.attachments && parsed.attachments.length > 0,
+                  preview: parsed.text ? parsed.text.substring(0, 200).replace(/\n/g, ' ') + '...' : '',
+                  matchedIn: getMatchedFields(parsed, searchTerm)
+                });
+              }
+            } catch (e) {
+              // Skip unparseable emails
+            }
+          }
+        } catch (folderErr) {
+          // Some folders may not be accessible
+          console.log(`Could not search folder ${folder}:`, folderErr.message);
+        }
+      }
+      
+      await connection.end();
+    } catch (accountErr) {
+      errors.push({
+        accountId: account.id,
+        accountName: account.name,
+        error: accountErr.message
+      });
+    }
+  }
+
+  // Sort results by date (newest first)
+  results.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  return {
+    success: true,
+    results: results.slice(0, 200), // Limit total results
+    totalFound: results.length,
+    errors: errors.length > 0 ? errors : undefined,
+    searchedAccounts: searchableAccounts.length,
+    query: searchTerm
+  };
+});
+
+// Helper: Extract all folder paths from IMAP boxes
+function extractFolderPaths(boxes, prefix = '') {
+  const paths = [];
+  for (const [name, box] of Object.entries(boxes)) {
+    const fullPath = prefix ? `${prefix}${box.delimiter || '/'}${name}` : name;
+    paths.push(fullPath);
+    if (box.children) {
+      paths.push(...extractFolderPaths(box.children, fullPath));
+    }
+  }
+  return paths;
+}
+
+// Helper: Build IMAP search criteria
+function buildSearchCriteria(searchTerm, filters) {
+  const criteria = [];
+  
+  // Text search - use OR for multiple fields
+  // Note: IMAP search is case-insensitive
+  if (searchTerm) {
+    criteria.push(['OR', 
+      ['OR', 
+        ['SUBJECT', searchTerm],
+        ['FROM', searchTerm]
+      ],
+      ['OR',
+        ['TO', searchTerm],
+        ['BODY', searchTerm]
+      ]
+    ]);
+  }
+  
+  // Date filters
+  if (filters.dateFrom) {
+    criteria.push(['SINCE', new Date(filters.dateFrom)]);
+  }
+  if (filters.dateTo) {
+    criteria.push(['BEFORE', new Date(filters.dateTo)]);
+  }
+  
+  // Read/Unread filter
+  if (filters.unreadOnly === true) {
+    criteria.push('UNSEEN');
+  }
+  
+  // Flagged filter
+  if (filters.flaggedOnly === true) {
+    criteria.push('FLAGGED');
+  }
+  
+  // Has attachments - Note: Not all IMAP servers support this
+  // We'll filter in memory instead
+  
+  return criteria.length > 0 ? criteria : ['ALL'];
+}
+
+// Helper: Check if email matches filters (in-memory filtering)
+function matchesFilters(parsed, message, filters, searchTerm) {
+  // Check attachments filter
+  if (filters.hasAttachments === true) {
+    if (!parsed.attachments || parsed.attachments.length === 0) {
+      return false;
+    }
+  }
+  
+  // Additional text matching for better precision
+  const subject = (parsed.subject || '').toLowerCase();
+  const from = (parsed.from?.text || '').toLowerCase();
+  const to = (parsed.to?.text || '').toLowerCase();
+  const body = (parsed.text || '').toLowerCase();
+  const html = (parsed.html || '').toLowerCase();
+  
+  // Must match at least one field
+  const matchesText = 
+    subject.includes(searchTerm) ||
+    from.includes(searchTerm) ||
+    to.includes(searchTerm) ||
+    body.includes(searchTerm) ||
+    html.includes(searchTerm);
+  
+  return matchesText;
+}
+
+// Helper: Get which fields matched the search term
+function getMatchedFields(parsed, searchTerm) {
+  const matched = [];
+  
+  if ((parsed.subject || '').toLowerCase().includes(searchTerm)) {
+    matched.push('subject');
+  }
+  if ((parsed.from?.text || '').toLowerCase().includes(searchTerm)) {
+    matched.push('from');
+  }
+  if ((parsed.to?.text || '').toLowerCase().includes(searchTerm)) {
+    matched.push('to');
+  }
+  if ((parsed.text || '').toLowerCase().includes(searchTerm) ||
+      (parsed.html || '').toLowerCase().includes(searchTerm)) {
+    matched.push('body');
+  }
+  
+  return matched;
+}
+
+// Quick search - Search in local cache first (faster)
+ipcMain.handle('search:quickSearch', async (event, { query, limit = 20 }) => {
+  if (!query || query.trim().length < 2) {
+    return { success: true, suggestions: [] };
+  }
+  
+  const searchTerm = query.toLowerCase().trim();
+  const cachedEmails = store.get('emailCache', []);
+  
+  // Search in cached emails
+  const suggestions = cachedEmails
+    .filter(email => {
+      const subject = (email.subject || '').toLowerCase();
+      const from = (email.from || '').toLowerCase();
+      return subject.includes(searchTerm) || from.includes(searchTerm);
+    })
+    .slice(0, limit)
+    .map(email => ({
+      uid: email.uid,
+      accountId: email.accountId,
+      subject: email.subject,
+      from: email.from,
+      date: email.date
+    }));
+  
+  return { success: true, suggestions };
+});
+
+// Cache emails for quick search
+ipcMain.handle('search:updateCache', async (event, { accountId, emails }) => {
+  try {
+    const cache = store.get('emailCache', []);
+    
+    // Remove old entries for this account
+    const filtered = cache.filter(e => e.accountId !== accountId);
+    
+    // Add new entries
+    const newEntries = emails.map(e => ({
+      ...e,
+      accountId,
+      cachedAt: new Date().toISOString()
+    }));
+    
+    // Keep cache manageable (max 1000 entries)
+    const updated = [...newEntries, ...filtered].slice(0, 1000);
+    store.set('emailCache', updated);
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});

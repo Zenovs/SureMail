@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AccountProvider, useAccounts } from './context/AccountContext';
 import { SidebarProvider } from './context/SidebarContext';
 import { DashboardProvider } from './context/DashboardContext';
 import { OllamaProvider, useOllama } from './context/OllamaContext';
+import { SearchProvider, useSearch } from './context/SearchContext';
 import SidebarV2 from './components/SidebarV2';
 import ChatWidget from './components/ChatWidget';
 import OllamaInstaller from './components/OllamaInstaller';
+import GlobalSearch from './components/GlobalSearch';
 import Dashboard from './pages/Dashboard';
 import InboxSplitView from './pages/InboxSplitView';
 import ComposeEmail from './pages/ComposeEmail';
@@ -22,12 +24,30 @@ function AppContent() {
   const { currentTheme } = useTheme();
   const { setActiveAccountId } = useAccounts();
   const { isAvailable, isChecking, checkOllama, setCurrentEmailContext } = useOllama();
+  const { openSearch, toggleSearch } = useSearch();
   const [currentView, setCurrentView] = useState('dashboard');
   const [fullViewEmail, setFullViewEmail] = useState(null);
   const [currentFolder, setCurrentFolder] = useState('INBOX');
   const [composeData, setComposeData] = useState(null); // v1.8.0: For reply/forward
   const [showOllamaInstaller, setShowOllamaInstaller] = useState(false);
   const c = currentTheme.colors;
+
+  // v1.13.0: Global search keyboard shortcut (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        toggleSearch();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        openSearch();
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSearch, openSearch]);
 
   // Check if we should show the Ollama installer on first start
   useEffect(() => {
@@ -92,6 +112,15 @@ function AppContent() {
     handleReply(email, { forward: true });
   };
 
+  // v1.13.0: Handle email selection from search
+  const handleSelectEmailFromSearch = useCallback((email) => {
+    setActiveAccountId(email.accountId);
+    setFullViewEmail(email);
+    setCurrentFolder(email.folder || 'INBOX');
+    setCurrentEmailContext(email);
+    setCurrentView('emailView');
+  }, [setActiveAccountId, setCurrentEmailContext]);
+
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
@@ -138,6 +167,9 @@ function AppContent() {
       </main>
       <ChatWidget />
       
+      {/* v1.13.0: Global Search Modal */}
+      <GlobalSearch onSelectEmail={handleSelectEmailFromSearch} />
+      
       {/* Ollama Installer Modal */}
       <OllamaInstaller 
         isOpen={showOllamaInstaller}
@@ -155,7 +187,9 @@ function App() {
         <SidebarProvider>
           <DashboardProvider>
             <OllamaProvider>
-              <AppContent />
+              <SearchProvider>
+                <AppContent />
+              </SearchProvider>
             </OllamaProvider>
           </DashboardProvider>
         </SidebarProvider>

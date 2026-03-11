@@ -2,6 +2,52 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.13.0] - 2026-03-11
+
+### 🔍 Neues Feature: Globale Suchfunktion
+
+#### 🎯 Präzise Mail-Suche über alle Konten
+- **Globale Suche**: Durchsuche alle E-Mail-Konten und Ordner gleichzeitig
+- **Schnellzugriff**: `Ctrl+K` oder `Cmd+K` öffnet die Suchleiste
+- **Suchleiste in Sidebar**: Prominente Suchleiste direkt in der Navigation
+- **IMAP SEARCH**: Nutzt native IMAP-Suchfunktion für präzise Ergebnisse
+
+#### 🎚️ Erweiterte Suchfilter
+- **Konto-Filter**: Suche nur in bestimmten Konten
+- **Ordner-Filter**: Alle Ordner, Posteingang, Gesendet, Entwürfe, Archiv
+- **Datum-Filter**: Von/Bis Datum eingrenzen
+- **Status-Filter**: Nur ungelesene, nur markierte Mails
+- **Anhang-Filter**: Nur Mails mit Anhängen
+
+#### ⚡ Performance & UX
+- **Live-Vorschläge**: Autocomplete während der Eingabe (300ms Debouncing)
+- **Highlighting**: Suchbegriff wird in Ergebnissen hervorgehoben
+- **Gruppierung**: Ergebnisse nach Konto gruppiert
+- **Match-Indikator**: Zeigt wo der Suchbegriff gefunden wurde (Betreff, Absender, Text)
+- **Max. 200 Ergebnisse**: Sortiert nach Datum (neueste zuerst)
+
+#### 🎨 Übersichtliche Darstellung
+- **Such-Modal**: Elegantes Overlay mit Backdrop-Blur
+- **Ergebnis-Preview**: Betreff, Absender, Datum, Vorschau-Text
+- **Ordner-Anzeige**: Zeigt in welchem Ordner die Mail liegt
+- **Status-Icons**: Gelesen/Ungelesen, Markiert, Mit Anhängen
+
+### 📝 Neue Dateien
+- `src/context/SearchContext.js` - State-Management für Suche
+- `src/components/GlobalSearch.js` - Such-Modal mit Filtern
+- `src/components/SearchResults.js` - Ergebnis-Darstellung
+
+### 📝 Geänderte Dateien
+- `main.js` - IMAP-Such-Backend (search:globalSearch, search:quickSearch, search:updateCache)
+- `preload.js` - Such-APIs für Renderer
+- `src/App.js` - SearchProvider und GlobalSearch Integration
+- `src/components/SidebarV2.js` - Suchleiste-Button
+- `package.json` - Version 1.13.0
+- `README.md` - Dokumentation für v1.13.0
+- `CHANGELOG.md` - Dieser Eintrag
+
+---
+
 ## [1.12.4] - 2026-03-11
 
 ### 💡 UX-Verbesserung: Kategorien-Bearbeitung Navigation

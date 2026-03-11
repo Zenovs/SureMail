@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.12.4",
-  "description": "CoreMail Desktop Client v1.12.4 - Kategorien-Bearbeitung UX verbessert",
+  "version": "1.13.0",
+  "description": "CoreMail Desktop Client v1.13.0 - Globale Suchfunktion",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
+import { useSearch } from '../context/SearchContext';
 import { getCategoryIcon } from '../pages/CategorySettings';
 
 function SidebarV2({ currentView, onNavigate }) {
   const { currentTheme } = useTheme();
   const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId, accountStats } = useAccounts();
   const { settings, updateWidth, isResizing, setIsResizing } = useSidebar();
+  const { openSearch } = useSearch();
   const [expandedCategories, setExpandedCategories] = useState(['work', 'personal', 'other']);
   const [appVersion, setAppVersion] = useState('...');
   const sidebarRef = useRef(null);
@@ -102,6 +105,23 @@ function SidebarV2({ currentView, onNavigate }) {
             <span className={`text-xs ${c.textSecondary}`}>v{appVersion}</span>
           </>
         )}
+      </div>
+
+      {/* v1.13.0: Search Button */}
+      <div className="p-3 pb-0">
+        <button
+          onClick={openSearch}
+          title={isIconsOnly || settings.collapsed ? 'Suche (Ctrl+K)' : ''}
+          className={`w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-colors ${c.input} ${c.text} hover:border-orange-500/50 border border-transparent`}
+        >
+          <Search className="w-4 h-4" />
+          {!isIconsOnly && !settings.collapsed && (
+            <>
+              <span className="flex-1 text-left opacity-60">Suche...</span>
+              <kbd className="text-xs px-1.5 py-0.5 rounded bg-gray-700 opacity-50">⌘K</kbd>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Main Navigation */}

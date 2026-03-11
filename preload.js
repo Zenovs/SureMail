@@ -69,5 +69,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   oauth2StartMicrosoft: () => ipcRenderer.invoke('oauth2:startMicrosoft'),
   oauth2RefreshToken: (accountId) => ipcRenderer.invoke('oauth2:refreshToken', accountId),
   oauth2TestConnection: (accountId) => ipcRenderer.invoke('oauth2:testConnection', accountId),
-  oauth2RevokeAccount: (accountId) => ipcRenderer.invoke('oauth2:revokeAccount', accountId)
+  oauth2RevokeAccount: (accountId) => ipcRenderer.invoke('oauth2:revokeAccount', accountId),
+  
+  // Global Search (v1.13.0)
+  globalSearch: (params) => ipcRenderer.invoke('search:globalSearch', params),
+  quickSearch: (params) => ipcRenderer.invoke('search:quickSearch', params),
+  updateSearchCache: (data) => ipcRenderer.invoke('search:updateCache', data)
 });
