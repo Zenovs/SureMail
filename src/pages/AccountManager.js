@@ -302,12 +302,14 @@ function AccountManager() {
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className={`text-lg font-semibold ${c.text}`}>Kategorien</h2>
-            <button
-              onClick={() => setShowCategoryForm(true)}
-              className={`text-sm ${c.accent} hover:underline`}
-            >
-              + Kategorie
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowCategoryForm(true)}
+                className={`text-sm ${c.accent} hover:underline`}
+              >
+                + Kategorie
+              </button>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {categories.map(cat => (
@@ -327,6 +329,12 @@ function AccountManager() {
                 )}
               </div>
             ))}
+          </div>
+          {/* v1.12.4: Hinweis zur Kategorien-Bearbeitung */}
+          <div className={`mt-3 flex items-center gap-2 text-sm ${c.textSecondary}`}>
+            <span>💡</span>
+            <span>Kategorien bearbeiten (Name, Farbe, Icon)?</span>
+            <span className={`${c.accent} font-medium`}>→ Einstellungen → Kategorien</span>
           </div>
         </div>
 

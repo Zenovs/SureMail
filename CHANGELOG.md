@@ -2,6 +2,28 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.12.4] - 2026-03-11
+
+### 💡 UX-Verbesserung: Kategorien-Bearbeitung Navigation
+
+#### 🔍 Problem: Benutzer findet Kategorien-Bearbeitung nicht
+- **Symptom**: Benutzer suchte auf der Konten-Seite nach Kategorien-Bearbeitung
+- **Ursache**: Keine klare Navigation zur Einstellungen → Kategorien
+- **Verwirrung**: Kategorien werden auf Konten-Seite angezeigt, aber dort nicht bearbeitet
+
+#### ✅ Lösung: Klarer Hinweis hinzugefügt
+- **Hinweis**: "💡 Kategorien bearbeiten (Name, Farbe, Icon)? → Einstellungen → Kategorien"
+- **Position**: Direkt unter den Kategorie-Tags auf der Konten-Seite
+- **Styling**: Dezent aber sichtbar mit Accent-Farbe
+
+### 📝 Geänderte Dateien
+- `src/pages/AccountManager.js` - Hinweis zur Kategorien-Bearbeitung
+- `package.json` - Version 1.12.4
+- `README.md` - Dokumentation für v1.12.4
+- `CHANGELOG.md` - Dieser Eintrag
+
+---
+
 ## [1.12.3] - 2026-03-10
 
 ### 🐛 Kritischer Bugfix: Kategorien-Bearbeitung WIRKLICH gefixt

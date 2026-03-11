@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.12.3
+# 📧 CoreMail Desktop v1.12.4
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
@@ -13,6 +13,19 @@ oder
 ```bash
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
+
+## 🆕 v1.12.4 - Kategorien-Bearbeitung UX verbessert
+
+### 💡 Bessere Navigation zur Kategorien-Bearbeitung
+- **Hinweis auf Konten-Seite**: Deutlicher Hinweis "Kategorien bearbeiten? → Einstellungen → Kategorien"
+- **Benutzer findet es jetzt**: Der Weg zur Kategorien-Bearbeitung ist jetzt offensichtlich
+- **UX-Verbesserung**: Benutzer werden nicht mehr auf der falschen Seite gesucht
+
+### 🔧 Was wurde geändert
+- `AccountManager.js`: Hinweis zur Kategorien-Bearbeitung unter den Kategorie-Tags hinzugefügt
+- Kategorien werden weiterhin in Einstellungen → Kategorien bearbeitet (Name, Farbe, Icon)
+
+---
 
 ## 🆕 v1.12.3 - Kategorien-Bearbeitung GEFIXT
 
