@@ -2,6 +2,61 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.14.0] - 2026-03-12
+
+### 🛡️ Neues Feature: Intelligenter Spam-Filter
+
+#### 🔍 Spam-Erkennung
+- **Automatische Analyse**: Jede E-Mail wird automatisch auf Spam, Werbung, Phishing und Viren analysiert
+- **Regel-basierte Erkennung**: Über 100+ Keywords und Patterns für zuverlässige Klassifizierung
+- **4 Kategorien**:
+  - 📢 **Werbung** (Orange) — Marketing-Mails, Newsletter
+  - 🚫 **Spam** (Rot) — Unerwünschte Mails
+  - ⚠️ **Schädlich** (Gelb) — Phishing-Versuche, verdächtige Links
+  - 🦠 **Virus** (Dunkelrot) — Gefährliche Anhänge (.exe, .scr, .bat, etc.)
+
+#### 🏷️ UI-Integration
+- **Spam-Tags**: Farbige Badges neben dem "Neu"-Badge in der E-Mail-Liste
+- **Farbige Seitenränder**: Linker Rand der E-Mail wechselt je nach Kategorie die Farbe
+- **Warnbanner**: Auffällige Warnung in der E-Mail-Vorschau mit Gründen
+- **Sofortige Anzeige**: Tags erscheinen unmittelbar nach dem Laden
+
+#### ⚙️ Einstellungen (neuer Tab in Einstellungen)
+- **Aktivieren/Deaktivieren**: Spam-Filter ein- und ausschalten
+- **Empfindlichkeit**: Niedrig, Mittel (Standard), Hoch
+- **Whitelist**: Vertrauenswürdige Absender (werden nie als Spam markiert)
+- **Blacklist**: Blockierte Absender (werden immer als Spam markiert)
+- **Tags anzeigen**: Tags in der E-Mail-Liste ein-/ausblenden
+
+#### 🔬 Analyse-Kriterien
+- Spam-Keywords (Gewinnspiel, Kredit, Viagra, etc.)
+- Verdächtige Domains (.xyz, .top, .click, etc.)
+- Phishing-Keywords (Passwort zurücksetzen, Konto gesperrt, etc.)
+- Verdächtige Links (Kurz-URLs, Phishing-Domains)
+- Gefährliche Anhänge (.exe, .scr, .bat, .cmd, .vbs, etc.)
+- Doppelte Dateiendungen (z.B. dokument.pdf.exe)
+- HTML-Struktur (viele Bilder, wenig Text)
+- Betreff-Analyse (Großbuchstaben, übermäßige Satzzeichen)
+- Link-Mismatch (angezeigter Text ≠ tatsächliche URL)
+
+#### 🔧 Backend
+- Neue IPC-Handler: `spamfilter:saveSettings`, `spamfilter:loadSettings`, `spamfilter:saveAnalysis`, `spamfilter:loadAnalysis`
+- Einstellungen in electron-store und localStorage gespeichert
+- Asynchrone Analyse ohne UI-Blockierung
+
+### 📝 Geänderte Dateien
+- `src/utils/SpamFilter.js` — Neues Spam-Filter-Modul (erstellt)
+- `src/pages/SpamFilterSettings.js` — Einstellungs-Komponente (erstellt)
+- `src/pages/InboxSplitView.js` — Spam-Tags, Warnbanner, farbige Ränder
+- `src/pages/SettingsV2.js` — Neuer "Spam-Filter" Tab, aktualisierter Changelog
+- `main.js` — IPC-Handler für Spam-Filter-Einstellungen
+- `preload.js` — Spam-Filter API-Bridge
+- `package.json` — Version 1.14.0
+- `README.md` — Spam-Filter Dokumentation
+- `CHANGELOG.md` — Dieses Changelog
+
+---
+
 ## [1.13.2] - 2026-03-12
 
 ### 🔧 Neues Feature: Azure AD App-Registrierung Support

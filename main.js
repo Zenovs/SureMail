@@ -1237,6 +1237,40 @@ ipcMain.handle('oauth2:revokeAccount', async (event, accountId) => {
   }
 });
 
+// === SPAM FILTER (v1.14.0) ===
+ipcMain.handle('spamfilter:saveSettings', async (event, settings) => {
+  store.set('spamFilterSettings', settings);
+  return { success: true };
+});
+
+ipcMain.handle('spamfilter:loadSettings', async () => {
+  return {
+    success: true,
+    settings: store.get('spamFilterSettings', {
+      enabled: true,
+      sensitivity: 'medium',
+      whitelist: [],
+      blacklist: [],
+      autoMoveToSpam: false,
+      showTags: true
+    })
+  };
+});
+
+ipcMain.handle('spamfilter:saveAnalysis', async (event, accountId, analysisData) => {
+  const key = `spamAnalysis:${accountId}`;
+  store.set(key, analysisData);
+  return { success: true };
+});
+
+ipcMain.handle('spamfilter:loadAnalysis', async (event, accountId) => {
+  const key = `spamAnalysis:${accountId}`;
+  return {
+    success: true,
+    analysis: store.get(key, {})
+  };
+});
+
 // === SIGNATURES ===
 ipcMain.handle('signatures:save', async (event, signatures) => {
   store.set('signatures', signatures);

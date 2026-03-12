@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.13.2",
-  "description": "CoreMail Desktop Client v1.13.2 - Azure AD App-Registrierung Support",
+  "version": "1.14.0",
+  "description": "CoreMail Desktop Client v1.14.0 - Intelligenter Spam-Filter",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

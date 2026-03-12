@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { getCurrentFont } from './FontSettings';
+import { analyzeEmails, getSpamFilterSettings, TAG_STYLES } from '../utils/SpamFilter';
 
 // v1.11.1: Google Fonts list for email content styling
 const GOOGLE_FONTS = {
@@ -141,16 +142,45 @@ const removeEmailFromIndexedDB = async (accountId, folder, uid) => {
   }
 };
 
+// v1.14.0: Spam Tag Badge component
+const SpamTagBadge = memo(({ category }) => {
+  if (!category || category === 'sicher') return null;
+  const style = TAG_STYLES[category];
+  if (!style) return null;
+  
+  return (
+    <span 
+      className={`inline-flex items-center px-1.5 py-0.5 text-xs rounded-full font-medium border ${style.bgColor} ${style.textColor} ${style.borderColor}`}
+      title={style.description}
+    >
+      {style.label}
+    </span>
+  );
+});
+
 // v1.12.2: Improved Email List Item with text wrapping and dynamic height
-const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onToggleRead, c, actionLoading }) => {
+// v1.14.0: Added spam filter tags
+const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onToggleRead, c, actionLoading, spamAnalysis }) => {
   const isUnread = !email.seen;
+  const spamCategory = spamAnalysis?.category;
+  const spamTags = spamAnalysis?.tags || [];
+  
+  // v1.14.0: Border color based on spam category
+  const getBorderColor = () => {
+    if (spamCategory === 'virus') return 'border-l-red-600';
+    if (spamCategory === 'schaedlich') return 'border-l-yellow-500';
+    if (spamCategory === 'spam') return 'border-l-red-400';
+    if (spamCategory === 'werbung') return 'border-l-orange-400';
+    if (isUnread) return 'border-l-blue-500';
+    return 'border-l-transparent';
+  };
   
   return (
     <div
       onClick={() => onSelect(index)}
       className={`p-3 cursor-pointer transition-all ${c.border} border-b relative group
         ${isSelected ? c.bgTertiary : isUnread ? 'bg-blue-500/5 hover:bg-blue-500/10' : c.hover}
-        ${isUnread ? 'border-l-3 border-l-blue-500' : 'border-l-3 border-l-transparent'}
+        ${getBorderColor()}
       `}
       style={{ borderLeftWidth: '3px', minHeight: '60px' }}
     >
@@ -183,7 +213,7 @@ const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onTo
             {email.preview}
           </div>
           
-          {/* Date and unread badge */}
+          {/* Date, unread badge, and spam tags (v1.14.0) */}
           <div className={`text-xs ${c.textSecondary} mt-2 flex items-center gap-2 flex-wrap`}>
             <span>
               {new Date(email.date).toLocaleDateString('de-DE', {
@@ -197,6 +227,10 @@ const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onTo
               <span className="px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium">
                 Neu
               </span>
+            )}
+            {/* v1.14.0: Spam filter tags */}
+            {spamCategory && spamCategory !== 'sicher' && (
+              <SpamTagBadge category={spamCategory} />
             )}
           </div>
         </div>
@@ -715,6 +749,25 @@ function InboxSplitView({ onFullView }) {
     return flat;
   }, [sortedFolders]);
 
+  // v1.14.0: Spam filter analysis results
+  const [spamResults, setSpamResults] = useState(new Map());
+  
+  // v1.14.0: Run spam analysis when emails change
+  useEffect(() => {
+    const settings = getSpamFilterSettings();
+    if (!settings.enabled || emails.length === 0) {
+      setSpamResults(new Map());
+      return;
+    }
+    
+    // Run analysis asynchronously to avoid blocking
+    const runAnalysis = async () => {
+      const results = analyzeEmails(emails, settings);
+      setSpamResults(results);
+    };
+    runAnalysis();
+  }, [emails]);
+
   // v1.11.0: Count unread emails
   const unreadCount = useMemo(() => {
     return emails.filter(e => !e.seen).length;
@@ -871,6 +924,7 @@ function InboxSplitView({ onFullView }) {
                   onToggleRead={handleToggleRead}
                   c={c}
                   actionLoading={actionLoading}
+                  spamAnalysis={spamResults.get(email.uid)}
                 />
               ))}
               {loadingMore && (
@@ -913,6 +967,29 @@ function InboxSplitView({ onFullView }) {
           </div>
         ) : selectedEmail ? (
           <>
+            {/* v1.14.0: Spam warning banner */}
+            {(() => {
+              const analysis = spamResults.get(selectedEmail.uid || emails[selectedIndex]?.uid);
+              if (!analysis || analysis.category === 'sicher') return null;
+              const style = TAG_STYLES[analysis.category];
+              if (!style) return null;
+              
+              return (
+                <div className={`px-4 py-3 ${style.bgColor} border-b ${style.borderColor} border flex items-center gap-3`}>
+                  <Shield className={`w-5 h-5 ${style.textColor} flex-shrink-0`} />
+                  <div className="flex-1">
+                    <div className={`font-medium text-sm ${style.textColor}`}>
+                      {style.label} — {style.description}
+                    </div>
+                    {analysis.reasons?.length > 0 && (
+                      <div className={`text-xs ${style.textColor} opacity-75 mt-0.5`}>
+                        {analysis.reasons.slice(0, 3).join(' • ')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
             <div className={`p-4 ${c.bgSecondary} ${c.border} border-b`}>
               <div className="flex justify-between items-start">
                 <div>

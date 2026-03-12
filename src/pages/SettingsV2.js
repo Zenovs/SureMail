@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Type } from 'lucide-react';
+import { MessageCircle, Type, Shield } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
@@ -9,6 +9,7 @@ import OllamaSettings from './OllamaSettings';
 import CategorySettings from './CategorySettings';
 import EmailSettings from './EmailSettings';
 import FontSettings from './FontSettings';
+import SpamFilterSettings from './SpamFilterSettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
@@ -50,6 +51,7 @@ function SettingsV2() {
   const tabs = [
     { id: 'general', name: 'Allgemein', icon: '⚙️' },
     { id: 'email', name: 'E-Mail', icon: '📧' },
+    { id: 'spamfilter', name: 'Spam-Filter', icon: <Shield className="w-5 h-5" /> },
     { id: 'font', name: 'Schriftart', icon: <Type className="w-5 h-5" /> },
     { id: 'ai', name: 'KI-Assistent', icon: <MessageCircle className="w-5 h-5" /> },
     { id: 'sidebar', name: 'Sidebar', icon: '📐' },
@@ -163,30 +165,36 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.12.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.14.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-purple-400">✏️</span>
-                  <span>Kategorien-Bearbeitung: Edit-Button erscheint nur beim Hover</span>
+                  <span className="text-green-400">🛡️</span>
+                  <span><strong>Intelligenter Spam-Filter:</strong> Automatische Erkennung von Spam, Werbung, Phishing und Viren</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-400">↔️</span>
-                  <span>Vorschau noch kleiner: Min-Breite auf 100px reduziert</span>
+                  <span className="text-orange-400">🏷️</span>
+                  <span><strong>Spam-Tags:</strong> 📢 Werbung, 🚫 Spam, ⚠️ Schädlich, 🦠 Virus — direkt in der Mail-Liste</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">📐</span>
-                  <span>Alle Seitenleisten resizable: Sidebar, Ordner, Vorschau</span>
+                  <span className="text-yellow-400">⚠️</span>
+                  <span><strong>Warnbanner:</strong> Auffällige Warnungen in der E-Mail-Vorschau bei gefährlichen Mails</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-orange-400">🔤</span>
-                  <span>Font auf E-Mail-Inhalt: Ausgewählte Schrift wird angewendet</span>
+                  <span className="text-cyan-400">⚙️</span>
+                  <span><strong>Einstellungen:</strong> Empfindlichkeit, Whitelist und Blacklist konfigurierbar</span>
                 </li>
               </ul>
-              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.11.x</h4>
+              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.13.x</h4>
               <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
-                <li>• Kategorien anpassen: Name, Farbe und Icon wählbar</li>
-                <li>• Google Fonts Auswahl mit Live-Vorschau</li>
-                <li>• GitHub-Hosting ohne Vercel-Abhängigkeit</li>
+                <li>• Globale Suche (Ctrl+K) über alle Konten</li>
+                <li>• Azure AD App-Registrierung Support</li>
+                <li>• Microsoft Office Client-ID für OAuth2</li>
+              </ul>
+              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.12.x</h4>
+              <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
+                <li>• Resizable Mail-Liste mit Text-Wrapping</li>
+                <li>• Alle Seitenleisten resizable</li>
+                <li>• Google Fonts auf E-Mail-Inhalt</li>
               </ul>
             </div>
           </div>
@@ -194,6 +202,9 @@ function SettingsV2() {
       
       case 'email':
         return <EmailSettings />;
+      
+      case 'spamfilter':
+        return <SpamFilterSettings />;
       
       case 'font':
         return <FontSettings />;

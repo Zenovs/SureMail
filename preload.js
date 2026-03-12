@@ -74,5 +74,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Global Search (v1.13.0)
   globalSearch: (params) => ipcRenderer.invoke('search:globalSearch', params),
   quickSearch: (params) => ipcRenderer.invoke('search:quickSearch', params),
-  updateSearchCache: (data) => ipcRenderer.invoke('search:updateCache', data)
+  updateSearchCache: (data) => ipcRenderer.invoke('search:updateCache', data),
+  
+  // Spam Filter (v1.14.0)
+  saveSpamFilterSettings: (settings) => ipcRenderer.invoke('spamfilter:saveSettings', settings),
+  loadSpamFilterSettings: () => ipcRenderer.invoke('spamfilter:loadSettings'),
+  saveSpamAnalysis: (accountId, data) => ipcRenderer.invoke('spamfilter:saveAnalysis', accountId, data),
+  loadSpamAnalysis: (accountId) => ipcRenderer.invoke('spamfilter:loadAnalysis', accountId)
 });

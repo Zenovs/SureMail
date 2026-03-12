@@ -1,6 +1,6 @@
-# 📧 CoreMail Desktop v1.13.2
+# 📧 CoreMail Desktop v1.14.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokalem KI-Assistenten, intelligentem Spam-Filter, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
 ## 🚀 Schnellinstallation
 
@@ -14,7 +14,26 @@ oder
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
 
-## 🆕 v1.13.2 - Azure AD App-Registrierung Support
+## 🆕 v1.14.0 - Intelligenter Spam-Filter
+
+### 🛡️ Spam-Filter
+- **Automatische Erkennung**: E-Mails werden auf Spam, Werbung, Phishing und Viren analysiert
+- **4 Kategorien**: 📢 Werbung, 🚫 Spam, ⚠️ Schädlich, 🦠 Virus
+- **Tags in Mail-Liste**: Farbige Badges neben dem "Neu"-Badge
+- **Warnbanner**: Auffällige Warnungen in der E-Mail-Vorschau
+- **Einstellbar**: Empfindlichkeit (Niedrig/Mittel/Hoch), Whitelist, Blacklist
+- **Keine False Positives**: Whitelist für vertrauenswürdige Absender
+
+### 🔬 Was wird analysiert?
+- Keywords (Spam, Phishing, Marketing)
+- Absender-Domains und -Muster
+- Verdächtige Links (Kurz-URLs, Phishing)
+- Gefährliche Anhänge (.exe, .scr, .bat, etc.)
+- HTML-Struktur und Betreff-Analyse
+
+---
+
+## 🔧 v1.13.2 - Azure AD App-Registrierung Support
 
 ### 🔧 Eigene Azure AD App-Registrierung
 - **Custom Client-ID**: Benutzer können ihre eigene Azure AD Client-ID eingeben
