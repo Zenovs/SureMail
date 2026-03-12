@@ -11,14 +11,15 @@ const imapSimple = require('imap-simple');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
 
-// ============ OAUTH2 CONFIGURATION (v1.13.1) ============
+// ============ OAUTH2 CONFIGURATION (v1.13.2) ============
 // Microsoft OAuth2 settings for IMAP/SMTP access
 // v1.13.1: Changed from Thunderbird client ID to Microsoft Office public client ID
-// to avoid admin consent requirements in enterprise environments
+// v1.13.2: Support for custom Azure AD App Registration (user-provided Client-ID)
 const OAUTH2_CONFIG = {
   microsoft: {
-    // Microsoft Office Desktop Apps public client ID (no admin consent required for delegated permissions)
-    clientId: 'd3590ed6-52b3-4102-aeff-aad2292ab01c', // Microsoft Office native client
+    // Default: Microsoft Office Desktop Apps public client ID (no admin consent required)
+    // v1.13.2: Can be overridden by user-provided Client-ID from Azure AD App Registration
+    clientId: 'd3590ed6-52b3-4102-aeff-aad2292ab01c', // Microsoft Office native client (default)
     authEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
     tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
     // v1.13.1: Optimized scopes - user-delegated permissions only
@@ -197,9 +198,16 @@ function generateState() {
 }
 
 // Start OAuth2 flow for Microsoft
-async function startMicrosoftOAuth() {
+// v1.13.2: Added optional customClientId parameter for Azure AD App Registration
+let activeCustomClientId = null; // Track active custom Client-ID for token exchange
+
+async function startMicrosoftOAuth(customClientId = null) {
   return new Promise((resolve, reject) => {
     const config = OAUTH2_CONFIG.microsoft;
+    // v1.13.2: Use custom Client-ID if provided, otherwise fall back to default
+    const effectiveClientId = customClientId || config.clientId;
+    activeCustomClientId = customClientId; // Store for token exchange
+    console.log(`[OAuth2] Using Client-ID: ${effectiveClientId}${customClientId ? ' (custom)' : ' (default)'}`);
     
     // Generate PKCE and state
     const pkce = generatePKCE();
@@ -208,7 +216,7 @@ async function startMicrosoftOAuth() {
     
     // Build authorization URL
     const authParams = new URLSearchParams({
-      client_id: config.clientId,
+      client_id: effectiveClientId,
       response_type: 'code',
       redirect_uri: config.redirectUri,
       scope: config.scopes.join(' '),
@@ -300,11 +308,14 @@ async function startMicrosoftOAuth() {
 }
 
 // Exchange authorization code for tokens
+// v1.13.2: Uses activeCustomClientId if set during startMicrosoftOAuth
 async function exchangeCodeForTokens(code, provider) {
   const config = OAUTH2_CONFIG[provider];
+  // v1.13.2: Use custom Client-ID if active
+  const effectiveClientId = (provider === 'microsoft' && activeCustomClientId) ? activeCustomClientId : config.clientId;
   
   const tokenParams = new URLSearchParams({
-    client_id: config.clientId,
+    client_id: effectiveClientId,
     grant_type: 'authorization_code',
     code: code,
     redirect_uri: config.redirectUri,
@@ -369,11 +380,14 @@ async function exchangeCodeForTokens(code, provider) {
 }
 
 // Refresh OAuth2 tokens
-async function refreshOAuthTokens(refreshToken, provider) {
+// v1.13.2: Added optional customClientId parameter
+async function refreshOAuthTokens(refreshToken, provider, customClientId = null) {
   const config = OAUTH2_CONFIG[provider];
+  // v1.13.2: Use custom Client-ID if provided
+  const effectiveClientId = (provider === 'microsoft' && customClientId) ? customClientId : config.clientId;
   
   const tokenParams = new URLSearchParams({
-    client_id: config.clientId,
+    client_id: effectiveClientId,
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
     scope: config.scopes.join(' ')
@@ -447,7 +461,8 @@ async function getValidAccessToken(accountId) {
   console.log('[OAuth2] Refreshing access token for account:', accountId);
   
   try {
-    const newTokens = await refreshOAuthTokens(oauth.refreshToken, oauth.provider || 'microsoft');
+    // v1.13.2: Pass custom Client-ID if stored in account
+    const newTokens = await refreshOAuthTokens(oauth.refreshToken, oauth.provider || 'microsoft', oauth.customClientId || null);
     
     // Update account with new tokens
     const accounts = store.get('accounts', []);
@@ -1135,11 +1150,14 @@ ipcMain.handle('ollama:downloadModel', async (event, modelName) => {
   }
 });
 
-// === OAUTH2 (v1.10.0) ===
-ipcMain.handle('oauth2:startMicrosoft', async () => {
+// === OAUTH2 (v1.10.0, v1.13.2: custom Client-ID support) ===
+ipcMain.handle('oauth2:startMicrosoft', async (event, customClientId) => {
   try {
     console.log('[OAuth2] Starting Microsoft OAuth flow...');
-    const tokens = await startMicrosoftOAuth();
+    if (customClientId) {
+      console.log(`[OAuth2] Custom Client-ID provided: ${customClientId}`);
+    }
+    const tokens = await startMicrosoftOAuth(customClientId || null);
     console.log('[OAuth2] Authentication successful for:', tokens.email);
     return { 
       success: true, 

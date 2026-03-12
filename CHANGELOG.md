@@ -2,6 +2,46 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.13.2] - 2026-03-12
+
+### 🔧 Neues Feature: Azure AD App-Registrierung Support
+
+#### 🎯 Eigene Azure AD Client-ID
+- **Custom Client-ID Eingabe**: Neues Eingabefeld im OAuth2-Panel für benutzerdefinierte Azure AD Client-ID
+- **Standard-Fallback**: Wenn keine Client-ID angegeben, wird die Standard-Client-ID (`d3590ed6-52b3-4102-aeff-aad2292ab01c`) verwendet
+- **Hilfe-Icon**: "?" Button neben dem Client-ID Feld öffnet In-App Hilfe-Panel
+- **In-App Anleitung**: Schritt-für-Schritt Kurzanleitung direkt im UI
+- **Sichere Speicherung**: Custom Client-ID wird verschlüsselt mit dem Account gespeichert
+
+#### 🔄 Backend-Anpassungen
+- `startMicrosoftOAuth()` akzeptiert optionalen `customClientId` Parameter
+- `exchangeCodeForTokens()` verwendet aktive Custom Client-ID
+- `refreshOAuthTokens()` unterstützt Custom Client-ID für Token-Refresh
+- `getValidAccessToken()` liest Custom Client-ID aus Account-Daten
+- IPC-Handler `oauth2:startMicrosoft` leitet Custom Client-ID weiter
+- Preload-Bridge aktualisiert für Client-ID Parameter
+
+#### 📖 Dokumentation
+- **Neue Datei: `AZURE_AD_SETUP.md`**: Vollständige Schritt-für-Schritt-Anleitung
+  - Azure Portal App-Registrierung erstellen
+  - Redirect URI konfigurieren
+  - API-Berechtigungen (IMAP, SMTP, Graph) hinzufügen
+  - Administratorzustimmung erteilen
+  - Client-ID in CoreMail eingeben
+  - Fehlerbehebung (AADSTS65002, Admin-Consent, redirect_uri)
+- **README.md**: Neuer Abschnitt "Microsoft OAuth2 Setup" mit Link zu Dokumentation
+
+### 📝 Geänderte Dateien
+- `src/pages/AccountManager.js` - Client-ID Eingabefeld, Hilfe-Panel, HelpCircle Icon
+- `main.js` - OAuth2 Custom Client-ID Support in allen Flows
+- `preload.js` - Client-ID Parameter in IPC-Bridge
+- `AZURE_AD_SETUP.md` - Neue Dokumentation (erstellt)
+- `README.md` - v1.13.2 Abschnitt, Microsoft OAuth2 Setup
+- `package.json` - Version 1.13.2
+- `CHANGELOG.md` - Dieser Eintrag
+
+---
+
 ## [1.13.1] - 2026-03-11
 
 ### 🔐 Bugfix: Microsoft OAuth2 Admin-Consent Problem

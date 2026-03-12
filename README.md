@@ -1,4 +1,4 @@
-# 📧 CoreMail Desktop v1.13.1
+# 📧 CoreMail Desktop v1.13.2
 
 Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokaler KI-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
@@ -13,6 +13,26 @@ oder
 ```bash
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
+
+## 🆕 v1.13.2 - Azure AD App-Registrierung Support
+
+### 🔧 Eigene Azure AD App-Registrierung
+- **Custom Client-ID**: Benutzer können ihre eigene Azure AD Client-ID eingeben
+- **Standard-Fallback**: Wenn keine Client-ID angegeben, wird die Standard-ID verwendet
+- **Hilfe-Panel**: In-App Anleitung mit "?" Icon neben dem Client-ID Feld
+- **Sichere Speicherung**: Client-ID wird verschlüsselt im Account gespeichert
+- **Token-Refresh**: Custom Client-ID wird auch bei Token-Refresh verwendet
+
+### 📖 Microsoft OAuth2 Setup
+Für Organisationen, die eine eigene App-Registrierung benötigen, gibt es eine ausführliche Anleitung:
+→ [AZURE_AD_SETUP.md](AZURE_AD_SETUP.md)
+
+**Wann brauche ich eine eigene App-Registrierung?**
+- "Administratorgenehmigung erforderlich" Fehlermeldung
+- Strenge Conditional Access Policies in der Organisation
+- IT-Admin möchte App gezielt genehmigen
+
+---
 
 ## 🆕 v1.13.1 - OAuth2 Admin-Consent Fix
 

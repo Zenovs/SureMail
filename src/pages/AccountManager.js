@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CheckCircle, AlertCircle, Settings, Mail, Loader, LogIn, Shield, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, AlertCircle, Settings, Mail, Loader, LogIn, Shield, RefreshCw, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
@@ -107,6 +107,9 @@ function AccountManager() {
   const [useOAuth2, setUseOAuth2] = useState(false);
   const [oauth2Tokens, setOauth2Tokens] = useState(null);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  // v1.13.2: Azure AD Custom Client-ID
+  const [customClientId, setCustomClientId] = useState('');
+  const [showAzureAdHelp, setShowAzureAdHelp] = useState(false);
 
   // v1.10.2: Computed property to check if OAuth2 should be shown (fixed dependency)
   const currentPreset = useMemo(() => {
@@ -173,11 +176,13 @@ function AccountManager() {
     }));
   };
 
-  // v1.10.0: OAuth2 Microsoft Login
+  // v1.10.0: OAuth2 Microsoft Login (v1.13.2: supports custom Client-ID)
   const handleMicrosoftOAuth2Login = async () => {
     setOauth2Status({ loading: true, error: null, success: false });
     try {
-      const result = await window.electronAPI.oauth2StartMicrosoft();
+      // v1.13.2: Pass custom Client-ID if provided
+      const clientIdToUse = customClientId.trim() || null;
+      const result = await window.electronAPI.oauth2StartMicrosoft(clientIdToUse);
       if (result.success) {
         setOauth2Tokens(result.tokens);
         setOauth2Status({ loading: false, error: null, success: true });
@@ -228,6 +233,9 @@ function AccountManager() {
     setOauth2Tokens(null);
     setUseOAuth2(false);
     setShowAdvancedSettings(false);
+    // v1.13.2: Reset custom Client-ID
+    setCustomClientId('');
+    setShowAzureAdHelp(false);
   };
 
   const handleEditAccount = (account) => {
@@ -239,6 +247,10 @@ function AccountManager() {
       setUseOAuth2(true);
       setOauth2Tokens(account.oauth2);
       setOauth2Status({ loading: false, error: null, success: true });
+      // v1.13.2: Load custom Client-ID
+      if (account.oauth2.customClientId) {
+        setCustomClientId(account.oauth2.customClientId);
+      }
     }
   };
 
@@ -251,7 +263,9 @@ function AccountManager() {
         refreshToken: oauth2Tokens.refreshToken,
         expiresAt: oauth2Tokens.expiresAt,
         email: oauth2Tokens.email,
-        provider: oauth2Tokens.provider || 'microsoft'
+        provider: oauth2Tokens.provider || 'microsoft',
+        // v1.13.2: Store custom Client-ID for token refresh
+        customClientId: customClientId.trim() || null
       };
     }
     
@@ -514,6 +528,58 @@ function AccountManager() {
                         <p className={`text-sm ${c.textSecondary}`}>
                           Melden Sie sich sicher mit Ihrem Microsoft-Konto an. Es öffnet sich ein Browser-Fenster zur Anmeldung.
                         </p>
+
+                        {/* v1.13.2: Azure AD Custom Client-ID */}
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <label className={`text-sm ${c.textSecondary}`}>
+                              Azure AD Client-ID (optional)
+                            </label>
+                            <button
+                              onClick={() => setShowAzureAdHelp(!showAzureAdHelp)}
+                              className={`${c.textSecondary} hover:text-blue-400 transition-colors`}
+                              title="Hilfe zur Azure AD App-Registrierung"
+                            >
+                              <HelpCircle className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={customClientId}
+                            onChange={e => setCustomClientId(e.target.value)}
+                            placeholder="d3590ed6-52b3-4102-aeff-aad2292ab01c"
+                            className={`w-full px-3 py-2 rounded-lg ${c.input} text-sm font-mono`}
+                          />
+                          <p className={`text-xs ${c.textSecondary} mt-1`}>
+                            Verwende deine eigene Azure AD App-Registrierung. Leer lassen für Standard-Client-ID.
+                          </p>
+                        </div>
+
+                        {/* v1.13.2: Azure AD Help Panel */}
+                        {showAzureAdHelp && (
+                          <div className={`p-3 rounded-lg border ${c.border} ${c.card} text-sm space-y-2`}>
+                            <h5 className={`font-medium ${c.text}`}>🔧 Eigene Azure AD App-Registrierung</h5>
+                            <p className={c.textSecondary}>
+                              Falls die Standard-Client-ID in Ihrer Organisation nicht funktioniert (z.B. "Administratorgenehmigung erforderlich"), 
+                              können Sie eine eigene Azure AD App-Registrierung verwenden:
+                            </p>
+                            <ol className={`list-decimal list-inside space-y-1 ${c.textSecondary}`}>
+                              <li>Öffne <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Azure Portal → App-Registrierungen</a></li>
+                              <li>Erstelle eine neue App-Registrierung</li>
+                              <li>Setze Redirect URI auf: <code className="text-xs bg-black/30 px-1 rounded">http://localhost:8847/oauth/callback</code></li>
+                              <li>Füge API-Berechtigungen hinzu (IMAP, SMTP)</li>
+                              <li>Kopiere die Client-ID und füge sie hier ein</li>
+                            </ol>
+                            <a
+                              href="https://github.com/Zenovs/coremail/blob/initial-code/AZURE_AD_SETUP.md"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-blue-400 hover:underline text-xs mt-1"
+                            >
+                              📖 Vollständige Anleitung (AZURE_AD_SETUP.md)
+                            </a>
+                          </div>
+                        )}
                         
                         {/* v1.10.1: Prominent OAuth2 Button */}
                         <button
