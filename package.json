@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.14.0",
-  "description": "CoreMail Desktop Client v1.14.0 - Intelligenter Spam-Filter",
+  "version": "1.15.0",
+  "description": "CoreMail Desktop Client v1.15.0 - Vereinfachte Microsoft-Integration",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

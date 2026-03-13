@@ -1,6 +1,6 @@
-# 📧 CoreMail Desktop v1.14.0
+# 📧 CoreMail Desktop v1.15.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokalem KI-Assistenten, intelligentem Spam-Filter, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokalem KI-Assistenten, intelligentem Spam-Filter, vereinfachter Microsoft-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
 ## 🚀 Schnellinstallation
 
@@ -14,7 +14,41 @@ oder
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
 
-## 🆕 v1.14.0 - Intelligenter Spam-Filter
+## 🆕 v1.15.0 - Vereinfachte Microsoft-Integration
+
+### ⚡ Ein-Klick Microsoft-Setup
+- **"Microsoft hinzufügen" Button**: Neuer prominenter Button in der Kontenverwaltung
+- **Schnelleinrichtung-Dialog**: Nur E-Mail und App-Passwort eingeben - fertig!
+- **Automatische Konfiguration**: Server, Ports, TLS werden automatisch gesetzt
+- **Verbindungstest integriert**: Überprüfe die Verbindung vor dem Speichern
+
+### 🔍 Automatische Server-Erkennung
+- **Microsoft-Domain-Erkennung**: Outlook.com, Hotmail.com, Live.com, MSN.com
+- **Auto-Preset**: Beim Eingeben einer Microsoft-E-Mail wird automatisch das richtige Preset gewählt
+- **Internationale Domains**: Unterstützt .de, .at, .ch, .fr, .it, .es, .co.uk
+
+### 📖 App-Passwort-Anleitung
+- **Schritt-für-Schritt-Hilfe**: Detaillierte Anleitung direkt in der App
+- **Direkte Links**: Verknüpfung zu account.microsoft.com/security
+- **Wichtige Hinweise**: Tipps zur sicheren Verwendung von App-Passwörtern
+
+### 🎨 UI-Verbesserungen
+- **Klare Authentifizierungs-Auswahl**: IMAP/SMTP vs. OAuth2
+- **EMPFOHLEN-Badge**: IMAP/SMTP mit App-Passwort als bevorzugte Methode
+- **OAuth2-Warnung**: Hinweis, dass eigene Azure AD App erforderlich ist
+- **Konto-Badges**: "App-Passwort" Badge für Microsoft-Konten
+
+### 💡 Warum App-Passwort statt OAuth2?
+| Methode | Einfachheit | Azure AD nötig? | Admin-Consent? |
+|---------|-------------|-----------------|----------------|
+| App-Passwort | ⭐⭐⭐⭐⭐ | ❌ Nein | ❌ Nein |
+| OAuth2 | ⭐⭐ | ✅ Ja | Oft ja |
+
+**→ Für die meisten Benutzer ist App-Passwort die einfachere und schnellere Methode!**
+
+---
+
+## 🛡️ v1.14.0 - Intelligenter Spam-Filter
 
 ### 🛡️ Spam-Filter
 - **Automatische Erkennung**: E-Mails werden auf Spam, Werbung, Phishing und Viren analysiert

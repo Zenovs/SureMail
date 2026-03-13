@@ -2,6 +2,50 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.15.0] - 2026-03-13
+
+### ⚡ Neues Feature: Vereinfachte Microsoft-Integration
+
+#### 🚀 Ein-Klick-Setup
+- **Neuer "Microsoft hinzufügen" Button**: Prominenter Button in der Kontenverwaltung
+- **Schnelleinrichtung-Dialog**: Nur E-Mail-Adresse und App-Passwort eingeben
+- **Automatische Konfiguration**: Server, Ports und TLS werden automatisch gesetzt
+- **Verbindungstest integriert**: Teste die Verbindung vor dem Speichern
+
+#### 🔍 Automatische Server-Erkennung
+- **Microsoft-Domain-Erkennung**: Outlook.com, Hotmail.com, Live.com, MSN.com und internationale Varianten
+- **Auto-Preset**: Beim Eingeben einer Microsoft-E-Mail wird automatisch das richtige Preset gewählt
+- **Vorausgefüllte Einstellungen**:
+  - IMAP: outlook.office365.com:993 (TLS)
+  - SMTP: smtp.office365.com:587 (STARTTLS)
+
+#### 📖 App-Passwort-Anleitung
+- **Schritt-für-Schritt-Hilfe**: Detaillierte Anleitung zum Erstellen eines App-Passworts
+- **Direkte Links**: Verknüpfung zu account.microsoft.com/security
+- **Wichtige Hinweise**: Warnung, dass App-Passwort nur einmal angezeigt wird
+
+#### 🎨 UI-Verbesserungen
+- **Authentifizierungs-Auswahl**: Klare Unterscheidung zwischen IMAP/SMTP und OAuth2
+- **Empfohlene Methode**: IMAP/SMTP mit App-Passwort als "EMPFOHLEN" markiert
+- **OAuth2-Warnung**: Hinweis, dass eigene Azure AD App erforderlich ist
+- **Konto-Badges**: "App-Passwort" Badge für Microsoft-Konten ohne OAuth2
+- **Info-Banner**: Neues Banner in der Kontenverwaltung erklärt die vereinfachte Integration
+
+#### 🔧 Technische Details
+- **MicrosoftQuickSetup** Komponente: Neuer Modal-Dialog für Schnelleinrichtung
+- **MicrosoftAppPasswordHelp** Komponente: Hilfe-Dialog mit Schritt-für-Schritt-Anleitung
+- **isMicrosoftEmail()** Funktion: Erkennt Microsoft-E-Mail-Domains
+- **MICROSOFT_DOMAINS** Array: Liste aller unterstützten Microsoft-Domains
+- **authMethod** State: Wechsel zwischen 'imap' und 'oauth2'
+
+### 📝 Geänderte Dateien
+- `src/pages/AccountManager.js` — Komplette Überarbeitung mit neuen Komponenten
+- `package.json` — Version auf 1.15.0 aktualisiert
+- `CHANGELOG.md` — Diese Einträge hinzugefügt
+- `README.md` — Microsoft-Integration dokumentiert
+
+---
+
 ## [1.14.0] - 2026-03-12
 
 ### 🛡️ Neues Feature: Intelligenter Spam-Filter

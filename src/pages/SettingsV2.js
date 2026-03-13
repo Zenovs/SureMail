@@ -165,36 +165,36 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.14.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.15.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">🛡️</span>
-                  <span><strong>Intelligenter Spam-Filter:</strong> Automatische Erkennung von Spam, Werbung, Phishing und Viren</span>
+                  <span className="text-blue-400">⚡</span>
+                  <span><strong>Ein-Klick Microsoft-Setup:</strong> Neuer "Microsoft hinzufügen" Button für schnelle Einrichtung</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-orange-400">🏷️</span>
-                  <span><strong>Spam-Tags:</strong> 📢 Werbung, 🚫 Spam, ⚠️ Schädlich, 🦠 Virus — direkt in der Mail-Liste</span>
+                  <span className="text-green-400">🔍</span>
+                  <span><strong>Auto-Erkennung:</strong> Microsoft-E-Mails werden automatisch erkannt (Outlook, Hotmail, Live)</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-yellow-400">⚠️</span>
-                  <span><strong>Warnbanner:</strong> Auffällige Warnungen in der E-Mail-Vorschau bei gefährlichen Mails</span>
+                  <span className="text-yellow-400">📖</span>
+                  <span><strong>App-Passwort-Hilfe:</strong> Schritt-für-Schritt-Anleitung direkt in der App</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">⚙️</span>
-                  <span><strong>Einstellungen:</strong> Empfindlichkeit, Whitelist und Blacklist konfigurierbar</span>
+                  <span className="text-cyan-400">🎨</span>
+                  <span><strong>UI-Verbesserungen:</strong> Klare Unterscheidung zwischen IMAP/SMTP und OAuth2</span>
                 </li>
+              </ul>
+              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.14.x</h4>
+              <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
+                <li>• Intelligenter Spam-Filter mit 4 Kategorien</li>
+                <li>• Spam-Tags und Warnbanner in der Mail-Liste</li>
+                <li>• Einstellbare Empfindlichkeit, Whitelist, Blacklist</li>
               </ul>
               <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.13.x</h4>
               <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
                 <li>• Globale Suche (Ctrl+K) über alle Konten</li>
                 <li>• Azure AD App-Registrierung Support</li>
                 <li>• Microsoft Office Client-ID für OAuth2</li>
-              </ul>
-              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.12.x</h4>
-              <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
-                <li>• Resizable Mail-Liste mit Text-Wrapping</li>
-                <li>• Alle Seitenleisten resizable</li>
-                <li>• Google Fonts auf E-Mail-Inhalt</li>
               </ul>
             </div>
           </div>
