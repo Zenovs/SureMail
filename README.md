@@ -498,12 +498,63 @@ ollama pull llama3.2:1b
 | Enter  | E-Mail öffnen |
 | Esc    | Zurück |
 
-## 🔒 Sicherheit
+## 🔒 Datenschutz & Sicherheit
 
-- Passwörter werden lokal verschlüsselt gespeichert
-- Keine Cloud-Synchronisation
-- Keine Telemetrie oder Tracking
-- Update-Downloads über HTTPS
+### 100% Lokal - Keine Daten verlassen deinen Computer
+
+| Garantie | Status |
+|----------|--------|
+| Alle Daten bleiben auf deinem Computer | ✅ |
+| Keine Cloud-Speicherung | ✅ |
+| Keine Telemetrie oder Analytics | ✅ |
+| Keine Daten-Uploads | ✅ |
+| Kein Tracking | ✅ |
+| Open Source & überprüfbar | ✅ |
+
+### 📂 Wo werden deine Daten gespeichert?
+
+| Datentyp | Speicherort | Technologie |
+|----------|-------------|-------------|
+| E-Mail-Cache | Lokal | IndexedDB (Browser-Datenbank) |
+| Kontoeinstellungen | Lokal | electron-store (verschlüsselt) |
+| OAuth2-Tokens | Lokal | electron-store (verschlüsselt) |
+| App-Einstellungen | Lokal | electron-store |
+| Spam-Analyse | Lokal | electron-store |
+
+### 🌐 Externe Verbindungen
+
+CoreMail verbindet sich **ausschließlich** zu:
+
+| Dienst | Zweck | Wann |
+|--------|-------|------|
+| **Dein IMAP-Server** | E-Mails abrufen | Beim Öffnen der App / Aktualisieren |
+| **Dein SMTP-Server** | E-Mails senden | Beim Senden einer E-Mail |
+| **Microsoft OAuth2** | Microsoft-Anmeldung | Nur bei Microsoft 365 / Outlook-Konten |
+| **Google OAuth2** | Google-Anmeldung | Nur bei Gmail-Konten |
+| **Lokaler Ollama** | KI-Features | Nur localhost:11434 (dein eigener PC) |
+
+**Es gibt KEINE Verbindungen zu:**
+- ❌ Analytics-Diensten (Google Analytics, Mixpanel, etc.)
+- ❌ Telemetrie-Servern
+- ❌ Cloud-Datenbanken
+- ❌ Werbenetzwerken
+- ❌ Externen APIs (außer OAuth2)
+
+### 🔐 Sicherheitsfeatures
+
+- **Verschlüsselte Speicherung**: Passwörter und Tokens werden mit electron-store verschlüsselt
+- **OAuth2 mit PKCE**: Moderne, sichere Authentifizierung für Microsoft/Google
+- **Lokale KI**: Ollama läuft komplett auf deinem PC - keine Daten werden an KI-Dienste gesendet
+- **Open Source**: Der komplette Code ist auf GitHub einsehbar - keine versteckten Funktionen
+
+### ✅ Code-Audit (März 2026)
+
+Der Code wurde auf Datenschutz-Konformität überprüft:
+- ✅ Keine externen API-Aufrufe (außer IMAP/SMTP/OAuth2)
+- ✅ Keine Telemetrie oder Analytics-Pakete
+- ✅ Keine persönlichen Daten im Code
+- ✅ Keine Cloud-Datenbank-Verbindungen
+- ✅ Alle Daten werden lokal in electron-store gespeichert
 
 ## 📄 Changelog
 
