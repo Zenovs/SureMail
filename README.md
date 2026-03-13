@@ -1,6 +1,8 @@
-# 📧 CoreMail Desktop v1.16.0
+# 📧 CoreMail Desktop v2.0.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokalem KI-Assistenten, intelligentem Spam-Filter, automatischen Updates, vereinfachter Microsoft-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
+Ein schlanker, benutzerfreundlicher **IMAP/SMTP E-Mail-Client** für Linux mit modernem Design, lokalem KI-Assistenten, intelligentem Spam-Filter, automatischen Updates, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
+
+> **⚠️ v2.0.0 - BREAKING CHANGE**: OAuth2/Microsoft-Integration wurde entfernt. Dieser Client unterstützt nur noch **IMAP/SMTP** mit Passwort/App-Passwort-Authentifizierung.
 
 ## 🚀 Schnellinstallation
 
@@ -14,385 +16,72 @@ oder
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
 
-## 🆕 v1.16.0 - Automatische Updates
+## 🆕 v2.0.0 - Nur IMAP/SMTP (BREAKING CHANGE)
 
-### 🔄 Auto-Update-Funktion
-- **Automatische Update-Prüfung**: Prüft alle 24 Stunden auf neue Versionen
-- **Ein-Klick-Update**: Download und Installation mit einem Klick
-- **Keine Terminal-Befehle nötig**: Alles direkt im Client
-- **Fortschrittsanzeige**: Zeigt Download-Fortschritt in Echtzeit
+### ⚠️ Was wurde entfernt?
+- **OAuth2-Authentifizierung** für Microsoft 365/Exchange
+- **"Mit Microsoft anmelden" Button**
+- **Azure AD App-Registrierung Support**
+- **OAuth2-Token-Verwaltung**
 
-### 📦 Update-Manager
-- **Update-Benachrichtigung**: Popup bei verfügbaren Updates
-- **Release-Notes**: Zeigt Änderungen der neuen Version
-- **"Später" Option**: Update später installieren
-- **"Nicht mehr anzeigen"**: Version überspringen
+### ✅ Was funktioniert weiterhin?
+- **IMAP/SMTP** für alle Provider (Gmail, Outlook, Yahoo, GMX, etc.)
+- **App-Passwort-Authentifizierung** für Microsoft, Gmail, iCloud
+- **Alle anderen Features** (Spam-Filter, KI, Auto-Update, Themes, etc.)
 
-### ⚙️ Update-Einstellungen
-- **Automatisch prüfen**: An/Aus-Schalter für automatische Prüfung
-- **Auto-Download**: Updates automatisch herunterladen
-- **Auto-Installation**: Updates automatisch installieren (mit Neustart)
-- **Manueller Check**: Jederzeit manuell nach Updates suchen
+### 💡 Warum diese Änderung?
+| Grund | Beschreibung |
+|-------|--------------|
+| **Einfachheit** | IMAP/SMTP ist einfacher einzurichten |
+| **Zuverlässigkeit** | Keine OAuth2-Token-Probleme |
+| **Weniger Abhängigkeiten** | Keine Microsoft-API erforderlich |
+| **Universell** | Funktioniert mit jedem IMAP/SMTP-Server |
 
-### 🔒 Sicherheit
-- **Backup-Funktion**: Automatisches Backup der alten Version vor Update
-- **GitHub-Downloads**: Updates nur von GitHub Releases
-- **SHA256-Verifizierung**: Integrität wird überprüft
-- **Rollback**: Bei Problemen zur alten Version zurückkehren
+### 📧 Unterstützte Provider
+| Provider | IMAP Host | SMTP Host | App-Passwort? |
+|----------|-----------|-----------|---------------|
+| **Microsoft 365** | outlook.office365.com | smtp.office365.com | ✅ Erforderlich |
+| **Gmail** | imap.gmail.com | smtp.gmail.com | ✅ Erforderlich |
+| **iCloud** | imap.mail.me.com | smtp.mail.me.com | ✅ Erforderlich |
+| **Yahoo** | imap.mail.yahoo.com | smtp.mail.yahoo.com | ✅ Erforderlich |
+| **GMX** | imap.gmx.net | mail.gmx.net | ❌ Nicht nötig |
+| **WEB.DE** | imap.web.de | smtp.web.de | ❌ Nicht nötig |
+| **IONOS/1&1** | imap.ionos.de | smtp.ionos.de | ❌ Nicht nötig |
 
-### 💡 Vorteile
-| Feature | Beschreibung |
-|---------|--------------|
-| Ein-Klick | Update mit einem Button-Klick |
-| Ohne Terminal | Keine Kommandozeile nötig |
-| Automatisch | Updates im Hintergrund |
-| Sicher | Mit Backup und Verifizierung |
+### 🔑 App-Passwort erstellen
 
-**→ Immer die neueste Version ohne Aufwand!**
+**Für Microsoft:** [account.microsoft.com/security](https://account.microsoft.com/security)
+**Für Gmail:** [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+**Für iCloud:** [appleid.apple.com](https://appleid.apple.com)
+**Für Yahoo:** [login.yahoo.com/account/security](https://login.yahoo.com/account/security)
 
 ---
 
-## v1.15.0 - Vereinfachte Microsoft-Integration
+## 🔄 v1.16.0 - Automatische Updates
 
-### ⚡ Ein-Klick Microsoft-Setup
-- **"Microsoft hinzufügen" Button**: Neuer prominenter Button in der Kontenverwaltung
-- **Schnelleinrichtung-Dialog**: Nur E-Mail und App-Passwort eingeben - fertig!
-- **Automatische Konfiguration**: Server, Ports, TLS werden automatisch gesetzt
-- **Verbindungstest integriert**: Überprüfe die Verbindung vor dem Speichern
-
-### 🔍 Automatische Server-Erkennung
-- **Microsoft-Domain-Erkennung**: Outlook.com, Hotmail.com, Live.com, MSN.com
-- **Auto-Preset**: Beim Eingeben einer Microsoft-E-Mail wird automatisch das richtige Preset gewählt
-- **Internationale Domains**: Unterstützt .de, .at, .ch, .fr, .it, .es, .co.uk
-
-### 📖 App-Passwort-Anleitung
-- **Schritt-für-Schritt-Hilfe**: Detaillierte Anleitung direkt in der App
-- **Direkte Links**: Verknüpfung zu account.microsoft.com/security
-- **Wichtige Hinweise**: Tipps zur sicheren Verwendung von App-Passwörtern
-
-### 🎨 UI-Verbesserungen
-- **Klare Authentifizierungs-Auswahl**: IMAP/SMTP vs. OAuth2
-- **EMPFOHLEN-Badge**: IMAP/SMTP mit App-Passwort als bevorzugte Methode
-- **OAuth2-Warnung**: Hinweis, dass eigene Azure AD App erforderlich ist
-- **Konto-Badges**: "App-Passwort" Badge für Microsoft-Konten
-
-### 💡 Warum App-Passwort statt OAuth2?
-| Methode | Einfachheit | Azure AD nötig? | Admin-Consent? |
-|---------|-------------|-----------------|----------------|
-| App-Passwort | ⭐⭐⭐⭐⭐ | ❌ Nein | ❌ Nein |
-| OAuth2 | ⭐⭐ | ✅ Ja | Oft ja |
-
-**→ Für die meisten Benutzer ist App-Passwort die einfachere und schnellere Methode!**
+- **Automatische Update-Prüfung**: Prüft alle 24 Stunden auf neue Versionen
+- **Ein-Klick-Update**: Download und Installation mit einem Klick
+- **Backup-Funktion**: Automatisches Backup der alten Version
+- **Keine Terminal-Befehle nötig**: Alles direkt im Client
 
 ---
 
 ## 🛡️ v1.14.0 - Intelligenter Spam-Filter
 
-### 🛡️ Spam-Filter
-- **Automatische Erkennung**: E-Mails werden auf Spam, Werbung, Phishing und Viren analysiert
+- **Automatische Erkennung**: E-Mails werden auf Spam, Werbung, Phishing analysiert
 - **4 Kategorien**: 📢 Werbung, 🚫 Spam, ⚠️ Schädlich, 🦠 Virus
 - **Tags in Mail-Liste**: Farbige Badges neben dem "Neu"-Badge
-- **Warnbanner**: Auffällige Warnungen in der E-Mail-Vorschau
-- **Einstellbar**: Empfindlichkeit (Niedrig/Mittel/Hoch), Whitelist, Blacklist
-- **Keine False Positives**: Whitelist für vertrauenswürdige Absender
-
-### 🔬 Was wird analysiert?
-- Keywords (Spam, Phishing, Marketing)
-- Absender-Domains und -Muster
-- Verdächtige Links (Kurz-URLs, Phishing)
-- Gefährliche Anhänge (.exe, .scr, .bat, etc.)
-- HTML-Struktur und Betreff-Analyse
+- **Einstellbar**: Empfindlichkeit, Whitelist, Blacklist
 
 ---
 
-## 🔧 v1.13.2 - Azure AD App-Registrierung Support
+## 🔍 v1.13.0 - Globale Suchfunktion
 
-### 🔧 Eigene Azure AD App-Registrierung
-- **Custom Client-ID**: Benutzer können ihre eigene Azure AD Client-ID eingeben
-- **Standard-Fallback**: Wenn keine Client-ID angegeben, wird die Standard-ID verwendet
-- **Hilfe-Panel**: In-App Anleitung mit "?" Icon neben dem Client-ID Feld
-- **Sichere Speicherung**: Client-ID wird verschlüsselt im Account gespeichert
-- **Token-Refresh**: Custom Client-ID wird auch bei Token-Refresh verwendet
-
-### 📖 Microsoft OAuth2 Setup
-Für Organisationen, die eine eigene App-Registrierung benötigen, gibt es eine ausführliche Anleitung:
-→ [AZURE_AD_SETUP.md](AZURE_AD_SETUP.md)
-
-**Wann brauche ich eine eigene App-Registrierung?**
-- "Administratorgenehmigung erforderlich" Fehlermeldung
-- Strenge Conditional Access Policies in der Organisation
-- IT-Admin möchte App gezielt genehmigen
+- **Globale Suche**: Durchsuche alle E-Mail-Konten gleichzeitig
+- **Schnellzugriff**: `Ctrl+K` oder `Cmd+K` öffnet die Suchleiste
+- **Erweiterte Filter**: Konto, Ordner, Datum, Status, Anhänge
 
 ---
-
-## 🆕 v1.13.1 - OAuth2 Admin-Consent Fix
-
-### 🔐 Microsoft 365 OAuth2 Verbesserung
-- **Admin-Consent Problem behoben**: Wechsel von Thunderbird-Client-ID auf Microsoft Office native Client-ID
-- **Keine Administrator-Genehmigung mehr nötig**: User-Delegated Permissions ohne Admin-Consent
-- **Verbesserte Kompatibilität**: Funktioniert jetzt mit Enterprise Microsoft 365 Umgebungen
-
-### 🔧 Technische Änderungen
-- Client-ID geändert von `08162f7c-0fd2-4200-a84a-f25a4db0b584` (Thunderbird) auf `d3590ed6-52b3-4102-aeff-aad2292ab01c` (Microsoft Office)
-- Optimierte Scopes für User-Delegated Permissions
-- Kommentare in OAuth2-Konfiguration aktualisiert
-
----
-
-## 🆕 v1.13.0 - Globale Suchfunktion
-
-### 🔍 Präzise Mail-Suche über alle Konten
-- **Globale Suche**: Durchsuche alle E-Mail-Konten und Ordner gleichzeitig
-- **Schnellzugriff**: `Ctrl+K` oder `Cmd+K` öffnet die Suchleiste sofort
-- **Suchleiste in Sidebar**: Prominente Suchleiste direkt in der Navigation
-
-### 🎯 Erweiterte Suchfilter
-- **Konto-Filter**: Suche nur in bestimmten Konten
-- **Ordner-Filter**: Alle Ordner, Posteingang, Gesendet, Entwürfe, Archiv
-- **Datum-Filter**: Von/Bis Datum eingrenzen
-- **Status-Filter**: Nur ungelesene, nur markierte Mails
-- **Anhang-Filter**: Nur Mails mit Anhängen
-
-### ⚡ Schnelle Ergebnisse
-- **Live-Vorschläge**: Autocomplete während der Eingabe (300ms Debouncing)
-- **Highlighting**: Suchbegriff wird in Ergebnissen hervorgehoben
-- **Gruppierung**: Ergebnisse nach Konto gruppiert
-- **Match-Indikator**: Zeigt wo der Suchbegriff gefunden wurde (Betreff, Absender, Text)
-
-### 🎨 Übersichtliche Darstellung
-- **Such-Modal**: Elegantes Overlay mit Backdrop-Blur
-- **Ergebnis-Preview**: Betreff, Absender, Datum, Vorschau-Text
-- **Ordner-Anzeige**: Zeigt in welchem Ordner die Mail liegt
-- **Status-Icons**: Gelesen/Ungelesen, Markiert, Mit Anhängen
-
-### 🔧 Technische Details
-- IMAP SEARCH über alle Postfächer
-- Suche in: Betreff, Absender, Empfänger, Nachrichtentext
-- Max. 200 Ergebnisse (sortiert nach Datum)
-- Fehlertoleranz: Nicht erreichbare Konten werden übersprungen
-
----
-
-## 🆕 v1.12.4 - Kategorien-Bearbeitung UX verbessert
-
-### 💡 Bessere Navigation zur Kategorien-Bearbeitung
-- **Hinweis auf Konten-Seite**: Deutlicher Hinweis "Kategorien bearbeiten? → Einstellungen → Kategorien"
-- **Benutzer findet es jetzt**: Der Weg zur Kategorien-Bearbeitung ist jetzt offensichtlich
-- **UX-Verbesserung**: Benutzer werden nicht mehr auf der falschen Seite gesucht
-
-### 🔧 Was wurde geändert
-- `AccountManager.js`: Hinweis zur Kategorien-Bearbeitung unter den Kategorie-Tags hinzugefügt
-- Kategorien werden weiterhin in Einstellungen → Kategorien bearbeitet (Name, Farbe, Icon)
-
----
-
-## 🆕 v1.12.3 - Kategorien-Bearbeitung GEFIXT
-
-### ✏️ Kategorien-Bearbeitung funktioniert jetzt WIRKLICH
-- **Buttons immer sichtbar**: Edit/Delete-Buttons sind IMMER sichtbar (nicht nur bei Hover)
-- **Klare UI**: "Bearbeiten" und "Löschen" Buttons mit Text und Icons
-- **Sofortige Bearbeitung**: Ein Klick auf "Bearbeiten" öffnet den Edit-Modus
-- **Zuverlässig**: Keine versteckten Hover-Effekte mehr, die nicht funktionieren
-
-### 🔧 Was wurde geändert
-- `opacity-0 group-hover:opacity-100` entfernt - Buttons waren unsichtbar
-- Neue deutlich sichtbare Buttons mit Text: "Bearbeiten" / "Löschen"
-- Bessere Farbgestaltung für Edit (grau) und Delete (rot) Buttons
-- Responsive Layout mit `flex-shrink-0` für stabile Button-Positionen
-
----
-
-## 🆕 v1.12.2 - Resizable Mail-Liste
-
-### 📏 Mail-Liste-Spalte resizable
-- **Frei skalierbar**: Die mittlere Spalte (Mail-Liste) kann jetzt beliebig verkleinert werden
-- **Min-Breite 100px**: Spalte kann sehr schmal gemacht werden
-- **Max-Breite 600px**: Maximale Breite für optimale Lesbarkeit
-- **Speicherung**: Breite wird in localStorage gespeichert
-
-### 📝 Text-Wrapping aktiviert
-- **Betreff umbrechen**: Lange Betreffzeilen werden umgebrochen
-- **Absender umbrechen**: Lange E-Mail-Adressen werden angezeigt
-- **Vorschau umbrechen**: Preview-Text passt sich der Breite an
-
-### 📐 Dynamische Höhe
-- **Flexible Items**: Mail-Items passen ihre Höhe dem Inhalt an
-- **Min-Height**: Mindesthöhe für konsistentes Aussehen
-- **Bessere Lesbarkeit**: Text wird nicht mehr abgeschnitten
-
-### 🎨 Verbessertes Layout
-- **Alle 3 Spalten resizable**: Ordner, Mail-Liste und Vorschau
-- **Unabhängige Breiten**: Jede Spalte kann separat angepasst werden
-- **Grip-Handle**: Visueller Indikator zum Ziehen
-
----
-
-## 🐛 v1.12.1 - Kritische Bugfixes
-
-### 🗑️ Gelöschte E-Mails bleiben gelöscht
-- **IndexedDB-Sync**: Gelöschte E-Mails werden jetzt auch aus dem lokalen Cache entfernt
-- **Kein Wiederauftauchen**: Nach dem Refresh bleiben gelöschte E-Mails gelöscht
-- **IMAP-Expunge**: Korrekte IMAP-Löschung mit `\\Deleted`-Flag und `expunge()`
-
-### 🔐 Microsoft Auth (OAuth2) korrigiert
-- **TLS-Einstellungen**: Korrekte TLS-Konfiguration für Microsoft 365/Exchange
-- **Timeout erhöht**: Verbindungs-Timeout auf 30 Sekunden erhöht
-- **Bessere Fehlerbehandlung**: Logging für OAuth2-Debugging hinzugefügt
-
-### 🔤 Schriftart wird übernommen
-- **CSS-Fix**: Entfernte hartcodierte Font-Family (`JetBrains Mono`)
-- **Dynamische Fonts**: Benutzerdefinierte Google Fonts werden jetzt korrekt angewendet
-- **Alle Bereiche**: Font gilt für die gesamte App inklusive E-Mail-Inhalt
-
-### ✏️ Kategorien-Bearbeitung funktioniert
-- **CSS-Hover-Fix**: Korrigierte Tailwind-CSS-Klassen für Hover-Effekte
-- **Edit-Button sichtbar**: Bearbeiten-Button erscheint beim Hover korrekt
-- **Theme-unabhängig**: Funktioniert mit allen Themes
-
----
-
-## 🆕 v1.12.0 Features
-
-### ✏️ Kategorien-Bearbeitung verbessert
-- **Stift-Icon beim Hover**: Edit/Delete-Buttons erscheinen nur beim Hover über die Kategorie
-- **Alle Kategorien bearbeitbar**: Auch Standard-Kategorien (Arbeit, Privat, Sonstiges) können bearbeitet werden
-- **Cleaner UI**: Aufgeräumtere Oberfläche ohne ständig sichtbare Buttons
-
-### ↔️ Vorschau noch kleiner ziehen
-- **Min-Breite reduziert**: Von 200px auf 100px gesenkt
-- **Mehr Flexibilität**: Maximale Kontrolle über das Layout
-
-### 📐 Alle Seitenleisten resizable
-- **Haupt-Sidebar**: 200-400px, mit localStorage-Speicherung
-- **Ordner-Liste**: 150-350px, anpassbar per Drag
-- **Vorschau-Spalte**: 100-800px, flexibel einstellbar
-
-### 🔤 Font auf E-Mail-Inhalt
-- **Ausgewählte Schrift**: Google Font wird auf E-Mail-Inhalt angewendet
-- **HTML & Text**: Funktioniert für beide E-Mail-Typen
-
----
-
-## 📦 Version v1.11.2
-
-### 🌐 Vercel entfernt - Alles auf GitHub
-- **GitHub Raw URLs**: Alle Assets werden jetzt von GitHub gehostet
-- **Keine Vercel-Abhängigkeit**: Installation funktioniert ohne externe Dienste
-- **Zuverlässiger**: Direkter Download von GitHub Releases
-
----
-
-## 📦 Version v1.11.1
-
-### ↔️ Vorschau-Spalte noch kleiner ziehen
-- **Min-Breite reduziert**: Von 300px auf 200px gesenkt
-- **Mehr Platz**: Mehr Flexibilität bei der E-Mail-Vorschau
-- **Gleiches Handling**: Smooth Resizing bleibt erhalten
-
-### 🔤 Font auf E-Mail-Inhalt
-- **Konsistente Schrift**: Ausgewählte Schriftart wird auf E-Mail-Inhalt angewendet
-- **HTML-Mails**: Font-Family wird auf HTML-E-Mails angewendet
-- **Text-Mails**: Font-Family auch auf reine Text-E-Mails
-
-### 📁 Inbox ganz oben in Ordner-Liste
-- **Sortierte Ordner**: INBOX, Gesendet, Entwürfe, Papierkorb, Spam zuerst
-- **Dann alphabetisch**: Alle anderen Ordner alphabetisch sortiert
-- **Automatische Erkennung**: Deutsche und englische Ordnernamen
-
-### 📊 Ungelesene Anzahl in Konto-Liste
-- **Badge in Sidebar**: Blaues Badge mit Anzahl ungelesener Mails
-- **Pro Konto**: Ungelesene Anzahl wird pro E-Mail-Konto angezeigt
-- **Automatisch aktualisiert**: Badge wird beim Laden von E-Mails aktualisiert
-- **Overflow-Handling**: Bei mehr als 99 wird "99+" angezeigt
-
----
-
-## 📦 Version v1.11.0
-
-### 🏷️ Kategorien anpassen
-- **Name bearbeiten**: Jede Kategorie kann umbenannt werden
-- **Farbe wählen**: 12 Vordefinierten Farben + Custom Color Picker
-- **Icon wählen**: 14 Lucide Icons zur Auswahl (Briefcase, Star, Heart, etc.)
-- **Sidebar-Integration**: Icons werden in der Sidebar angezeigt
-
-### 📧 Ungelesene Mails besser markieren
-- **Blaue Linie links**: 3px blaue Border für ungelesene E-Mails
-- **Blauer Punkt**: Pulsierender Indikator neben dem Absender
-- **Heller Hintergrund**: Dezent blauer Hintergrund für bessere Sichtbarkeit
-- **"Neu" Badge**: Badge in der E-Mail-Zeile
-- **Ordner-Badge**: Ungelesene Anzahl im Ordner-Baum
-
-### 🔤 Google Fonts Auswahl
-- **12 beliebte Schriftarten**: Inter, Roboto, Open Sans, Montserrat, Poppins, etc.
-- **Live-Vorschau**: Sofortige Vorschau beim Auswählen
-- **Code-Fonts**: Fira Code und JetBrains Mono für Entwickler
-- **Automatische Speicherung**: Font wird beim App-Start geladen
-
-### ↔️ Vorschau-Leiste anpassbar
-- **Resizable**: Breite per Drag anpassbar (300-800px)
-- **Persistenz**: Breite wird in localStorage gespeichert
-- **Visuelles Handle**: Grip-Icon zum Ziehen
-- **Smooth Transitions**: Flüssige Größenänderung
-
-## 📦 Version v1.10.2
-
-### 🐛 Kritischer Bugfix: Konten-Fenster funktioniert wieder
-- **Fix**: Das Konten-Fenster war schwarz/leer wenn man auf "Konten" klickte
-- **Ursache**: React Hook Reihenfolge-Fehler in AccountManager.js
-- **Lösung**: Hook-Definitionen in korrekte Reihenfolge gebracht
-
-## 📦 Version v1.10.1
-
-### 🐛 Bugfix: OAuth2-Button wird jetzt korrekt angezeigt
-- **Fix**: Der "Mit Microsoft anmelden" Button wird nun korrekt angezeigt, wenn "Microsoft 365 / Exchange" oder "Outlook.com" ausgewählt wird
-- **Verbesserte UI**: OAuth2-Panel ist jetzt prominenter mit "Empfohlen"-Badge
-- **Aufklappbare Erweiterte Einstellungen**: IMAP/SMTP-Felder sind standardmäßig ausgeblendet, wenn OAuth2 verfügbar ist
-- **Saubereres Design**: Weniger Unordnung beim Hinzufügen von Microsoft-Konten
-
-## 📦 Version v1.10.0
-
-### 🔐 OAuth2-Integration für Microsoft 365/Exchange
-- **Mit Microsoft anmelden**: Ein-Klick-Login über Browser
-- **Sicherer als Passwort**: OAuth2-Tokens statt Passwörter
-- **2FA-kompatibel**: Funktioniert auch mit aktivierter Zwei-Faktor-Authentifizierung
-- **Automatische Token-Refresh**: Tokens werden automatisch erneuert
-- **PKCE-Sicherheit**: State-of-the-Art-Sicherheit für Desktop-Apps
-- **XOAUTH2 für IMAP/SMTP**: Volle E-Mail-Funktionalität über OAuth2
-
-### Wie OAuth2 funktioniert:
-1. Wähle "Microsoft 365 / Exchange" oder "Outlook.com" als Server-Vorlage
-2. Klicke auf "Mit Microsoft anmelden"
-3. Ein Browser öffnet sich zur Microsoft-Anmeldung
-4. Nach erfolgreicher Anmeldung werden IMAP/SMTP automatisch konfiguriert
-5. Konto speichern - fertig!
-
-### Vorherige Version (v1.9.1)
-- **🖼️ Icon-Fix**: Icon wird jetzt korrekt im App-Menü angezeigt
-- **🖥️ Desktop-Integration**: --no-sandbox Flag für SUID Sandbox-Kompatibilität
-- **📦 Installer**: Icon wird in alle Standard-Verzeichnisse installiert
-
-### Version v1.9.0
-- **🎨 Modernes UI/UX-Design**: Komplett überarbeitete Benutzeroberfläche
-- **✨ Professionelle Animationen**: Fade-In, Slide-In, Loading-Animationen
-- **📐 Optimiertes Layout**: Verbesserte Typografie und Spacing
-  - Moderne Scrollbars
-- **🖼️ Professionelles App-Icon**:
-  - Neues SVG-basiertes Icon-Design
-  - Cyan/Blau-Farbschema passend zum CoreMail-Design
-  - Hochauflösende Icons in allen Größen (16x16 bis 512x512)
-  - Sichtbar in Desktop-Umgebungen nach Installation
-
-### Frühere Versionen
-
-<details>
-<summary>v1.8.2 Features</summary>
-
-- **🏢 Microsoft Account Integration verbessert**: Auto-Fill, STARTTLS, Hilfe-Links
-- **⏱️ Automatische Mail-Aktualisierung**: 1-30 Minuten Intervalle einstellbar
-- **💾 Lokale E-Mail-Speicherung**: IndexedDB für schnellere Ladezeiten
-- **🤖 KI-Zugriff auf alle Postfächer**: Suche und lese E-Mails kontoübergreifend
-
-</details>
 
 <p align="center">
   <img src="assets/icon.png" width="128" height="128" alt="CoreMail Desktop">
@@ -400,81 +89,45 @@ Für Organisationen, die eine eigene App-Registrierung benötigen, gibt es eine 
 
 ## ✨ Features
 
-### 🤖 In-App Ollama-Installation (NEU in v1.7.0)
-- **Automatische Installation**: Ollama direkt in der App installieren
-- **Erster-Start-Dialog**: Einrichtungsassistent beim ersten Öffnen
-- **Progress-Anzeige**: Fortschrittsbalken während der Installation
-- **Modell-Download**: Automatischer Download des KI-Modells
-- **Keine Terminal-Befehle**: Alles über die GUI
-- **Einstellungs-Integration**: Installation auch über Einstellungen möglich
-
-### 💬 Lokale KI-Integration
-- **Ollama-Integration**: Lokale KI ohne Cloud-Abhängigkeit
-- **E-Mails zusammenfassen**: Ein Klick für prägnante Zusammenfassungen
-- **Antwort-Vorschläge**: KI hilft beim Verfassen von Antworten
-- **Textverbesserung**: Text verbessern, kürzen, förmlicher/freundlicher machen
-- **KI-Chatbot**: Schwebendes Widget für direkte Fragen
-- **Modell-Verwaltung**: Installiere und verwalte verschiedene KI-Modelle
-- **Streaming-Antworten**: Echtzeit-Typing-Animation
-
-### 📬 E-Mail-Verwaltung
-- **Multi-Account-Support**: Verwalte mehrere E-Mail-Konten gleichzeitig
-- **Kategorien**: Organisiere Konten in Kategorien (Arbeit, Privat, etc.)
-- **IMAP/SMTP**: Volle Unterstützung für IMAP und SMTP-Protokolle
+### 📬 E-Mail-Verwaltung (IMAP/SMTP)
+- **Multi-Account-Support**: Verwalte mehrere E-Mail-Konten
+- **Server-Vorlagen**: Gmail, Outlook, Yahoo, GMX, WEB.DE, IONOS
+- **Kategorien**: Organisiere Konten (Arbeit, Privat, etc.)
 - **Split-View**: E-Mail-Liste und Vorschau nebeneinander
 
-### 📐 Individualisierbare Sidebar
-- **Resize-Handle**: Sidebar-Breite per Drag & Drop anpassen
-- **Min/Max-Breite**: 200px bis 400px einstellbar
-- **Icons-Only-Modus**: Kompakte Ansicht nur mit Icons
-- **Auto-Collapse**: Automatisches Minimieren bei kleinen Fenstern
-- **Persistente Einstellungen**: Werden beim Neustart wiederhergestellt
+### 🤖 Lokale KI-Integration
+- **Ollama-Integration**: Lokale KI ohne Cloud-Abhängigkeit
+- **E-Mails zusammenfassen**: Ein Klick für Zusammenfassungen
+- **Antwort-Vorschläge**: KI hilft beim Verfassen
+- **KI-Chatbot**: Schwebendes Widget für Fragen
 
-### 📊 Widget-Dashboard
-- **4 Widget-Typen**: 
-  - Konto-Widget: Einzelnes E-Mail-Konto mit Statistiken
-  - Kategorie-Widget: Übersicht einer Kategorie
-  - Statistik-Widget: Gesamtstatistiken aller Konten
-  - Schnellaktionen-Widget: Schnellzugriff auf häufige Aktionen
-- **Drag & Drop**: Widgets per Drag & Drop verschieben
-- **3 Größen**: Klein (S), Mittel (M), Groß (L)
-- **Bearbeitungsmodus**: Dashboard im Edit-Mode anpassen
-- **Persistentes Layout**: Widget-Positionen werden gespeichert
-
-### 🎨 6 Themes
+### 🎨 7 Themes
 - **Dark**: Klassisches dunkles Design mit Cyan-Akzenten
 - **Light**: Helles, klassisches Design
 - **Minimal**: Minimalistisch in Schwarz-Weiß
-- **Morphismus**: Glasmorphismus-Effekte mit weichen Schatten
-- **Glas**: Transparente Glaseffekte mit starkem Blur
-- **Retro**: 80er/90er Neon-Stil mit Pink, Cyan und Gelb
+- **Morphismus**: Glasmorphismus-Effekte
+- **Glas**: Transparente Glaseffekte
+- **Retro**: 80er/90er Neon-Stil
+- **Foundations**: Professionelles Design-System
+
+### 📊 Widget-Dashboard
+- **4 Widget-Typen**: Konto, Kategorie, Statistik, Schnellaktionen
+- **Drag & Drop**: Widgets verschieben
+- **3 Größen**: Klein, Mittel, Groß
 
 ### 🔔 Benachrichtigungen
 - Desktop-Benachrichtigungen bei neuen E-Mails
 - Konfigurierbar pro Konto und Kategorie
-- Klick auf Benachrichtigung öffnet die E-Mail
-- Badge-Counter für ungelesene E-Mails
-
-### 🔄 Auto-Update
-- Automatische Prüfung auf neue Versionen (täglich)
-- Ein-Klick-Download und Installation
-- Update-Verlauf und Release Notes
-- Benachrichtigung bei verfügbarem Update
 
 ### 📎 Anhang-Verwaltung
 - Bildvorschau direkt in der E-Mail
 - PDF-Vorschau integriert
-- Drag & Drop: Dateien direkt ins Compose-Fenster ziehen
-- "Alle herunterladen" Button
-- Upload-Fortschrittsanzeige
-- Konfigurierbarer Download-Ordner
+- Drag & Drop für Anhänge
 
 ### ✍️ E-Mail-Signaturen
-- Rich-Text-Editor für Signaturen
+- Rich-Text-Editor
+- 6 Vorlagen
 - Pro-Konto-Signaturen
-- 6 Vorlagen: Einfach, Professionell, Business, Freundlich, Minimal, Modern
-- Platzhalter-Unterstützung: Name, E-Mail, Datum, etc.
-- Automatisches Anhängen beim Senden
 
 ## 📋 Systemanforderungen
 
@@ -489,26 +142,15 @@ Für Organisationen, die eine eigene App-Registrierung benötigen, gibt es eine 
 
 ### AppImage (empfohlen)
 
-1. Lade `CoreMail.Desktop-1.5.0.AppImage` herunter
+1. Lade `CoreMail.Desktop-2.0.0.AppImage` herunter
 2. Mache die Datei ausführbar:
    ```bash
-   chmod +x CoreMail.Desktop-1.5.0.AppImage
+   chmod +x CoreMail.Desktop-2.0.0.AppImage
    ```
 3. Starte die App:
    ```bash
-   ./CoreMail.Desktop-1.5.0.AppImage
+   ./CoreMail.Desktop-2.0.0.AppImage
    ```
-
-### Installer mit KI-Setup
-
-```bash
-# Installer ausführen (installiert auch Ollama optional)
-./install.sh
-```
-
-Der Installer bietet an:
-- Ollama automatisch zu installieren
-- Ein kompaktes KI-Modell (llama3.2:1b, ~1.3 GB) herunterzuladen
 
 ### Aus Quellcode
 
@@ -527,48 +169,26 @@ npm run dev
 npm run build
 ```
 
-### Ollama manuell installieren
-
-Falls du Ollama separat installieren möchtest:
-
-```bash
-# Ollama installieren
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Ollama starten
-ollama serve
-
-# Empfohlenes Modell laden
-ollama pull llama3.2:1b
-```
-
 ## ⚙️ E-Mail-Konto einrichten
 
-### Gmail
+### Mit Server-Vorlage (empfohlen)
 
-1. Aktiviere 2FA in deinem Google-Konto
-2. Erstelle ein [App-Passwort](https://myaccount.google.com/apppasswords)
-3. Verwende folgende Einstellungen:
-   - **IMAP Host**: imap.gmail.com
-   - **IMAP Port**: 993
-   - **SMTP Host**: smtp.gmail.com
-   - **SMTP Port**: 465
+1. Öffne **Kontenverwaltung** → **+ Neues Konto**
+2. Wähle eine **Server-Vorlage** (Gmail, Microsoft, etc.)
+3. Gib deine **E-Mail-Adresse** ein
+4. Gib dein **Passwort** oder **App-Passwort** ein
+5. Klicke auf **Testen** und dann **Speichern**
 
-### Andere Anbieter
+### Manuelle Einrichtung
 
-| Anbieter | IMAP Host | IMAP Port | SMTP Host | SMTP Port |
-|----------|-----------|-----------|-----------|-----------|
-| Outlook  | outlook.office365.com | 993 | smtp.office365.com | 587 |
-| Yahoo    | imap.mail.yahoo.com | 993 | smtp.mail.yahoo.com | 465 |
-| GMX      | imap.gmx.net | 993 | mail.gmx.net | 465 |
-
-## ⌨️ Tastenkürzel
-
-| Kürzel | Aktion |
-|--------|--------|
-| ↑ / ↓  | E-Mail Navigation |
-| Enter  | E-Mail öffnen |
-| Esc    | Zurück |
+| Feld | Beschreibung |
+|------|--------------|
+| **IMAP Host** | z.B. `imap.gmail.com` |
+| **IMAP Port** | 993 (TLS) |
+| **SMTP Host** | z.B. `smtp.gmail.com` |
+| **SMTP Port** | 465 (SSL) oder 587 (STARTTLS) |
+| **E-Mail** | Deine E-Mail-Adresse |
+| **Passwort** | Dein Passwort oder App-Passwort |
 
 ## 🔒 Datenschutz & Sicherheit
 
@@ -579,103 +199,30 @@ ollama pull llama3.2:1b
 | Alle Daten bleiben auf deinem Computer | ✅ |
 | Keine Cloud-Speicherung | ✅ |
 | Keine Telemetrie oder Analytics | ✅ |
-| Keine Daten-Uploads | ✅ |
-| Kein Tracking | ✅ |
 | Open Source & überprüfbar | ✅ |
 
 ### 📂 Wo werden deine Daten gespeichert?
 
 | Datentyp | Speicherort | Technologie |
 |----------|-------------|-------------|
-| E-Mail-Cache | Lokal | IndexedDB (Browser-Datenbank) |
+| E-Mail-Cache | Lokal | IndexedDB |
 | Kontoeinstellungen | Lokal | electron-store (verschlüsselt) |
-| OAuth2-Tokens | Lokal | electron-store (verschlüsselt) |
 | App-Einstellungen | Lokal | electron-store |
-| Spam-Analyse | Lokal | electron-store |
 
 ### 🌐 Externe Verbindungen
 
 CoreMail verbindet sich **ausschließlich** zu:
 
-| Dienst | Zweck | Wann |
-|--------|-------|------|
-| **Dein IMAP-Server** | E-Mails abrufen | Beim Öffnen der App / Aktualisieren |
-| **Dein SMTP-Server** | E-Mails senden | Beim Senden einer E-Mail |
-| **Microsoft OAuth2** | Microsoft-Anmeldung | Nur bei Microsoft 365 / Outlook-Konten |
-| **Google OAuth2** | Google-Anmeldung | Nur bei Gmail-Konten |
-| **Lokaler Ollama** | KI-Features | Nur localhost:11434 (dein eigener PC) |
-
-**Es gibt KEINE Verbindungen zu:**
-- ❌ Analytics-Diensten (Google Analytics, Mixpanel, etc.)
-- ❌ Telemetrie-Servern
-- ❌ Cloud-Datenbanken
-- ❌ Werbenetzwerken
-- ❌ Externen APIs (außer OAuth2)
-
-### 🔐 Sicherheitsfeatures
-
-- **Verschlüsselte Speicherung**: Passwörter und Tokens werden mit electron-store verschlüsselt
-- **OAuth2 mit PKCE**: Moderne, sichere Authentifizierung für Microsoft/Google
-- **Lokale KI**: Ollama läuft komplett auf deinem PC - keine Daten werden an KI-Dienste gesendet
-- **Open Source**: Der komplette Code ist auf GitHub einsehbar - keine versteckten Funktionen
-
-### ✅ Code-Audit (März 2026)
-
-Der Code wurde auf Datenschutz-Konformität überprüft:
-- ✅ Keine externen API-Aufrufe (außer IMAP/SMTP/OAuth2)
-- ✅ Keine Telemetrie oder Analytics-Pakete
-- ✅ Keine persönlichen Daten im Code
-- ✅ Keine Cloud-Datenbank-Verbindungen
-- ✅ Alle Daten werden lokal in electron-store gespeichert
+| Dienst | Zweck |
+|--------|-------|
+| **Dein IMAP-Server** | E-Mails abrufen |
+| **Dein SMTP-Server** | E-Mails senden |
+| **Lokaler Ollama** | KI-Features (localhost:11434) |
+| **GitHub** | Update-Prüfung |
 
 ## 📄 Changelog
 
 Siehe [CHANGELOG.md](CHANGELOG.md) für Details zu allen Versionen.
-
-### v1.8.0 (aktuell)
-- 🗑️ **E-Mail-Aktionen**
-  - Löschen, Als gelesen/ungelesen markieren
-  - Antworten, Allen antworten, Weiterleiten
-  - Aktions-Icons in E-Mail-Liste und Detailansicht
-- ⚡ **Performance-Verbesserungen**
-  - E-Mail-Caching für schnellere Ordnerwechsel
-  - Lazy Loading für große Postfächer
-  - Pagination mit "Mehr laden" Button
-- 📁 **Ordner-Struktur**
-  - IMAP-Ordner werden angezeigt (Posteingang, Gesendet, Entwürfe, Papierkorb, Spam)
-  - Ordner-Navigation in der E-Mail-Ansicht
-- 🏷️ **Kategorien-Verwaltung**
-  - Kategorien erstellen, bearbeiten, löschen
-  - Farbauswahl mit Preset-Palette
-  - Neue Einstellungsseite "Kategorien"
-- 🤖 **KI-Zugriff auf Postfächer**
-  - KI hat Kontext zur aktuellen E-Mail
-  - Bessere Antwortvorschläge
-  - E-Mail-Verfassen mit KI-Unterstützung
-- 🏢 **Microsoft Exchange/Office 365 Support**
-  - Server-Vorlagen für Exchange, Outlook, Gmail, etc.
-  - Automatische Server-Konfiguration
-- 🔧 **UI-Fixes**
-  - Update-Balken überläuft nicht mehr
-  - Verbesserte Responsive-Design
-
-### v1.7.x
-- 💬 **Lokale KI-Integration mit Ollama**
-- ⚙️ **In-App Ollama-Installation**
-- 🔧 **Bugfixes für Ollama API**
-
-### v1.4.0 - v1.6.0
-- 📐 **Individualisierbare Sidebar**
-- 📊 **Widget-Dashboard** mit Drag & Drop
-- 🎨 7 Themes (inkl. Foundations)
-
-### v1.1.0 - v1.3.0
-- Multi-Account-Support
-- 🎨 Themes: Morphismus, Glas, Retro
-- 📎 Drag & Drop für Anhänge
-- ✍️ 6 Signatur-Vorlagen
-- 🔄 Auto-Update
-- 🔔 Desktop-Benachrichtigungen
 
 ## 🤝 Beitragen
 
@@ -687,4 +234,4 @@ MIT License - siehe LICENSE für Details.
 
 ---
 
-**CoreMail Desktop** - ...die mit Wallisär Pauer 💪
+**CoreMail Desktop v2.0.0** - Einfacher IMAP/SMTP E-Mail-Client 📧

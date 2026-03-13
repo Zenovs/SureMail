@@ -2,6 +2,61 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.0.0] - 2026-03-13
+
+### ⚠️ BREAKING CHANGE: OAuth2/Microsoft-Integration entfernt
+
+Diese Version ist ein **Major Release** mit einer grundlegenden Änderung: Die OAuth2-Authentifizierung für Microsoft 365/Exchange wurde vollständig entfernt. CoreMail Desktop ist jetzt ein reiner **IMAP/SMTP E-Mail-Client**.
+
+#### ❌ Entfernte Features
+- **OAuth2-Authentifizierung** für Microsoft 365/Exchange/Outlook
+- **"Mit Microsoft anmelden" Button** in der Kontenverwaltung
+- **Azure AD App-Registrierung Support** (Custom Client-ID)
+- **OAuth2-Token-Verwaltung** (Refresh, Revoke)
+- **Microsoft Quick Setup** Modal
+- **MicrosoftAppPasswordHelp** Komponente
+- **XOAUTH2 für IMAP/SMTP**
+
+#### ✅ Was bleibt
+- **IMAP/SMTP-Authentifizierung** für alle Provider
+- **App-Passwort-Support** für Microsoft, Gmail, iCloud, Yahoo
+- **Server-Vorlagen** (Gmail, Outlook, Yahoo, GMX, WEB.DE, IONOS)
+- **Automatische Updates** (v1.16.0)
+- **Spam-Filter** (v1.14.0)
+- **Globale Suche** (v1.13.0)
+- **Alle anderen Features** (KI, Themes, Dashboard, etc.)
+
+#### 💡 Gründe für diese Änderung
+| Grund | Beschreibung |
+|-------|--------------|
+| **Einfachheit** | IMAP/SMTP ist universell und einfacher einzurichten |
+| **Zuverlässigkeit** | Keine OAuth2-Token-Refresh-Probleme mehr |
+| **Weniger Abhängigkeiten** | Keine Microsoft-API oder Azure AD erforderlich |
+| **Admin-Consent-Probleme** | OAuth2 erfordert oft IT-Admin-Genehmigung |
+| **Fokus** | Konzentration auf stabile, funktionierende Features |
+
+#### 🔧 Technische Änderungen
+- **main.js**: OAuth2-Funktionen entfernt (startMicrosoftOAuth, exchangeCodeForTokens, refreshOAuthTokens, etc.)
+- **main.js**: getImapConfigForAccount/getSmtpTransporterForAccount vereinfacht (nur noch Passwort-Auth)
+- **main.js**: OAuth2-IPC-Handler entfernt (oauth2:startMicrosoft, oauth2:refreshToken, etc.)
+- **preload.js**: OAuth2-API entfernt
+- **AccountManager.js**: Komplett überarbeitet, nur noch IMAP/SMTP
+- **package.json**: Version 2.0.0
+- **README.md**: Dokumentation aktualisiert
+
+#### 📧 Microsoft-Konten einrichten (jetzt)
+1. Gehe zu [account.microsoft.com/security](https://account.microsoft.com/security)
+2. Erstelle ein App-Passwort (unter "Erweiterte Sicherheitsoptionen")
+3. Verwende das App-Passwort in CoreMail mit der Vorlage "Microsoft 365 / Outlook"
+
+#### ⚠️ Migration von v1.x
+Wenn du ein Microsoft-Konto mit OAuth2 verwendet hast:
+1. Lösche das Konto in der Kontenverwaltung
+2. Erstelle ein App-Passwort bei Microsoft
+3. Füge das Konto neu mit IMAP/SMTP hinzu
+
+---
+
 ## [1.16.0] - 2026-03-13
 
 ### 🔄 Neues Feature: Automatische Updates
