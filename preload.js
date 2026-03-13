@@ -6,11 +6,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppSettings: () => ipcRenderer.invoke('app:getSettings'),
   saveAppSettings: (settings) => ipcRenderer.invoke('app:saveSettings', settings),
   
-  // Updates (v1.2)
+  // Updates (v1.16.0 - Auto-Update)
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   downloadUpdate: (url) => ipcRenderer.invoke('update:download', url),
   installUpdate: (filePath) => ipcRenderer.invoke('update:install', filePath),
   openDownloads: () => ipcRenderer.invoke('update:openDownloads'),
+  verifyUpdateFile: (filePath) => ipcRenderer.invoke('update:verifyFile', filePath),
+  getBackups: () => ipcRenderer.invoke('update:getBackups'),
+  restoreBackup: (backupPath) => ipcRenderer.invoke('update:restoreBackup', backupPath),
   onUpdateAvailable: (callback) => ipcRenderer.on('update:available', (event, data) => callback(data)),
   onUpdateProgress: (callback) => ipcRenderer.on('update:progress', (event, data) => callback(data)),
   

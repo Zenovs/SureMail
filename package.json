@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "1.15.0",
-  "description": "CoreMail Desktop Client v1.15.0 - Vereinfachte Microsoft-Integration",
+  "version": "1.16.0",
+  "description": "CoreMail Desktop Client v1.16.0 - Automatische Updates",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

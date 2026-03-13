@@ -9,6 +9,7 @@ import SidebarV2 from './components/SidebarV2';
 import ChatWidget from './components/ChatWidget';
 import OllamaInstaller from './components/OllamaInstaller';
 import GlobalSearch from './components/GlobalSearch';
+import UpdateNotification from './components/UpdateNotification';
 import Dashboard from './pages/Dashboard';
 import InboxSplitView from './pages/InboxSplitView';
 import ComposeEmail from './pages/ComposeEmail';
@@ -176,6 +177,9 @@ function AppContent() {
         onClose={() => setShowOllamaInstaller(false)}
         onInstallComplete={handleOllamaInstallComplete}
       />
+      
+      {/* v1.16.0: Update Notification */}
+      <UpdateNotification onOpenSettings={() => setCurrentView('settings')} />
     </div>
   );
 }

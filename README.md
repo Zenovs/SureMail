@@ -1,6 +1,6 @@
-# 📧 CoreMail Desktop v1.15.0
+# 📧 CoreMail Desktop v1.16.0
 
-Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokalem KI-Assistenten, intelligentem Spam-Filter, vereinfachter Microsoft-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
+Ein schlanker, benutzerfreundlicher E-Mail-Client für Linux mit modernem Design, lokalem KI-Assistenten, intelligentem Spam-Filter, automatischen Updates, vereinfachter Microsoft-Integration, anpassbaren Kategorien, Google Fonts und professionellem UI/UX.
 
 ## 🚀 Schnellinstallation
 
@@ -14,7 +14,45 @@ oder
 wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
 
-## 🆕 v1.15.0 - Vereinfachte Microsoft-Integration
+## 🆕 v1.16.0 - Automatische Updates
+
+### 🔄 Auto-Update-Funktion
+- **Automatische Update-Prüfung**: Prüft alle 24 Stunden auf neue Versionen
+- **Ein-Klick-Update**: Download und Installation mit einem Klick
+- **Keine Terminal-Befehle nötig**: Alles direkt im Client
+- **Fortschrittsanzeige**: Zeigt Download-Fortschritt in Echtzeit
+
+### 📦 Update-Manager
+- **Update-Benachrichtigung**: Popup bei verfügbaren Updates
+- **Release-Notes**: Zeigt Änderungen der neuen Version
+- **"Später" Option**: Update später installieren
+- **"Nicht mehr anzeigen"**: Version überspringen
+
+### ⚙️ Update-Einstellungen
+- **Automatisch prüfen**: An/Aus-Schalter für automatische Prüfung
+- **Auto-Download**: Updates automatisch herunterladen
+- **Auto-Installation**: Updates automatisch installieren (mit Neustart)
+- **Manueller Check**: Jederzeit manuell nach Updates suchen
+
+### 🔒 Sicherheit
+- **Backup-Funktion**: Automatisches Backup der alten Version vor Update
+- **GitHub-Downloads**: Updates nur von GitHub Releases
+- **SHA256-Verifizierung**: Integrität wird überprüft
+- **Rollback**: Bei Problemen zur alten Version zurückkehren
+
+### 💡 Vorteile
+| Feature | Beschreibung |
+|---------|--------------|
+| Ein-Klick | Update mit einem Button-Klick |
+| Ohne Terminal | Keine Kommandozeile nötig |
+| Automatisch | Updates im Hintergrund |
+| Sicher | Mit Backup und Verifizierung |
+
+**→ Immer die neueste Version ohne Aufwand!**
+
+---
+
+## v1.15.0 - Vereinfachte Microsoft-Integration
 
 ### ⚡ Ein-Klick Microsoft-Setup
 - **"Microsoft hinzufügen" Button**: Neuer prominenter Button in der Kontenverwaltung

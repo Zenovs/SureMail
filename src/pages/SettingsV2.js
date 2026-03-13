@@ -165,36 +165,39 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.15.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.16.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-400">⚡</span>
-                  <span><strong>Ein-Klick Microsoft-Setup:</strong> Neuer "Microsoft hinzufügen" Button für schnelle Einrichtung</span>
+                  <span className="text-cyan-400">🔄</span>
+                  <span><strong>Automatische Updates:</strong> Prüft alle 24h auf neue Versionen</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">🔍</span>
-                  <span><strong>Auto-Erkennung:</strong> Microsoft-E-Mails werden automatisch erkannt (Outlook, Hotmail, Live)</span>
+                  <span className="text-green-400">⬇️</span>
+                  <span><strong>Ein-Klick-Update:</strong> Download und Installation mit einem Klick</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-yellow-400">📖</span>
-                  <span><strong>App-Passwort-Hilfe:</strong> Schritt-für-Schritt-Anleitung direkt in der App</span>
+                  <span className="text-blue-400">📦</span>
+                  <span><strong>Update-Manager:</strong> Benachrichtigung bei verfügbaren Updates</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🎨</span>
-                  <span><strong>UI-Verbesserungen:</strong> Klare Unterscheidung zwischen IMAP/SMTP und OAuth2</span>
+                  <span className="text-yellow-400">🔒</span>
+                  <span><strong>Sicherheit:</strong> Automatisches Backup vor jedem Update</span>
                 </li>
+              </ul>
+              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.15.x</h4>
+              <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
+                <li>• Ein-Klick Microsoft-Setup mit App-Passwort</li>
+                <li>• Automatische Microsoft-Domain-Erkennung</li>
+                <li>• Verbesserte OAuth2/IMAP-Auswahl</li>
               </ul>
               <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.14.x</h4>
               <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
                 <li>• Intelligenter Spam-Filter mit 4 Kategorien</li>
                 <li>• Spam-Tags und Warnbanner in der Mail-Liste</li>
-                <li>• Einstellbare Empfindlichkeit, Whitelist, Blacklist</li>
               </ul>
               <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.13.x</h4>
               <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
                 <li>• Globale Suche (Ctrl+K) über alle Konten</li>
-                <li>• Azure AD App-Registrierung Support</li>
-                <li>• Microsoft Office Client-ID für OAuth2</li>
               </ul>
             </div>
           </div>

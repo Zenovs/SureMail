@@ -2,6 +2,67 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [1.16.0] - 2026-03-13
+
+### 🔄 Neues Feature: Automatische Updates
+
+#### 🚀 Auto-Update-Funktion
+- **Automatische Update-Prüfung**: Überprüft alle 24 Stunden auf neue Versionen
+- **Ein-Klick-Update**: Download und Installation mit nur einem Klick
+- **Ohne Terminal**: Alles direkt im Client, keine Kommandozeile nötig
+- **Fortschrittsanzeige**: Zeigt Download-Fortschritt in Echtzeit
+
+#### 📦 Update-Manager (UpdateManager.js)
+- **Zentrale Update-Verwaltung**: Singleton-Klasse für Update-Logik
+- **Status-Tracking**: Idle, Checking, Downloading, Downloaded, Installing, Error
+- **Einstellungen-Persistenz**: Speichert Benutzereinstellungen in localStorage
+- **Listener-System**: Reaktive Updates für UI-Komponenten
+
+#### 🔔 Update-Benachrichtigung (UpdateNotification.js)
+- **Toast-Notification**: Nicht-aufdringliche Benachrichtigung bei verfügbaren Updates
+- **Animiertes Popup**: Slide-up Animation für bessere UX
+- **"Später" Button**: Update auf später verschieben
+- **"Nicht mehr anzeigen"**: Diese Version überspringen
+- **Details anzeigen**: Release-Notes direkt im Popup
+
+#### ⚙️ Erweiterte Update-Einstellungen (UpdateSettings.js)
+- **Automatisch prüfen**: An/Aus-Schalter für automatische Prüfung alle 24h
+- **Auto-Download**: Updates automatisch im Hintergrund herunterladen
+- **Auto-Installation**: Heruntergeladene Updates automatisch installieren
+- **Manueller Check**: Button zum sofortigen Prüfen auf Updates
+- **Letzte Prüfung**: Zeigt Datum/Uhrzeit der letzten Überprüfung
+
+#### 🔒 Sicherheitsfeatures
+- **Automatisches Backup**: Sichert die alte Version vor jedem Update
+- **Backup-Verwaltung**: Behält die letzten 3 Backups, ältere werden gelöscht
+- **SHA256-Verifizierung**: Hash-Prüfung für Download-Integrität
+- **Rollback-Funktion**: Wiederherstellung von Backup möglich
+- **Nur GitHub**: Downloads ausschließlich von GitHub Releases
+
+#### 🔧 Technische Details (main.js)
+- **update:install** — Erweitert mit Backup-Logik vor Installation
+- **update:verifyFile** — Neuer IPC-Handler für SHA256-Hash
+- **update:getBackups** — Listet verfügbare Backups auf
+- **update:restoreBackup** — Stellt eine Backup-Version wieder her
+
+#### 📡 Preload-API (preload.js)
+- `verifyUpdateFile(filePath)` — Überprüft Datei-Integrität
+- `getBackups()` — Listet gespeicherte Backups
+- `restoreBackup(backupPath)` — Startet Backup-Version
+
+### 📝 Geänderte Dateien
+- `src/utils/UpdateManager.js` — NEU: Zentrale Update-Logik
+- `src/components/UpdateNotification.js` — NEU: Update-Popup
+- `src/pages/UpdateSettings.js` — Komplett überarbeitet
+- `src/App.js` — UpdateNotification integriert
+- `main.js` — Backup und Verifizierung hinzugefügt
+- `preload.js` — Neue IPC-Handler für Updates
+- `package.json` — Version auf 1.16.0 aktualisiert
+- `CHANGELOG.md` — Diese Einträge hinzugefügt
+- `README.md` — Auto-Update dokumentiert
+
+---
+
 ## [1.15.0] - 2026-03-13
 
 ### ⚡ Neues Feature: Vereinfachte Microsoft-Integration

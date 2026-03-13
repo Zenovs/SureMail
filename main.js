@@ -1026,6 +1026,36 @@ ipcMain.handle('update:install', async (event, filePath) => {
     if (stats.size < 1000) {
       return { success: false, error: 'Update-Datei ist beschädigt' };
     }
+
+    // v1.16.0: Create backup of current AppImage
+    const currentAppImage = process.env.APPIMAGE;
+    if (currentAppImage && fs.existsSync(currentAppImage)) {
+      try {
+        const backupDir = path.join(app.getPath('userData'), 'backups');
+        if (!fs.existsSync(backupDir)) {
+          fs.mkdirSync(backupDir, { recursive: true });
+        }
+        const backupPath = path.join(backupDir, `CoreMail-Desktop-backup-${APP_VERSION}.AppImage`);
+        fs.copyFileSync(currentAppImage, backupPath);
+        console.log('Backup created:', backupPath);
+        
+        // Keep only last 3 backups
+        const backups = fs.readdirSync(backupDir)
+          .filter(f => f.startsWith('CoreMail-Desktop-backup-'))
+          .map(f => ({ name: f, time: fs.statSync(path.join(backupDir, f)).mtime.getTime() }))
+          .sort((a, b) => b.time - a.time);
+        
+        if (backups.length > 3) {
+          backups.slice(3).forEach(b => {
+            try {
+              fs.unlinkSync(path.join(backupDir, b.name));
+            } catch (e) {}
+          });
+        }
+      } catch (backupError) {
+        console.error('Backup error (non-fatal):', backupError.message);
+      }
+    }
     
     // Ensure file is executable
     try {
@@ -1059,6 +1089,87 @@ ipcMain.handle('update:install', async (event, filePath) => {
     return { success: true };
   } catch (error) {
     console.error('Update install error:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// v1.16.0: Get SHA256 hash of a file
+ipcMain.handle('update:verifyFile', async (event, filePath) => {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return { success: false, error: 'Datei nicht gefunden' };
+    }
+    
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    
+    return new Promise((resolve) => {
+      stream.on('data', data => hash.update(data));
+      stream.on('end', () => {
+        resolve({ success: true, sha256: hash.digest('hex') });
+      });
+      stream.on('error', (err) => {
+        resolve({ success: false, error: err.message });
+      });
+    });
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// v1.16.0: Get list of backups
+ipcMain.handle('update:getBackups', async () => {
+  try {
+    const backupDir = path.join(app.getPath('userData'), 'backups');
+    if (!fs.existsSync(backupDir)) {
+      return { success: true, backups: [] };
+    }
+    
+    const backups = fs.readdirSync(backupDir)
+      .filter(f => f.startsWith('CoreMail-Desktop-backup-'))
+      .map(f => {
+        const filePath = path.join(backupDir, f);
+        const stats = fs.statSync(filePath);
+        const version = f.match(/backup-(.+)\.AppImage/)?.[1] || 'unknown';
+        return {
+          name: f,
+          path: filePath,
+          version,
+          size: stats.size,
+          date: stats.mtime.toISOString()
+        };
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    return { success: true, backups };
+  } catch (error) {
+    return { success: false, error: error.message, backups: [] };
+  }
+});
+
+// v1.16.0: Restore from backup
+ipcMain.handle('update:restoreBackup', async (event, backupPath) => {
+  try {
+    if (!fs.existsSync(backupPath)) {
+      return { success: false, error: 'Backup nicht gefunden' };
+    }
+    
+    fs.chmodSync(backupPath, 0o755);
+    
+    const child = spawn(backupPath, [], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env, APPIMAGE_EXTRACT_AND_RUN: '0' }
+    });
+    
+    child.unref();
+    
+    setTimeout(() => {
+      app.quit();
+    }, 1500);
+    
+    return { success: true };
+  } catch (error) {
     return { success: false, error: error.message };
   }
 });
