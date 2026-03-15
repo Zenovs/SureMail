@@ -2,6 +2,21 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.2.3] - 2026-03-15
+
+### Bugfix: Theme-Icon-Transparenz-Fix
+
+#### Behoben
+- **light.png und retro.png**: Konvertiert von RGB zu RGBA-Format
+- **Alpha-Kanal hinzugefügt**: Beide Theme-Icons haben nun Transparenz in den Ecken
+- **Konsistenz**: Alle Theme-Icons in `build/icons/themes/` sind nun RGBA mit ca. 24% Eckenradius
+
+#### Technische Änderungen
+- `build/icons/themes/light.png`: Von RGB zu RGBA konvertiert, runde Ecken mit Transparenz
+- `build/icons/themes/retro.png`: Von RGB zu RGBA konvertiert, runde Ecken mit Transparenz
+
+---
+
 ## [2.2.2] - 2026-03-15
 
 ### Bugfix: Icon-Transparenz und alle Größen
