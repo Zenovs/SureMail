@@ -72,6 +72,7 @@ function SettingsV2() {
     { id: 'glass', name: 'Glas', desc: 'Transparente Glaseffekte', preview: 'bg-gradient-to-br from-blue-950 via-slate-900 to-indigo-950', previewBorder: 'border-sky-400/50' },
     { id: 'retro', name: 'Retro', desc: '80er/90er Neon-Stil', preview: 'bg-gray-950', previewBorder: 'border-pink-500/50' },
     { id: 'foundations', name: 'Foundations', desc: 'Professionelles Design-System mit Orange & Grün', preview: 'bg-foundations-950', previewBorder: 'border-orange-500/50' },
+    { id: 'lollipop', name: 'Lollipop', desc: 'Farbenfrohes Candy-Design mit bunten Akzenten', preview: 'bg-lollipop-bg', previewBorder: 'border-lollipop-pink/50' },
   ];
 
   const getThemePreviewContent = (themeId) => {
@@ -99,6 +100,16 @@ function SettingsV2() {
           <div className="w-full h-full flex items-center justify-center gap-1">
             <div className="w-4 h-4 rounded-full bg-orange-500" />
             <div className="w-4 h-4 rounded-full bg-green-500" />
+          </div>
+        );
+      case 'lollipop':
+        return (
+          <div className="w-full h-full flex items-center justify-center gap-1">
+            <div className="w-3 h-3 rounded-full bg-lollipop-pink" />
+            <div className="w-3 h-3 rounded-full bg-lollipop-purple" />
+            <div className="w-3 h-3 rounded-full bg-lollipop-yellow" />
+            <div className="w-3 h-3 rounded-full bg-lollipop-green" />
+            <div className="w-3 h-3 rounded-full bg-lollipop-orange" />
           </div>
         );
       default:

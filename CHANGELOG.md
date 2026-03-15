@@ -2,6 +2,15 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.7.5] - 2026-03-15
+
+### Bugfix: Lollipop Theme in Einstellungen anzeigen
+
+- `themeOptions` in SettingsV2.js war hardcodiert — Lollipop fehlte in der Auswahlliste
+- Lollipop-Eintrag mit bunter Vorschau (5 farbige Kreise) hinzugefügt
+
+---
+
 ## [2.7.4] - 2026-03-15
 
 ### Bugfix: Update-System vollständig korrigiert
