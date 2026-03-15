@@ -2,6 +2,44 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.3.0] - 2026-03-15
+
+### Feature Release: Multi-Select & Bulk Delete, Icon-Fixes
+
+#### Neue Features
+- **Multi-Select für E-Mails**: Mehrere E-Mails können nun gleichzeitig ausgewählt werden
+  - Checkbox in jeder E-Mail-Zeile (über den Mehrfachauswahl-Button aktivierbar)
+  - "Alle auswählen" / "Keine" Button im Header
+  - Shift+Klick für Bereichsauswahl
+  - Ctrl/Cmd+A wählt alle E-Mails aus
+  - Ausgewählte E-Mails werden visuell hervorgehoben
+  
+- **Bulk Delete (Massenlöschung)**: Ausgewählte E-Mails können mit einem Klick gelöscht werden
+  - "Löschen (X)" Button erscheint wenn E-Mails ausgewählt sind
+  - Bestätigungs-Dialog vor dem Löschen
+  - Fortschrittsanzeige während des Löschens
+  - Escape zum Abbrechen der Auswahl
+  - Delete-Taste löscht ausgewählte E-Mails
+
+#### Behoben
+- **Icon-Problem behoben**: Icons werden nun korrekt in gepackten Apps angezeigt
+  - Verbesserte Pfadauflösung für Theme-Icons
+  - Unterstützung für verschiedene Paketierungsmethoden (asar, unpacked)
+  - Fallback-Mechanismus für fehlende Icons
+
+- **Benachrichtigungs-Icon mit transparentem Hintergrund**
+  - Neues `notification.png` Icon ohne Hintergrund
+  - Benachrichtigungen verwenden nun das transparente Icon
+  - Icons in verschiedenen Größen (32px - 512px)
+
+#### Technische Änderungen
+- `src/pages/InboxSplitView.js`: Multi-Select & Bulk Delete Funktionalität
+- `main.js`: Verbesserte `getIconPath()` und `getIconPathForTheme()` Funktionen
+- `main.js`: Neue `getNotificationIconPath()` Funktion
+- `assets/notification.png`: Neues Benachrichtigungs-Icon mit Transparenz
+
+---
+
 ## [2.2.3] - 2026-03-15
 
 ### Bugfix: Theme-Icon-Transparenz-Fix

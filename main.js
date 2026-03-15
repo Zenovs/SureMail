@@ -60,7 +60,7 @@ function createWindow() {
     title: 'CoreMail Desktop'
   });
 
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  const isDev = process.env.NODE_ENV === 'development';
   
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
@@ -182,11 +182,48 @@ function getSmtpTransporterForAccount(account) {
   return { transporter, fromEmail };
 }
 
+// v2.3.0: Improved icon path resolution
 function getIconPath() {
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, 'icon.png');
+    // Try multiple locations for packaged app
+    const locations = [
+      path.join(process.resourcesPath, 'icon.png'),
+      path.join(process.resourcesPath, 'app.asar', 'assets', 'icon.png'),
+      path.join(__dirname, 'assets', 'icon.png')
+    ];
+    for (const loc of locations) {
+      if (fs.existsSync(loc)) {
+        return loc;
+      }
+    }
   }
-  return path.join(__dirname, 'assets/icon.png');
+  return path.join(__dirname, 'assets', 'icon.png');
+}
+
+// v2.3.0: Get notification icon (transparent background)
+function getNotificationIconPath() {
+  const iconName = 'notification.png';
+  
+  if (app.isPackaged) {
+    const locations = [
+      path.join(process.resourcesPath, iconName),
+      path.join(process.resourcesPath, 'app.asar', 'assets', iconName),
+      path.join(__dirname, 'assets', iconName)
+    ];
+    for (const loc of locations) {
+      if (fs.existsSync(loc)) {
+        return loc;
+      }
+    }
+  }
+  
+  const devPath = path.join(__dirname, 'assets', iconName);
+  if (fs.existsSync(devPath)) {
+    return devPath;
+  }
+  
+  // Fallback to regular icon if notification icon not found
+  return getIconPath();
 }
 
 // ============ UPDATE FUNCTIONS ============
@@ -382,6 +419,7 @@ async function downloadUpdate(downloadUrl) {
 
 // ============ NOTIFICATION FUNCTIONS ============
 
+// v2.3.0: Updated to use notification icon with transparent background
 function showNotification(title, body, onClick = null) {
   if (!Notification.isSupported()) {
     console.log('Notifications not supported');
@@ -391,7 +429,7 @@ function showNotification(title, body, onClick = null) {
   const notification = new Notification({
     title,
     body,
-    icon: getIconPath(),
+    icon: getNotificationIconPath(),
     silent: store.get('appSettings.notificationSound', true) === false
   });
 
@@ -581,14 +619,26 @@ const THEME_ICONS = {
   foundations: 'foundations.png'
 };
 
+// v2.3.0: Fixed icon path resolution for packaged apps
 function getIconPathForTheme(themeName) {
   const iconFile = THEME_ICONS[themeName] || THEME_ICONS['dark'];
-  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
   
-  if (isDev) {
-    return path.join(__dirname, 'public', 'icons', 'themes', iconFile);
-  } else {
+  if (app.isPackaged) {
+    // In packaged app, icons are in resources/build/icons/themes/
+    const resourcePath = path.join(process.resourcesPath, 'app.asar', 'build', 'icons', 'themes', iconFile);
+    if (fs.existsSync(resourcePath)) {
+      return resourcePath;
+    }
+    // Fallback: try without asar
+    const fallbackPath = path.join(process.resourcesPath, 'build', 'icons', 'themes', iconFile);
+    if (fs.existsSync(fallbackPath)) {
+      return fallbackPath;
+    }
+    // Last fallback: try __dirname (unpacked)
     return path.join(__dirname, 'build', 'icons', 'themes', iconFile);
+  } else {
+    // Development mode
+    return path.join(__dirname, 'public', 'icons', 'themes', iconFile);
   }
 }
 
