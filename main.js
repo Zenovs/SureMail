@@ -199,9 +199,11 @@ function getImapConfigForAccount(account) {
       user: account.imap.username,
       password: account.imap.password,
       host: account.imap.host,
-      port: parseInt(account.imap.port),
+      port: parseInt(account.imap.port) || 993,
       tls: account.imap.tls !== false,
-      authTimeout: 10000
+      authTimeout: 15000,
+      connTimeout: 30000,
+      tlsOptions: { rejectUnauthorized: false }
     }
   };
 }

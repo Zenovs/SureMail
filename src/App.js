@@ -166,7 +166,7 @@ function AppContent() {
           />
         );
       case 'inbox':
-        return <InboxSplitView onFullView={handleFullView} />;
+        return <InboxSplitView onFullView={handleFullView} onNavigate={setCurrentView} />;
       case 'compose':
         return (
           <ComposeEmail 

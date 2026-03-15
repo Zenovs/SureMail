@@ -382,7 +382,7 @@ const getFolderIcon = (type) => {
   }
 };
 
-function InboxSplitView({ onFullView }) {
+function InboxSplitView({ onFullView, onNavigate }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount, updateAccountStats } = useAccounts();
   const [emails, setEmails] = useState([]);
@@ -1154,12 +1154,23 @@ function InboxSplitView({ onFullView }) {
   if (error) {
     return (
       <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
-        <div className="text-center">
+        <div className="text-center max-w-sm">
           <div className="text-red-400 text-5xl mb-4">⚠️</div>
-          <p className="text-red-400">{error}</p>
-          <button onClick={() => fetchEmails(false)} className={`mt-4 px-4 py-2 ${c.accentBg} text-white rounded-lg`}>
-            Erneut versuchen
-          </button>
+          <h3 className={`font-semibold ${c.text} mb-2`}>Verbindung fehlgeschlagen</h3>
+          <p className="text-red-400 text-sm mb-1">{error}</p>
+          <p className={`text-xs ${c.textSecondary} mb-4`}>
+            Bitte überprüfe Host, Port, Benutzername und Passwort in den Konto-Einstellungen.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <button onClick={() => fetchEmails(false)} className={`px-4 py-2 ${c.accentBg} text-white rounded-lg text-sm`}>
+              Erneut versuchen
+            </button>
+            {onNavigate && (
+              <button onClick={() => onNavigate('accounts')} className={`px-4 py-2 ${c.bgTertiary} ${c.text} ${c.border} border rounded-lg text-sm`}>
+                Konto-Einstellungen
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
