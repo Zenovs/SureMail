@@ -1134,7 +1134,7 @@ function InboxSplitView({ onFullView }) {
 
   if (!activeAccountId) {
     return (
-      <div className={`flex-1 flex items-center justify-center ${c.bg}`}>
+      <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
         <div className={`text-center ${c.textSecondary}`}>
           <div className="text-5xl mb-4">📧</div>
           <p>Wähle ein Konto aus der Sidebar</p>
@@ -1145,7 +1145,7 @@ function InboxSplitView({ onFullView }) {
 
   if (loading) {
     return (
-      <div className={`flex-1 flex items-center justify-center ${c.bg}`}>
+      <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
         <LoadingSpinner message="E-Mails werden geladen..." />
       </div>
     );
@@ -1153,7 +1153,7 @@ function InboxSplitView({ onFullView }) {
 
   if (error) {
     return (
-      <div className={`flex-1 flex items-center justify-center ${c.bg}`}>
+      <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
         <div className="text-center">
           <div className="text-red-400 text-5xl mb-4">⚠️</div>
           <p className="text-red-400">{error}</p>

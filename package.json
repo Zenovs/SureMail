@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.7.5",
-  "description": "CoreMail Desktop v2.7.5 - Fix: Lollipop Theme in Settings sichtbar",
+  "version": "2.7.6",
+  "description": "CoreMail Desktop v2.7.6 - Fix: Schwarzes Fenster beim Öffnen von Postfach",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

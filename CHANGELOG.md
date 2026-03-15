@@ -2,6 +2,15 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.7.6] - 2026-03-15
+
+### Bugfix: Schwarzes Fenster beim Öffnen von Postfach
+
+- **ErrorBoundary** in App.js: Fängt JavaScript-Render-Fehler ab und zeigt statt eines schwarzen Fensters eine Fehlermeldung mit "Erneut versuchen"-Button
+- **Loading-/Fehler-/Kein-Konto-Zustände** in InboxSplitView verwenden jetzt `bgSecondary` statt `bg` — verhindert das fast-schwarze Ladescreen beim Dark-Theme
+
+---
+
 ## [2.7.5] - 2026-03-15
 
 ### Bugfix: Lollipop Theme in Einstellungen anzeigen

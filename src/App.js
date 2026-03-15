@@ -1,4 +1,38 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Component } from 'react';
+
+// v2.7.6: Global error boundary to catch render crashes (shows error instead of black window)
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('[CoreMail] Render error:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1a1a1a', color: '#e5e7eb', padding: '32px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '8px' }}>Ansicht konnte nicht geladen werden</h2>
+          <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '24px', textAlign: 'center', maxWidth: '400px' }}>
+            {this.state.error?.message || 'Unbekannter Fehler'}
+          </p>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{ padding: '8px 20px', background: '#0891b2', color: 'white', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '14px' }}
+          >
+            Erneut versuchen
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AccountProvider, useAccounts } from './context/AccountContext';
 import { SidebarProvider } from './context/SidebarContext';
@@ -163,8 +197,10 @@ function AppContent() {
   return (
     <div className={`flex h-screen ${c.bg}`}>
       <SidebarV2 currentView={currentView} onNavigate={setCurrentView} />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {renderContent()}
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0">
+        <ErrorBoundary>
+          {renderContent()}
+        </ErrorBoundary>
       </main>
       <ChatWidget />
       
