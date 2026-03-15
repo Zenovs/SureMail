@@ -2,6 +2,53 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.4.0] - 2026-03-15
+
+### Feature Release: Inbox-Unterordner mit automatischer Kategorisierung
+
+#### Neue Features
+- **Virtuelle Inbox-Unterordner**: E-Mails werden automatisch kategorisiert und können nach Kategorie gefiltert werden
+  - 📢 **Werbung**: Marketing-Mails und Newsletter (Orange)
+  - 🚫 **Spam**: Unerwünschte E-Mails (Rot)
+  - ⚠️ **Schädlich**: Phishing-Versuche und verdächtige Mails (Gelb)
+  - 🦠 **Virus**: E-Mails mit gefährlichen Anhängen (Lila)
+
+- **Ausklappbare Ordner-Struktur**: 
+  - Posteingang (alle E-Mails)
+    - └ Werbung (nur Werbe-Mails)
+    - └ Spam (nur Spam)
+    - └ Schädlich (nur schädliche E-Mails)
+    - └ Virus (nur Virus-E-Mails)
+
+- **Kategorie-Filter**: 
+  - Klick auf Unterordner filtert E-Mails nach Kategorie
+  - Anzeige der Anzahl pro Kategorie als Badge
+  - Aktiver Filter wird im Header angezeigt mit "×" zum Entfernen
+  - Leerer Zustand mit "Alle E-Mails anzeigen" Button
+
+- **Automatische Kategorisierung**:
+  - Basierend auf dem bestehenden Spam-Filter (v1.14.0)
+  - Kategorisierung durch Betreff-, Absender- und Inhaltsanalyse
+  - Regelbasierte Erkennung von Werbung, Spam, Phishing und Viren
+
+#### UI-Verbesserungen
+- Expand/Collapse Button für INBOX-Unterordner (▼/▶)
+- Farbcodierte Kategorie-Badges
+- Smooth Transitions bei Filterwechsel
+- Anzeige von "X E-Mails (von Y gesamt)" bei aktivem Filter
+
+#### Technische Änderungen
+- `src/pages/InboxSplitView.js`:
+  - Neue INBOX_SUBFOLDERS Konstante mit Kategorie-Definitionen
+  - `categoryFilter` und `inboxExpanded` States
+  - `categoryCounts` useMemo für Kategorie-Zähler
+  - `filteredEmails` useMemo für gefilterte E-Mail-Liste
+  - Aktualisierte handleSelectEmail, handleSelectAll für filteredEmails
+  - Reset der Auswahl bei Filterwechsel
+- Neue Lucide-Icons: ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug
+
+---
+
 ## [2.3.1] - 2026-03-15
 
 ### Bugfix Release: IMAP-Fetch-Problem behoben

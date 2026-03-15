@@ -2,7 +2,7 @@
 
 ## 📥 Download & Installation
 
-**Aktuelle Version: v2.2.3**
+**Aktuelle Version: v2.4.0**
 
 ### 🚀 Schnell-Installation (Eine Zeile)
 

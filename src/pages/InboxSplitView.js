@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { getCurrentFont } from './FontSettings';
 import { analyzeEmails, getSpamFilterSettings, TAG_STYLES } from '../utils/SpamFilter';
+
+// v2.4.0: Virtual Inbox Subfolders for automatic categorization
+const INBOX_SUBFOLDERS = [
+  { id: 'werbung', name: 'Werbung', icon: Megaphone, color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+  { id: 'spam', name: 'Spam', icon: Ban, color: 'text-red-400', bgColor: 'bg-red-500/20' },
+  { id: 'schaedlich', name: 'Schädlich', icon: ShieldAlert, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
+  { id: 'virus', name: 'Virus', icon: Bug, color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+];
 
 // v1.11.1: Google Fonts list for email content styling
 const GOOGLE_FONTS = {
@@ -324,6 +332,10 @@ function InboxSplitView({ onFullView }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   
+  // v2.4.0: Inbox Subfolder Filter State
+  const [categoryFilter, setCategoryFilter] = useState(null); // null = alle, 'werbung', 'spam', 'schaedlich', 'virus'
+  const [inboxExpanded, setInboxExpanded] = useState(true);
+  
   // Resizable folder column (v1.8.1)
   const [folderWidth, setFolderWidth] = useState(() => {
     const saved = localStorage.getItem('inbox.folderColumnWidth');
@@ -610,13 +622,14 @@ function InboxSplitView({ onFullView }) {
 
   const handleSelectEmail = (index) => {
     setSelectedIndex(index);
-    if (emails[index]) {
-      loadEmailPreview(emails[index].uid);
+    // v2.4.0: Use filteredEmails for selection
+    if (filteredEmails[index]) {
+      loadEmailPreview(filteredEmails[index].uid);
       
       // Auto-mark as read based on settings (v1.8.1)
       const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
-      if (markMode === 'onClick' && !emails[index].seen) {
-        handleToggleRead(emails[index].uid, false);
+      if (markMode === 'onClick' && !filteredEmails[index].seen) {
+        handleToggleRead(filteredEmails[index].uid, false);
       }
     }
   };
@@ -719,14 +732,14 @@ function InboxSplitView({ onFullView }) {
   }, [emails, lastClickedIndex]);
 
   const handleSelectAll = useCallback(() => {
-    if (selectedUids.size === emails.length) {
+    if (selectedUids.size === filteredEmails.length) {
       // Deselect all
       setSelectedUids(new Set());
     } else {
-      // Select all
-      setSelectedUids(new Set(emails.map(e => e.uid)));
+      // Select all (from filtered emails)
+      setSelectedUids(new Set(filteredEmails.map(e => e.uid)));
     }
-  }, [emails, selectedUids]);
+  }, [filteredEmails, selectedUids]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedUids(new Set());
@@ -784,7 +797,7 @@ function InboxSplitView({ onFullView }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Ctrl+A or Cmd+A: Select all emails
-      if ((e.ctrlKey || e.metaKey) && e.key === 'a' && emails.length > 0) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a' && filteredEmails.length > 0) {
         e.preventDefault();
         setShowCheckboxes(true);
         handleSelectAll();
@@ -801,13 +814,13 @@ function InboxSplitView({ onFullView }) {
       if (e.key === 'Delete') {
         if (selectedUids.size > 0) {
           setShowDeleteConfirm(true);
-        } else if (emails[selectedIndex]) {
-          handleDelete(emails[selectedIndex].uid);
+        } else if (filteredEmails[selectedIndex]) {
+          handleDelete(filteredEmails[selectedIndex].uid);
         }
         return;
       }
       
-      if (e.key === 'ArrowDown' && selectedIndex < emails.length - 1) {
+      if (e.key === 'ArrowDown' && selectedIndex < filteredEmails.length - 1) {
         handleSelectEmail(selectedIndex + 1);
       } else if (e.key === 'ArrowUp' && selectedIndex > 0) {
         handleSelectEmail(selectedIndex - 1);
@@ -817,7 +830,7 @@ function InboxSplitView({ onFullView }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, emails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids]);
+  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids]);
 
   // Scroll handler for infinite loading
   const handleScroll = useCallback((e) => {
@@ -915,6 +928,46 @@ function InboxSplitView({ onFullView }) {
     return emails.filter(e => !e.seen).length;
   }, [emails]);
 
+  // v2.4.0: Category counts for inbox subfolders
+  const categoryCounts = useMemo(() => {
+    const counts = { werbung: 0, spam: 0, schaedlich: 0, virus: 0 };
+    if (spamResults.size === 0 || currentFolder !== 'INBOX') return counts;
+    
+    spamResults.forEach((analysis) => {
+      if (analysis.category && counts.hasOwnProperty(analysis.category)) {
+        counts[analysis.category]++;
+      }
+    });
+    return counts;
+  }, [spamResults, currentFolder]);
+
+  // v2.4.0: Filtered emails based on category filter
+  const filteredEmails = useMemo(() => {
+    if (!categoryFilter || currentFolder !== 'INBOX') return emails;
+    
+    return emails.filter(email => {
+      const analysis = spamResults.get(email.uid);
+      return analysis?.category === categoryFilter;
+    });
+  }, [emails, categoryFilter, spamResults, currentFolder]);
+
+  // v2.4.0: Reset category filter when folder changes
+  useEffect(() => {
+    if (currentFolder !== 'INBOX') {
+      setCategoryFilter(null);
+    }
+  }, [currentFolder]);
+
+  // v2.4.0: Reset selection when category filter changes
+  useEffect(() => {
+    setSelectedIndex(0);
+    setSelectedEmail(null);
+    setSelectedUids(new Set());
+    if (filteredEmails.length > 0) {
+      loadEmailPreview(filteredEmails[0].uid);
+    }
+  }, [categoryFilter]);
+
   // v1.11.1: Update account stats when emails are loaded (for sidebar unread badge)
   useEffect(() => {
     if (activeAccountId && currentFolder === 'INBOX' && emails.length > 0) {
@@ -973,25 +1026,82 @@ function InboxSplitView({ onFullView }) {
         </div>
         <div className="flex-1 overflow-y-auto py-2">
           {flatFolders.map(folder => (
-            <button
-              key={folder.path}
-              onClick={() => setCurrentFolder(folder.path)}
-              className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm transition-colors ${
-                currentFolder === folder.path
-                  ? `${c.accentBg} text-white`
-                  : `${c.textSecondary} ${c.hover}`
-              }`}
-              style={{ paddingLeft: `${(folder.depth * 12) + 12}px` }}
-            >
-              {getFolderIcon(folder.type)}
-              <span className="truncate flex-1">{folder.name}</span>
-              {/* v1.11.0: Show unread count badge for inbox */}
-              {folder.path === 'INBOX' && unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium min-w-[20px] text-center">
-                  {unreadCount}
-                </span>
+            <div key={folder.path}>
+              <button
+                onClick={() => {
+                  setCurrentFolder(folder.path);
+                  if (folder.path === 'INBOX') {
+                    setCategoryFilter(null);
+                  }
+                }}
+                className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm transition-colors ${
+                  currentFolder === folder.path && !categoryFilter
+                    ? `${c.accentBg} text-white`
+                    : `${c.textSecondary} ${c.hover}`
+                }`}
+                style={{ paddingLeft: `${(folder.depth * 12) + 12}px` }}
+              >
+                {/* v2.4.0: Expand/Collapse arrow for INBOX */}
+                {folder.path === 'INBOX' ? (
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setInboxExpanded(!inboxExpanded); 
+                    }}
+                    className="p-0.5 -ml-1 hover:bg-white/10 rounded"
+                  >
+                    {inboxExpanded ? (
+                      <ChevronDown className="w-3 h-3" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3" />
+                    )}
+                  </button>
+                ) : null}
+                {getFolderIcon(folder.type)}
+                <span className="truncate flex-1">{folder.name}</span>
+                {/* v1.11.0: Show unread count badge for inbox */}
+                {folder.path === 'INBOX' && unreadCount > 0 && (
+                  <span className="px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium min-w-[20px] text-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+              
+              {/* v2.4.0: Virtual Inbox Subfolders */}
+              {folder.path === 'INBOX' && inboxExpanded && (
+                <div className="ml-3">
+                  {INBOX_SUBFOLDERS.map(subfolder => {
+                    const SubIcon = subfolder.icon;
+                    const count = categoryCounts[subfolder.id] || 0;
+                    const isActive = currentFolder === 'INBOX' && categoryFilter === subfolder.id;
+                    
+                    return (
+                      <button
+                        key={subfolder.id}
+                        onClick={() => {
+                          setCurrentFolder('INBOX');
+                          setCategoryFilter(subfolder.id);
+                        }}
+                        className={`w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm transition-colors rounded-lg my-0.5 ${
+                          isActive
+                            ? `${subfolder.bgColor} ${subfolder.color}`
+                            : `${c.textSecondary} ${c.hover}`
+                        }`}
+                        style={{ paddingLeft: '24px' }}
+                      >
+                        <SubIcon className={`w-4 h-4 ${isActive ? subfolder.color : ''}`} />
+                        <span className="truncate flex-1">{subfolder.name}</span>
+                        {count > 0 && (
+                          <span className={`px-1.5 py-0.5 ${subfolder.bgColor} ${subfolder.color} text-xs rounded-full font-medium min-w-[20px] text-center`}>
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               )}
-            </button>
+            </div>
           ))}
           
           {flatFolders.length === 0 && !loadingFolders && (
@@ -1030,10 +1140,29 @@ function InboxSplitView({ onFullView }) {
         <div className={`p-4 ${c.border} border-b`}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className={`font-semibold ${c.text}`}>{account?.name || 'Posteingang'}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className={`font-semibold ${c.text}`}>{account?.name || 'Posteingang'}</h2>
+                {/* v2.4.0: Show active category filter */}
+                {categoryFilter && currentFolder === 'INBOX' && (
+                  <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                    INBOX_SUBFOLDERS.find(f => f.id === categoryFilter)?.bgColor || 'bg-gray-500/20'
+                  } ${
+                    INBOX_SUBFOLDERS.find(f => f.id === categoryFilter)?.color || 'text-gray-400'
+                  }`}>
+                    {INBOX_SUBFOLDERS.find(f => f.id === categoryFilter)?.name}
+                    <button 
+                      onClick={() => setCategoryFilter(null)}
+                      className="ml-1.5 hover:opacity-70"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
               <p className={`text-sm ${c.textSecondary}`}>
-                {emails.length} E-Mails {currentFolder !== 'INBOX' && `in ${currentFolder}`}
-                {unreadCount > 0 && (
+                {filteredEmails.length} E-Mails {currentFolder !== 'INBOX' && `in ${currentFolder}`}
+                {categoryFilter && ` (von ${emails.length} gesamt)`}
+                {!categoryFilter && unreadCount > 0 && (
                   <span className="ml-2 text-blue-400">({unreadCount} ungelesen)</span>
                 )}
               </p>
@@ -1068,7 +1197,7 @@ function InboxSplitView({ onFullView }) {
                   onClick={handleSelectAll}
                   className={`px-3 py-1.5 text-xs ${c.hover} rounded-lg transition-colors ${c.textSecondary} flex items-center gap-1.5`}
                 >
-                  {selectedUids.size === emails.length ? (
+                  {selectedUids.size === filteredEmails.length && filteredEmails.length > 0 ? (
                     <>
                       <XSquare className="w-4 h-4" />
                       Keine
@@ -1103,13 +1232,26 @@ function InboxSplitView({ onFullView }) {
           className="flex-1 overflow-y-auto"
           onScroll={handleScroll}
         >
-          {emails.length === 0 ? (
+          {filteredEmails.length === 0 ? (
             <div className={`p-8 text-center ${c.textSecondary}`}>
-              Keine E-Mails
+              {categoryFilter ? (
+                <div>
+                  <div className="text-3xl mb-2">✨</div>
+                  <p>Keine E-Mails in dieser Kategorie</p>
+                  <button 
+                    onClick={() => setCategoryFilter(null)}
+                    className={`mt-2 text-sm ${c.accent} hover:underline`}
+                  >
+                    Alle E-Mails anzeigen
+                  </button>
+                </div>
+              ) : (
+                'Keine E-Mails'
+              )}
             </div>
           ) : (
             <>
-              {emails.map((email, index) => (
+              {filteredEmails.map((email, index) => (
                 <EmailListItem
                   key={email.uid}
                   email={email}
