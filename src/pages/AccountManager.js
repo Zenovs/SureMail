@@ -74,6 +74,24 @@ const SERVER_PRESETS = [
     icon: '🌐',
     imap: { host: 'imap.ionos.de', port: '993', tls: true },
     smtp: { host: 'smtp.ionos.de', port: '587', secure: false, starttls: true }
+  },
+  { 
+    id: 'hostpoint', 
+    name: 'Hostpoint',
+    icon: '🇨🇭',
+    imap: { host: 'imap.mail.hostpoint.ch', port: '993', tls: true },
+    smtp: { host: 'asmtp.mail.hostpoint.ch', port: '465', secure: true },
+    note: 'Schweizer Hosting-Anbieter - Benutzername ist die vollständige E-Mail-Adresse',
+    autoFillUsername: true
+  },
+  { 
+    id: 'bluewin', 
+    name: 'Bluewin (Swisscom)',
+    icon: '📶',
+    imap: { host: 'imaps.bluewin.ch', port: '993', tls: true },
+    smtp: { host: 'smtpauths.bluewin.ch', port: '465', secure: true },
+    note: 'Swisscom Bluewin Mail - Benutzername ist die vollständige E-Mail-Adresse',
+    autoFillUsername: true
   }
 ];
 

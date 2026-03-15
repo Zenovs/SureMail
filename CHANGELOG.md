@@ -2,6 +2,31 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.4.2] - 2026-03-15
+
+### Neue Server-Vorlagen: Hostpoint & Bluewin
+
+#### Hinzugefügt
+- **Hostpoint Mail-Server-Vorlage**
+  - IMAP: `imap.mail.hostpoint.ch` (Port 993, SSL/TLS)
+  - SMTP: `asmtp.mail.hostpoint.ch` (Port 465, SSL/TLS)
+  - Schweizer Hosting-Anbieter mit automatischem Benutzername-Ausfüllen
+  - Icon: 🇨🇭
+
+- **Bluewin (Swisscom) Mail-Server-Vorlage**
+  - IMAP: `imaps.bluewin.ch` (Port 993, SSL/TLS)
+  - SMTP: `smtpauths.bluewin.ch` (Port 465, SSL/TLS)
+  - Swisscom Bluewin Mail mit automatischem Benutzername-Ausfüllen
+  - Icon: 📶
+
+#### Technische Änderungen
+- `src/pages/AccountManager.js`:
+  - Neue Einträge in `SERVER_PRESETS` Array
+  - `autoFillUsername: true` für beide Anbieter
+  - Hilfreiche Hinweise zur Benutzername-Konfiguration
+
+---
+
 ## [2.4.1] - 2026-03-15
 
 ### Bugfix Release: Icon-Transparenz und Stabilität
