@@ -2,6 +2,25 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.7.4] - 2026-03-15
+
+### Bugfix: Update-System vollständig korrigiert
+
+**Wurzelfehler gefunden und behoben:**
+
+- **Problem 1 – Kein AppImage in Release**: `checkForUpdates` lieferte früher immer eine Download-URL, auch wenn kein AppImage-Asset im Release vorhanden war. Die Funktion fiel auf `release.html_url` (eine HTML-Seite) zurück → die App lud eine HTML-Seite herunter und versuchte sie als AppImage zu installieren.
+  - **Fix**: Update wird jetzt nur als verfügbar markiert, wenn ein echtes `.appimage`-Asset im Release existiert.
+
+- **Problem 2 – Keine Validierung beim Install**: Der Install-Code prüfte nur ob die Datei > 1000 Bytes ist. Eine HTML-Seite besteht diesen Test leicht.
+  - **Fix 1**: Mindestgröße auf 1 MB erhöht (AppImages sind typisch 80+ MB).
+  - **Fix 2**: ELF-Magic-Bytes werden geprüft (`0x7f 0x45 0x4c 0x46`). Nur echte Linux-Executables werden installiert.
+  - **Fix 3**: Bei Fehler wird eine klare Meldung angezeigt statt still zu scheitern.
+
+- **Problem 3 – ETXTBSY beim Ersetzen**: Direkte Überschreibung einer laufenden Datei schlägt auf Linux fehl.
+  - **Fix**: Temp-Datei schreiben → alte Datei löschen (laufender Prozess behält Inode) → atomar umbenennen.
+
+---
+
 ## [2.7.3] - 2026-03-15
 
 ### Bugfix: ETXTBSY beim Update-Install behoben

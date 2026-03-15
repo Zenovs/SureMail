@@ -290,23 +290,28 @@ async function checkForUpdates(silent = false) {
         try {
           const release = JSON.parse(data);
           const latestVersion = release.tag_name?.replace('v', '') || '';
-          const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0;
-          
+          // Only report an update if a real downloadable AppImage asset exists
+          const appImageAsset = (release.assets || []).find(a =>
+            a.name && a.name.toLowerCase().endsWith('.appimage') && a.browser_download_url
+          );
+          const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0 && !!appImageAsset;
+          const downloadUrl = appImageAsset ? appImageAsset.browser_download_url : null;
+
           if (hasUpdate && !silent && mainWindow) {
             mainWindow.webContents.send('update:available', {
               version: latestVersion,
               notes: release.body || '',
-              downloadUrl: release.assets?.[0]?.browser_download_url || release.html_url
+              downloadUrl
             });
           }
-          
+
           resolve({
             success: true,
             currentVersion: APP_VERSION,
             latestVersion,
             hasUpdate,
             releaseNotes: release.body || '',
-            downloadUrl: release.assets?.[0]?.browser_download_url || release.html_url,
+            downloadUrl,
             publishedAt: release.published_at
           });
         } catch (e) {
@@ -748,90 +753,77 @@ ipcMain.handle('update:download', async (event, downloadUrl) => {
 
 ipcMain.handle('update:install', async (event, filePath) => {
   try {
-    // Verify file exists and is executable
+    // Verify file exists
     if (!fs.existsSync(filePath)) {
       return { success: false, error: 'Update-Datei nicht gefunden' };
     }
-    
+
     const stats = fs.statSync(filePath);
-    if (stats.size < 1000) {
-      return { success: false, error: 'Update-Datei ist beschädigt' };
+    if (stats.size < 1024 * 1024) { // AppImage must be at least 1 MB
+      return { success: false, error: `Update-Datei zu klein (${stats.size} Bytes) – kein gültiges AppImage` };
     }
 
-    // v1.16.0: Create backup of current AppImage
-    const currentAppImage = process.env.APPIMAGE;
-    if (currentAppImage && fs.existsSync(currentAppImage)) {
+    // Validate ELF magic bytes: AppImage starts with 0x7f 'E' 'L' 'F'
+    const fd = fs.openSync(filePath, 'r');
+    const magic = Buffer.alloc(4);
+    fs.readSync(fd, magic, 0, 4, 0);
+    fs.closeSync(fd);
+    if (magic[0] !== 0x7f || magic[1] !== 0x45 || magic[2] !== 0x4c || magic[3] !== 0x46) {
+      return { success: false, error: 'Heruntergeladene Datei ist kein gültiges AppImage (falsche Magic Bytes) – bitte manuell von GitHub herunterladen' };
+    }
+
+    // Determine install target: prefer APPIMAGE env var, fall back to install.sh location
+    const installTarget = process.env.APPIMAGE || path.join(process.env.HOME, '.local', 'bin', 'coremail-desktop');
+
+    // Backup current AppImage before replacing
+    if (fs.existsSync(installTarget)) {
       try {
         const backupDir = path.join(app.getPath('userData'), 'backups');
-        if (!fs.existsSync(backupDir)) {
-          fs.mkdirSync(backupDir, { recursive: true });
-        }
+        if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
         const backupPath = path.join(backupDir, `CoreMail-Desktop-backup-${APP_VERSION}.AppImage`);
-        fs.copyFileSync(currentAppImage, backupPath);
+        fs.copyFileSync(installTarget, backupPath);
         console.log('Backup created:', backupPath);
-        
         // Keep only last 3 backups
         const backups = fs.readdirSync(backupDir)
           .filter(f => f.startsWith('CoreMail-Desktop-backup-'))
           .map(f => ({ name: f, time: fs.statSync(path.join(backupDir, f)).mtime.getTime() }))
           .sort((a, b) => b.time - a.time);
-        
         if (backups.length > 3) {
-          backups.slice(3).forEach(b => {
-            try {
-              fs.unlinkSync(path.join(backupDir, b.name));
-            } catch (e) {}
-          });
+          backups.slice(3).forEach(b => { try { fs.unlinkSync(path.join(backupDir, b.name)); } catch(e) {} });
         }
       } catch (backupError) {
         console.error('Backup error (non-fatal):', backupError.message);
       }
     }
-    
-    // Ensure file is executable
+
+    // Replace via temp file + rename to avoid ETXTBSY (cannot overwrite running executable on Linux)
+    const tmpTarget = installTarget + '.new';
     try {
-      fs.chmodSync(filePath, 0o755);
-    } catch (e) {
-      console.error('chmod error:', e);
+      fs.copyFileSync(filePath, tmpTarget);
+      fs.chmodSync(tmpTarget, 0o755);
+      if (fs.existsSync(installTarget)) fs.unlinkSync(installTarget); // unlink frees the inode; running process keeps its fd
+      fs.renameSync(tmpTarget, installTarget);
+      console.log('AppImage successfully replaced at:', installTarget);
+    } catch (replaceError) {
+      // Clean up temp file if something went wrong
+      try { fs.unlinkSync(tmpTarget); } catch(e) {}
+      return { success: false, error: 'Konnte AppImage nicht ersetzen: ' + replaceError.message };
     }
 
-    // v2.7.3: Replace current AppImage using unlink+copy to avoid ETXTBSY on Linux.
-    // Fallback to ~/.local/bin/coremail-desktop if APPIMAGE env var is not set.
-    let launchPath = filePath;
-    const installTarget = currentAppImage || path.join(process.env.HOME, '.local', 'bin', 'coremail-desktop');
-    if (fs.existsSync(installTarget)) {
-      try {
-        // Write to a temp file first, then atomically rename so we never touch the running inode
-        const tmpTarget = installTarget + '.new';
-        fs.copyFileSync(filePath, tmpTarget);
-        fs.chmodSync(tmpTarget, 0o755);
-        fs.unlinkSync(installTarget);       // remove old inode (running process keeps its fd)
-        fs.renameSync(tmpTarget, installTarget); // atomic: new file appears at the well-known path
-        launchPath = installTarget;
-        console.log('Replaced AppImage at:', installTarget);
-      } catch (replaceError) {
-        console.error('Could not replace AppImage, launching from download path:', replaceError.message);
-      }
-    }
-
-    // Start the new AppImage using spawn (more reliable than shell.openPath for AppImages)
-    console.log('Starting update from:', launchPath);
-
-    const child = spawn(launchPath, [], {
+    // Launch the newly installed AppImage
+    console.log('Launching new version from:', installTarget);
+    const child = spawn(installTarget, [], {
       detached: true,
       stdio: 'ignore',
       env: { ...process.env, APPIMAGE_EXTRACT_AND_RUN: '0' }
     });
-
     child.unref();
-
     child.on('error', (err) => {
-      console.error('Failed to start update:', err);
-      // Fallback to shell.openPath
-      shell.openPath(launchPath);
+      console.error('Failed to launch new version:', err);
+      shell.openPath(installTarget);
     });
 
-    // Quit the current app after a short delay to allow new instance to start
+    // Quit current instance after new one has time to start
     setTimeout(() => {
       app.quit();
     }, 1500);

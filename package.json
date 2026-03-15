@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.7.3",
-  "description": "CoreMail Desktop v2.7.3 - Fix: ETXTBSY beim Update-Install behoben",
+  "version": "2.7.4",
+  "description": "CoreMail Desktop v2.7.4 - Fix: Update-System vollständig korrigiert",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
