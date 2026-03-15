@@ -165,24 +165,26 @@ function SettingsV2() {
 
             {/* Changelog */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v1.16.0</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🆕 Neu in v2.1.0</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li className="flex items-start gap-2">
-                  <span className="text-cyan-400">🔄</span>
-                  <span><strong>Automatische Updates:</strong> Prüft alle 24h auf neue Versionen</span>
+                  <span className="text-cyan-400">✉️</span>
+                  <span><strong>Anzeigename:</strong> Eigenen Absendernamen pro Konto festlegen</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-green-400">⬇️</span>
-                  <span><strong>Ein-Klick-Update:</strong> Download und Installation mit einem Klick</span>
+                  <span className="text-green-400">📝</span>
+                  <span><strong>SMTP-Formatierung:</strong> E-Mails werden als "Name" &lt;email&gt; versendet</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-blue-400">📦</span>
-                  <span><strong>Update-Manager:</strong> Benachrichtigung bei verfügbaren Updates</span>
+                  <span className="text-blue-400">👤</span>
+                  <span><strong>UI-Integration:</strong> Anzeigename in Seitenleiste und Composer sichtbar</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-yellow-400">🔒</span>
-                  <span><strong>Sicherheit:</strong> Automatisches Backup vor jedem Update</span>
-                </li>
+              </ul>
+              <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v2.0.0</h4>
+              <ul className={`space-y-1 text-sm ${c.textSecondary}`}>
+                <li>• OAuth2/Microsoft-Integration entfernt</li>
+                <li>• Reiner IMAP/SMTP E-Mail-Client</li>
+                <li>• Vereinfachte Konto-Konfiguration</li>
               </ul>
               <h4 className={`text-md font-medium ${c.text} mt-4 mb-2`}>v1.15.x</h4>
               <ul className={`space-y-1 text-sm ${c.textSecondary}`}>

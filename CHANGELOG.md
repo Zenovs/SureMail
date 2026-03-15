@@ -2,6 +2,30 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.1.0] - 2026-03-15
+
+### Neues Feature: Anzeigename für E-Mail-Versand
+
+#### Hinzugefügt
+- **Anzeigename pro Konto**: Für jedes E-Mail-Konto kann ein eigener Absendername festgelegt werden
+- Neues Feld "Anzeigename (für ausgehende E-Mails)" in der Konto-Konfiguration
+- SMTP "from" wird als `"Anzeigename" <email@beispiel.ch>` formatiert
+- Anzeige des Anzeigenamens in der Seitenleiste, Kontoliste und E-Mail-Composer
+- Anzeigename ist optional – falls leer, wird nur die E-Mail-Adresse verwendet
+- Validierung: Maximal 100 Zeichen, SMTP-sichere Zeichenbereinigung
+
+#### Behoben
+- Fehlende Helper-Funktionen `getImapConfigForAccount` und `getSmtpTransporterForAccount` wiederhergestellt
+
+#### Technische Änderungen
+- `AccountManager.js`: Neues `displayName`-Feld im Formular und Datenmodell
+- `main.js`: Helper-Funktionen für IMAP/SMTP-Konfiguration hinzugefügt, Anzeigename-Formatierung im SMTP-Versand
+- `ComposeEmail.js`: "Von:"-Anzeige mit Anzeigenamen
+- `SidebarV2.js`: Anzeigename in der Kontoliste
+- `package.json`: Version auf 2.1.0 aktualisiert
+
+---
+
 ## [2.0.0] - 2026-03-13
 
 ### ⚠️ BREAKING CHANGE: OAuth2/Microsoft-Integration entfernt

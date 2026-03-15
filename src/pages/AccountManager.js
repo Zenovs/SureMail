@@ -90,6 +90,7 @@ function AccountManager() {
   
   const [accountForm, setAccountForm] = useState({
     name: '',
+    displayName: '',
     categoryId: 'work',
     imap: { host: '', port: '993', username: '', password: '', tls: true },
     smtp: { host: '', port: '465', username: '', password: '', secure: true, fromEmail: '' }
@@ -156,6 +157,7 @@ function AccountManager() {
   const resetForm = () => {
     setAccountForm({
       name: '',
+      displayName: '',
       categoryId: 'work',
       imap: { host: '', port: '993', username: '', password: '', tls: true },
       smtp: { host: '', port: '465', username: '', password: '', secure: true, fromEmail: '' }
@@ -333,6 +335,9 @@ function AccountManager() {
                           IMAP/SMTP
                         </span>
                       </div>
+                      {account.displayName && (
+                        <div className={`text-sm ${c.text} opacity-75`}>✉ {account.displayName}</div>
+                      )}
                       <div className={`text-sm ${c.textSecondary}`}>{account.imap.username}</div>
                     </div>
                   </div>
@@ -389,6 +394,24 @@ function AccountManager() {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* Anzeigename */}
+                <div>
+                  <label className={`block text-sm ${c.textSecondary} mb-1`}>Anzeigename (für ausgehende E-Mails)</label>
+                  <input
+                    type="text"
+                    value={accountForm.displayName || ''}
+                    onChange={e => {
+                      const val = e.target.value.slice(0, 100);
+                      setAccountForm(f => ({ ...f, displayName: val }));
+                    }}
+                    placeholder="z.B. Dario Zenhäusern"
+                    className={`w-full px-4 py-2 rounded-lg ${c.input} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                  />
+                  <p className={`text-xs ${c.textSecondary} mt-1`}>
+                    Optional – wird als Absendername angezeigt. Falls leer, wird die E-Mail-Adresse verwendet.
+                  </p>
                 </div>
 
                 {/* Server Preset Selector */}

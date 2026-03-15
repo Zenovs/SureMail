@@ -148,6 +148,40 @@ function getAccountById(accountId) {
   return accounts.find(acc => acc.id === accountId);
 }
 
+// v2.0.0: IMAP-Konfiguration für ein Konto erstellen
+function getImapConfigForAccount(account) {
+  return {
+    imap: {
+      user: account.imap.username,
+      password: account.imap.password,
+      host: account.imap.host,
+      port: parseInt(account.imap.port),
+      tls: account.imap.tls !== false,
+      authTimeout: 10000
+    }
+  };
+}
+
+// v2.1.0: SMTP-Transporter für ein Konto erstellen (mit Anzeigename-Unterstützung)
+function getSmtpTransporterForAccount(account) {
+  const smtp = account.smtp;
+  const transporter = nodemailer.createTransport({
+    host: smtp.host,
+    port: parseInt(smtp.port),
+    secure: smtp.secure !== false,
+    auth: {
+      user: smtp.username,
+      pass: smtp.password
+    }
+  });
+
+  const email = smtp.fromEmail || smtp.username;
+  const displayName = account.displayName ? account.displayName.replace(/["\\\r\n]/g, '') : '';
+  const fromEmail = displayName ? `"${displayName}" <${email}>` : email;
+
+  return { transporter, fromEmail };
+}
+
 function getIconPath() {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, 'icon.png');

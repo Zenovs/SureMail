@@ -353,7 +353,7 @@ function ComposeEmail({ onBack, replyTo = null }) {
           )}
 
           {/* Account Auswahl */}
-          {accounts.length > 1 && (
+          {accounts.length > 1 ? (
             <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
               <label className={`block text-sm ${c.textSecondary} mb-2`}>Von:</label>
               <select
@@ -363,12 +363,21 @@ function ComposeEmail({ onBack, replyTo = null }) {
               >
                 {accounts.map(acc => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name} ({acc.smtp.fromEmail || acc.smtp.username})
+                    {acc.displayName
+                      ? `${acc.displayName} <${acc.smtp.fromEmail || acc.smtp.username}>`
+                      : `${acc.name} (${acc.smtp.fromEmail || acc.smtp.username})`}
                   </option>
                 ))}
               </select>
             </div>
-          )}
+          ) : accounts.length === 1 && accounts[0].displayName ? (
+            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
+              <label className={`block text-sm ${c.textSecondary} mb-1`}>Von:</label>
+              <div className={`${c.text} text-sm`}>
+                {accounts[0].displayName} &lt;{accounts[0].smtp.fromEmail || accounts[0].smtp.username}&gt;
+              </div>
+            </div>
+          ) : null}
 
           {/* An, CC, BCC */}
           <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>

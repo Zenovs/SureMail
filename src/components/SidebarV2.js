@@ -196,7 +196,7 @@ function SidebarV2({ currentView, onNavigate }) {
                               : `${c.textSecondary} ${c.hover}`
                           }`}
                         >
-                          <span className="truncate">{account.name}</span>
+                          <span className="truncate">{account.displayName || account.name}</span>
                           {unreadCount > 0 && (
                             <span className="ml-2 px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium min-w-[18px] text-center flex-shrink-0">
                               {unreadCount > 99 ? '99+' : unreadCount}
