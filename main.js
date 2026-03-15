@@ -794,24 +794,38 @@ ipcMain.handle('update:install', async (event, filePath) => {
     } catch (e) {
       console.error('chmod error:', e);
     }
-    
+
+    // v2.7.0: Replace current AppImage with new one so next manual start uses the new version
+    let launchPath = filePath;
+    const currentAppImage = process.env.APPIMAGE;
+    if (currentAppImage && fs.existsSync(currentAppImage)) {
+      try {
+        fs.copyFileSync(filePath, currentAppImage);
+        fs.chmodSync(currentAppImage, 0o755);
+        launchPath = currentAppImage;
+        console.log('Replaced current AppImage with new version:', currentAppImage);
+      } catch (replaceError) {
+        console.error('Could not replace AppImage (non-fatal), launching from download path:', replaceError.message);
+      }
+    }
+
     // Start the new AppImage using spawn (more reliable than shell.openPath for AppImages)
-    console.log('Starting update from:', filePath);
-    
-    const child = spawn(filePath, [], {
+    console.log('Starting update from:', launchPath);
+
+    const child = spawn(launchPath, [], {
       detached: true,
       stdio: 'ignore',
       env: { ...process.env, APPIMAGE_EXTRACT_AND_RUN: '0' }
     });
-    
+
     child.unref();
-    
+
     child.on('error', (err) => {
       console.error('Failed to start update:', err);
       // Fallback to shell.openPath
-      shell.openPath(filePath);
+      shell.openPath(launchPath);
     });
-    
+
     // Quit the current app after a short delay to allow new instance to start
     setTimeout(() => {
       app.quit();

@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.7.0",
-  "description": "CoreMail Desktop v2.7.0 - Lollipop Theme: Farbenfrohes Candy-Design",
+  "version": "2.7.1",
+  "description": "CoreMail Desktop v2.7.1 - Fix: Update ersetzt nun die AppImage-Datei dauerhaft",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

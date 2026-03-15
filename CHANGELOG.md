@@ -2,6 +2,15 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.7.1] - 2026-03-15
+
+### Bugfix: Update-Installation dauerhaft
+
+- **Fix Update-Persistenz**: Nach einem Update wird die AppImage-Datei nun dauerhaft ersetzt — die neue Version bleibt auch nach manuellem Neustart erhalten
+- Vorher: neue Version lief nur einmalig aus dem Downloads-Ordner, beim nächsten Start öffnete sich die alte Datei
+
+---
+
 ## [2.7.0] - 2026-03-15
 
 ### Lollipop Theme - Farbenfrohes Candy-Design
