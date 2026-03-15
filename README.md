@@ -1,370 +1,149 @@
-# CoreMail
+# CoreMail Desktop
 
-Ein einfaches, benutzerfreundliches E-Mail-Marketing-Tool mit personalisierten Templates – speziell entwickelt für Nicht-IT-User, die schnell und sicher personalisierte E-Mail-Kampagnen versenden möchten.
+**Einfacher, sicherer E-Mail-Client für Linux mit IMAP/SMTP-Unterstützung**
 
-## 🎯 Projektbeschreibung und Zweck
+CoreMail Desktop ist ein moderner E-Mail-Client für Linux, der Wert auf Datenschutz, Einfachheit und Funktionalität legt. Alle Daten bleiben lokal auf deinem Gerät - keine Cloud, keine Datenübertragung.
 
-CoreMail ist ein schlankes, browserbasiertes E-Mail-Marketing-Tool, das es ermöglicht, personalisierte E-Mails an eine Liste von Empfängern zu versenden, ohne dabei sensible Daten zu speichern. Perfekt für kleine Unternehmen, Freelancer und Teams, die eine einfache Lösung für Newsletter und Marketing-Kampagnen suchen.
-
-**Hauptziele:**
-- Einfache Bedienung ohne technische Vorkenntnisse
-- Maximale Datensicherheit durch Session-basierte Verarbeitung
-- Schnelle Einrichtung und sofortiger Einsatz
-- Keine Kosten für Datenbank oder Backend-Infrastruktur
+---
 
 ## ✨ Features
 
-- **📊 CSV-Upload**: Kontakte über CSV-Datei hochladen (Spalten: vorname, nachname, email, firma)
-- **📝 Template-Editor**: HTML/MJML-Templates mit Platzhaltern [vorname], [nachname], [email], [firma]
-- **⚙️ SMTP-Konfiguration**: Flexible SMTP-Server-Einstellungen (Gmail, Outlook, eigener Server)
-- **🎨 Personalisierter Versand**: Automatische Ersetzung der Platzhalter für jeden Empfänger
-- **📋 CSV-Vorlage Download**: Beispiel-CSV zum einfachen Befüllen
-- **✅ Versandübersicht**: Detaillierter Bericht nach dem Versand mit Erfolgs-/Fehlermeldungen
-- **🇩🇪 Deutsche Benutzeroberfläche**: Komplett auf Deutsch für maximale Benutzerfreundlichkeit
-- **🔒 Keine Datenspeicherung**: Alle Daten bleiben in der Browser-Session
+### 📧 E-Mail-Verwaltung
+- **Multi-Account-Support** - Verwalte mehrere E-Mail-Konten gleichzeitig
+- **IMAP/SMTP** - Funktioniert mit allen IMAP/SMTP-Providern (Gmail, Yahoo, Outlook, etc.)
+- **Anzeigename** - Lege individuellen Absendernamen pro Konto fest (z.B. "Dario Zenhäusern" <dario@bluewin.ch>)
+- **Ordner-Struktur** - Posteingang, Postausgang, Gesendete E-Mails, Entwürfe
+- **Kategorien** - Organisiere E-Mails in eigenen Kategorien
 
-## 🔒 Sicherheitshinweise
+### 🔍 Intelligente Funktionen
+- **Globale Suche** - Durchsuche alle Konten und Ordner gleichzeitig
+- **Spam-Filter** - Intelligente Erkennung von Werbung, Spam, schädlichen E-Mails und Viren
+- **Lokale KI** - KI-Chatbot für E-Mail-Zusammenfassungen und Antwort-Vorschläge (100% lokal mit Ollama)
 
-**Wichtig:** CoreMail speichert **KEINE** Daten dauerhaft!
+### 🎨 Benutzeroberfläche
+- **7 Themes** - Dark, Light, Minimal, Morphismus, Glas, Retro, Foundations
+- **Anpassbare Sidebar** - Breite, Auto-Collapse, Icons-Only Modus
+- **Widget-Dashboard** - Drag & Drop Widgets für personalisierte Übersicht
 
-- ✅ SMTP-Zugangsdaten werden **NICHT** auf dem Server gespeichert
-- ✅ Kontaktdaten bleiben nur in der Browser-Session
-- ✅ Alle Daten gehen beim Schließen des Browsers verloren
-- ✅ Keine Datenbank erforderlich
-- ✅ Keine Cookies oder Tracking
-- ✅ Vollständige Kontrolle über Ihre Daten
+### 🔄 Automatisierung
+- **Auto-Update** - Updates direkt im Client installieren
+- **Desktop-Benachrichtigungen** - Bei neuen E-Mails
+- **E-Mail-Signaturen** - Rich-Text-Editor mit Vorlagen
 
-**Empfehlung:** Verwenden Sie App-spezifische Passwörter für SMTP (z.B. Gmail App-Passwörter) statt Ihres Haupt-Passworts.
+### 🔒 Datenschutz
+- **100% lokal** - Alle Daten bleiben auf deinem Gerät
+- **Keine Cloud** - Keine Datenübertragung zu externen Servern
+- **Verschlüsselte Speicherung** - Passwörter werden sicher gespeichert
+- **Open Source** - Transparenter Code
 
-## 🖥️ Desktop Client
+---
 
-CoreMail ist auch als Desktop-App für Linux verfügbar!
-
-### 🚀 v1.8.0 – Major Feature Update!
-
-**Das bisher größte Feature-Update mit vielen neuen Funktionen!**
-
-- **E-Mail-Aktionen**: Löschen, Als gelesen markieren, Antworten, Allen antworten, Weiterleiten – alle wichtigen Aktionen direkt verfügbar
-- **Performance-Verbesserungen**: Intelligentes Caching und Lazy Loading für schnellere Ladezeiten und bessere Reaktionsfähigkeit
-- **Ordner-Struktur**: Postausgang, Gesendete E-Mails und Entwürfe – vollständige Ordnerunterstützung für alle Postfächer
-- **Kategorien bearbeiten**: Erstelle, bearbeite und lösche Kategorien für deine E-Mails – flexibles E-Mail-Management
-- **KI-Zugriff auf Postfächer**: Die KI kann jetzt auf deine Postfächer zugreifen und intelligente Zusammenfassungen erstellen
-- **Exchange-Support**: Volle Microsoft Exchange-Unterstützung – verbinde dein Firmen-Postfach nahtlos
-
-### 🔧 v1.7.2 – Bugfix Release
-
-- **Ollama API-Kommunikation gefixt**: 404-Fehler behoben
-- **API-Endpoint korrigiert**: Von /api/generate zu /api/chat gewechselt
-- **Bessere Fehlermeldungen**: Verbesserte Fehlerbehandlung bei API-Kommunikation
-
-### 🔧 v1.7.1 – Bugfix Release
-
-- **Ollama Auto-Start**: Ollama startet jetzt automatisch beim App-Start
-- **Automatischer Modell-Download**: Modell wird automatisch nach Ollama-Installation heruntergeladen
-- **Foundations Theme sichtbar**: Das Foundations Theme ist jetzt korrekt sichtbar (7 Themes verfügbar)
-
-### 🔧 v1.7.0 – Foundations Theme
-
-- **Neues Foundations Theme**: Basiert auf professionellem Design-System
-- **7 Themes verfügbar**: Dark, Light, Minimal, Morphismus, Glas, Retro und Foundations
-- **Professionelles UI-Design**: Sorgfältig abgestimmte Farben, Abstände und Komponenten
-
-### 🔧 v1.6.0 – In-App Ollama Installation
-
-- **In-App Ollama-Installation**: Ollama wird beim ersten Start direkt in der App installiert – kein Terminal, keine Scripts!
-- **Theme-Fixes**: Alle 6 Themes funktionieren perfekt
-- **100% Benutzerfreundlich**: Einfachste Einrichtung aller Zeiten
-
-### 🔧 v1.5.4 – Bugfix Release
-
-- **Robustere Ollama-Installation**: Verbesserte Fehlerbehandlung mit Logging
-- **Breitere Einstellungsleiste**: Mehr Platz in der Einstellungs-UI
-- **Scrolling in Einstellungen**: Bessere Navigation bei vielen Optionen
-
-### 🚀 v1.5.3 – Professioneller & Einfacher!
-
-- **Professionelles Chat-Icon**: Neues Chat-Icon statt Roboter-Icon für professionelleres Erscheinungsbild
-- **Automatische Ollama-Installation**: Ollama wird automatisch installiert – kein manuelles Nachfragen mehr
-
-### 🔧 v1.5.2 – Bugfix Release
-
-- **OpenGL-Fehler vollständig behoben**: Finale Lösung für Kompatibilitätsprobleme
-
-### 🔧 v1.5.1 – Bugfix Release
-
-- **Update-Crash behoben**: Update-Funktion stürzt nicht mehr ab
-- **OpenGL-Fehler behoben**: Kompatibilitätsprobleme auf bestimmten Systemen gelöst
-
-### 🆕 Neu in v1.5.0 – Lokale KI-Integration! 🤖
-
-**Revolutionär: 100% lokale KI direkt in CoreMail!**
-
-- **KI-Chatbot Widget**: Dein persönlicher KI-Assistent direkt in der App – offline und komplett privat
-- **E-Mails zusammenfassen**: Lange E-Mails auf einen Blick verstehen
-- **Antwort-Vorschläge**: Die KI generiert passende Antwort-Vorschläge basierend auf dem E-Mail-Inhalt
-- **Text verbessern**: Lass deine E-Mail-Texte professioneller klingen – Stil und Grammatik werden optimiert
-- **Ollama-Integration**: Powered by Ollama (llama3.2:1b) – läuft komplett lokal auf deinem Rechner
-- **100% Privat**: Keine Cloud, keine Datenübertragung – deine E-Mails bleiben auf deinem Gerät!
-
-Das Installationsscript bietet dir die Option, Ollama automatisch einzurichten.
-
-### v1.4.0 – Customizable UI
-
-- **Individualisierbare Sidebar**: Breite anpassen, Auto-Collapse, Icons-Only Modus
-- **Widget-Dashboard**: Drag & Drop Widgets, verschiedene Größen und Widget-Typen
-- **Drag & Drop Layout**: Ordne Widgets frei an und speichere dein individuelles Layout
-- **Vollständig anpassbar**: Kombiniere Sidebar- und Dashboard-Einstellungen mit deinem Lieblings-Theme
-
-### v1.3.1 – Bugfix Release
-
-- **Versions-Anzeige korrigiert**: Version wird jetzt dynamisch korrekt angezeigt
-
-### v1.3.0 – Major Update
-
-- **Update-Funktion (in der App)**: Prüfe und installiere Updates direkt in der App – kein manueller Download mehr nötig
-- **Bessere Anhang-Verwaltung**: Drag & Drop, Vorschau und Fortschrittsanzeige für alle Anhänge
-- **E-Mail-Signaturen**: Rich-Text-Editor mit 6 Vorlagen und Platzhaltern für professionelle Signaturen
-- **3 neue Themes**: Morphismus, Glas und Retro – jetzt insgesamt **6 Themes** zur Auswahl!
-  - Dark, Light, Minimal (bestehend)
-  - Morphismus, Glas, Retro (neu)
-
-### v1.2.2 – Professionelles Icon
-
-- Professionelles App-Icon für App-Menü und Taskleiste
-- Version wird dynamisch aus package.json gelesen
-
-### v1.2.1 – Bugfix Release
-
-- E-Mail-Liste scrollt korrekt
-- E-Mail-Vorschau scrollt korrekt
-
-### v1.2.0 – Feature Update
-
-- Desktop-Benachrichtigungen bei neuen E-Mails
-- Neues Icon & UI-Verbesserungen
-
-### v1.1.0 – Multi-Account Support
-
-- Mehrere IMAP-Konten verwalten
-- Dashboard mit Übersicht aller Konten
-- Kategorien & Gruppen für E-Mails
-- E-Mail-Vorschau (Split-View)
-- 3 Themes: Dark, Light, Minimal
+## 🚀 Installation
 
 ### Quick Install (Eine Zeile)
 
-Mit curl:
+**Mit wget:**
 ```bash
-curl -sSL https://suremail.vercel.app/install.sh | bash
+wget --no-check-certificate https://github.com/Zenovs/coremail/releases/download/v2.1.0/CoreMail.Desktop-2.1.0.AppImage -O ~/.local/bin/coremail-desktop && chmod +x ~/.local/bin/coremail-desktop && ~/.local/bin/coremail-desktop --no-sandbox
 ```
 
-Mit wget:
-```bash
-wget -qO- https://suremail.vercel.app/install.sh | bash
-```
+### Manuelle Installation
 
-Das Script:
-- Lädt CoreMail Desktop v1.8.0 von GitHub Releases herunter
-- Prüft und installiert automatisch FUSE (benötigt für AppImages)
-- **NEU:** In-App Ollama-Installation – keine externen Scripts mehr nötig!
-- Installiert nach `~/.local/bin/coremail-desktop`
-- Erstellt einen Desktop-Eintrag im App-Menü
-- Alternative ohne FUSE: Extrahiert das AppImage automatisch
-
-### Deinstallation
-
-```bash
-curl -sSL https://suremail.vercel.app/uninstall.sh | bash
-```
-
-### Systemanforderungen
-- Ubuntu 20.04+ / Debian 11+ / Fedora 38+ / Linux Mint 21+
-- 64-bit Linux
-- 2 GB RAM, 200 MB Speicher
-
-## 🚀 Vercel-Deployment (Schritt-für-Schritt)
-
-### Voraussetzungen
-- GitHub-Account
-- Vercel-Account (kostenlos unter [vercel.com](https://vercel.com))
-
-### Deployment-Schritte
-
-1. **Repository forken oder klonen**
+1. **Download AppImage:**
    ```bash
-   git clone https://github.com/Zenovs/CoreMail.git
-   cd CoreMail
+   wget --no-check-certificate https://github.com/Zenovs/coremail/releases/download/v2.1.0/CoreMail.Desktop-2.1.0.AppImage -O ~/.local/bin/coremail-desktop
    ```
 
-2. **Bei Vercel anmelden**
-   - Gehen Sie zu [vercel.com](https://vercel.com)
-   - Melden Sie sich mit Ihrem GitHub-Account an
-
-3. **Neues Projekt erstellen**
-   - Klicken Sie auf "Add New..." → "Project"
-   - Wählen Sie das CoreMail-Repository aus
-   - Klicken Sie auf "Import"
-
-4. **Projekt konfigurieren**
-   - **Framework Preset:** Next.js (wird automatisch erkannt)
-   - **Root Directory:** `./` (Standard)
-   - **Build Command:** `npm run build` (Standard)
-   - **Output Directory:** `.next` (Standard)
-   - **Environment Variables:** Keine erforderlich! ✅
-
-5. **Deploy starten**
-   - Klicken Sie auf "Deploy"
-   - Warten Sie 1-2 Minuten
-   - Ihre App ist live! 🎉
-
-6. **URL erhalten**
-   - Nach dem Deployment erhalten Sie eine URL wie `coremail.vercel.app`
-   - Diese können Sie sofort verwenden oder eine eigene Domain verbinden
-
-### Automatische Updates
-- Jeder Push zum `main`-Branch löst automatisch ein neues Deployment aus
-- Preview-Deployments für Pull Requests werden automatisch erstellt
-
-## 💻 Lokale Installation und Entwicklung
-
-### Voraussetzungen
-- Node.js 18+ ([Download](https://nodejs.org/))
-- npm oder yarn
-
-### Installation
-
-1. **Repository klonen**
+2. **Ausführbar machen:**
    ```bash
-   git clone https://github.com/Zenovs/CoreMail.git
-   cd CoreMail
+   chmod +x ~/.local/bin/coremail-desktop
    ```
 
-2. **Dependencies installieren**
+3. **Starten:**
    ```bash
-   npm install
-   # oder
-   yarn install
+   ~/.local/bin/coremail-desktop --no-sandbox
    ```
 
-3. **Entwicklungsserver starten**
-   ```bash
-   npm run dev
-   # oder
-   yarn dev
-   ```
+---
 
-4. **App öffnen**
-   - Öffnen Sie [http://localhost:3000](http://localhost:3000) im Browser
-   - Die App lädt automatisch bei Code-Änderungen neu
+## 📖 Verwendung
 
-### Build für Produktion
+### E-Mail-Konto hinzufügen
 
-```bash
-npm run build
-npm start
-```
+1. **Öffne CoreMail Desktop**
+2. **Klicke auf "Konten verwalten"**
+3. **Gib deine Daten ein:**
+   - Konto-Name (z.B. "Privat")
+   - Anzeigename (z.B. "Dario Zenhäusern")
+   - E-Mail-Adresse
+   - Passwort (oder App-Passwort)
+   - IMAP/SMTP Server-Einstellungen
 
-## 📖 Verwendung des Tools
+### Unterstützte Provider
 
-### Schritt 1: CSV-Datei vorbereiten
+- ✅ **Gmail** (mit App-Passwort)
+- ✅ **Yahoo**
+- ✅ **Outlook/Hotmail** (mit App-Passwort)
+- ✅ **Alle anderen IMAP/SMTP-Provider**
 
-Erstellen Sie eine CSV-Datei mit folgenden Spalten:
-```csv
-vorname,nachname,email,firma
-Max,Mustermann,max@example.com,Musterfirma GmbH
-Anna,Schmidt,anna@example.com,Schmidt AG
-```
+### App-Passwort erstellen (Gmail/Outlook)
 
-**Tipp:** Laden Sie die CSV-Vorlage direkt in der App herunter!
+**Gmail:**
+1. Gehe zu https://myaccount.google.com/security
+2. Aktiviere "2-Step Verification"
+3. Erstelle "App password"
+4. Verwende das generierte Passwort in CoreMail
 
-### Schritt 2: Kontakte hochladen
+**Outlook:**
+1. Gehe zu https://account.microsoft.com/security
+2. Aktiviere "Two-step verification"
+3. Erstelle "App password"
+4. Verwende das generierte Passwort in CoreMail
 
-1. Klicken Sie auf "CSV-Datei auswählen"
-2. Wählen Sie Ihre vorbereitete CSV-Datei
-3. Die Kontakte werden sofort angezeigt
+---
 
-### Schritt 3: E-Mail-Template erstellen
+## 🔧 Systemanforderungen
 
-Erstellen Sie Ihr HTML-Template mit Platzhaltern:
+- **OS:** Ubuntu 20.04+ / Debian 11+ / Fedora 38+ / Linux Mint 21+
+- **Architektur:** 64-bit Linux
+- **RAM:** 2 GB
+- **Speicher:** 200 MB
 
-```html
-<h1>Hallo [vorname] [nachname]!</h1>
-<p>Vielen Dank für Ihr Interesse an unseren Dienstleistungen.</p>
-<p>Wir freuen uns, [firma] als Partner zu gewinnen.</p>
-<p>Bei Fragen erreichen Sie uns unter [email].</p>
-```
+---
 
-**Verfügbare Platzhalter:**
-- `[vorname]` - Vorname des Empfängers
-- `[nachname]` - Nachname des Empfängers
-- `[email]` - E-Mail-Adresse des Empfängers
-- `[firma]` - Firma des Empfängers
+## 📋 Changelog
 
-### Schritt 4: SMTP-Server konfigurieren
+### v2.1.0 - Anzeigename für E-Mails
+- ✅ Individueller Absendername pro Konto
+- ✅ Beispiel: "Dario Zenhäusern" <dario@bluewin.ch>
 
-Geben Sie Ihre SMTP-Daten ein:
+### v2.0.0 - BREAKING CHANGE
+- ❌ OAuth2/Microsoft-Integration entfernt
+- ✅ Fokus auf IMAP/SMTP
+- ✅ Einfacher, zuverlässiger Client
 
-**Beispiel Gmail:**
-- Host: `smtp.gmail.com`
-- Port: `587`
-- Benutzer: `ihre-email@gmail.com`
-- Passwort: `Ihr App-Passwort` (nicht Ihr normales Passwort!)
+### v1.14.0 - Spam-Filter
+- ✅ Intelligente Spam-Erkennung
+- ✅ 4 Kategorien: Werbung, Spam, Schädlich, Virus
 
-**Beispiel Outlook:**
-- Host: `smtp-mail.outlook.com`
-- Port: `587`
-- Benutzer: `ihre-email@outlook.com`
-- Passwort: `Ihr Passwort`
+### v1.13.0 - Globale Suche
+- ✅ Suche über alle Konten und Ordner
+- ✅ Erweiterte Filter
 
-### Schritt 5: E-Mails versenden
-
-1. Geben Sie Betreff und Absender-E-Mail ein
-2. Klicken Sie auf "E-Mails versenden"
-3. Warten Sie auf die Bestätigung
-4. Überprüfen Sie den Versandreport
-
-## 🛠️ Technologie-Stack
-
-- **Framework:** Next.js 14 (App Router)
-- **Styling:** Tailwind CSS
-- **E-Mail-Versand:** Nodemailer
-- **CSV-Parsing:** PapaParse
-- **Sprache:** TypeScript
-- **Deployment:** Vercel (empfohlen)
-
-### Warum dieser Stack?
-
-- **Next.js:** Moderne React-Framework mit Server-Side Rendering
-- **Tailwind CSS:** Schnelles, utility-first CSS-Framework
-- **Nodemailer:** Zuverlässige E-Mail-Bibliothek mit SMTP-Support
-- **TypeScript:** Typsicherheit für weniger Fehler
-- **Vercel:** Optimiert für Next.js, kostenloses Hosting
+---
 
 ## 🤝 Beitragen
 
-Contributions sind willkommen! Bitte erstellen Sie einen Pull Request oder öffnen Sie ein Issue.
+Contributions sind willkommen! Bitte erstelle einen Pull Request oder öffne ein Issue.
+
+---
 
 ## 📄 Lizenz
 
 MIT - Frei verwendbar für private und kommerzielle Projekte.
 
-## 🐛 Bekannte Einschränkungen
-
-- Keine Warteschlange für große E-Mail-Listen (>100 Empfänger)
-- SMTP-Rate-Limits des Providers gelten
-- Keine E-Mail-Tracking-Funktionen
-- Keine Anhänge-Unterstützung (geplant)
-
-## 💡 Geplante Features
-
-- [ ] E-Mail-Anhänge
-- [ ] MJML-Editor mit Vorschau
-- [ ] Template-Bibliothek
-- [ ] Versand-Zeitplanung
-- [ ] A/B-Testing
-
 ---
 
-**Entwickelt mit ❤️ für einfaches E-Mail-Marketing**
+**Entwickelt mit ❤️ für Datenschutz und Einfachheit**
 
-**Powered by [wireon](https://wireon.ch)**
+**Powered by wireon** 🚀
