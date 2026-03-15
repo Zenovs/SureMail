@@ -2,6 +2,16 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.7.3] - 2026-03-15
+
+### Bugfix: ETXTBSY beim Update-Install behoben
+
+- **Kernproblem**: Linux verbietet das direkte Überschreiben einer laufenden Datei (`ETXTBSY` - Text file busy)
+- **Fix**: Update schreibt neue Datei zuerst als `.new`-Tempfile, löscht danach die alte Datei (laufender Prozess behält seinen Inode-Handle), benennt die neue Datei atomar um
+- Fallback: Falls `APPIMAGE`-Umgebungsvariable nicht gesetzt ist, wird `~/.local/bin/coremail-desktop` direkt verwendet
+
+---
+
 ## [2.7.2] - 2026-03-15
 
 ### Bugfix: SyntaxError in Update-Installation

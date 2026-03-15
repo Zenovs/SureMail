@@ -795,16 +795,22 @@ ipcMain.handle('update:install', async (event, filePath) => {
       console.error('chmod error:', e);
     }
 
-    // v2.7.1: Replace current AppImage with new one so next manual start uses the new version
+    // v2.7.3: Replace current AppImage using unlink+copy to avoid ETXTBSY on Linux.
+    // Fallback to ~/.local/bin/coremail-desktop if APPIMAGE env var is not set.
     let launchPath = filePath;
-    if (currentAppImage && fs.existsSync(currentAppImage)) {
+    const installTarget = currentAppImage || path.join(process.env.HOME, '.local', 'bin', 'coremail-desktop');
+    if (fs.existsSync(installTarget)) {
       try {
-        fs.copyFileSync(filePath, currentAppImage);
-        fs.chmodSync(currentAppImage, 0o755);
-        launchPath = currentAppImage;
-        console.log('Replaced current AppImage with new version:', currentAppImage);
+        // Write to a temp file first, then atomically rename so we never touch the running inode
+        const tmpTarget = installTarget + '.new';
+        fs.copyFileSync(filePath, tmpTarget);
+        fs.chmodSync(tmpTarget, 0o755);
+        fs.unlinkSync(installTarget);       // remove old inode (running process keeps its fd)
+        fs.renameSync(tmpTarget, installTarget); // atomic: new file appears at the well-known path
+        launchPath = installTarget;
+        console.log('Replaced AppImage at:', installTarget);
       } catch (replaceError) {
-        console.error('Could not replace AppImage (non-fatal), launching from download path:', replaceError.message);
+        console.error('Could not replace AppImage, launching from download path:', replaceError.message);
       }
     }
 
