@@ -2,6 +2,15 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.7.2] - 2026-03-15
+
+### Bugfix: SyntaxError in Update-Installation
+
+- **Fix**: `const currentAppImage` war doppelt deklariert → SyntaxError → Install-Funktion crashte → alte Version blieb aktiv
+- Update ersetzt nun die AppImage-Datei korrekt und dauerhaft
+
+---
+
 ## [2.7.1] - 2026-03-15
 
 ### Bugfix: Update-Installation dauerhaft

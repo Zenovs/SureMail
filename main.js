@@ -795,9 +795,8 @@ ipcMain.handle('update:install', async (event, filePath) => {
       console.error('chmod error:', e);
     }
 
-    // v2.7.0: Replace current AppImage with new one so next manual start uses the new version
+    // v2.7.1: Replace current AppImage with new one so next manual start uses the new version
     let launchPath = filePath;
-    const currentAppImage = process.env.APPIMAGE;
     if (currentAppImage && fs.existsSync(currentAppImage)) {
       try {
         fs.copyFileSync(filePath, currentAppImage);

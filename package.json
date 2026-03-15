@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.7.1",
-  "description": "CoreMail Desktop v2.7.1 - Fix: Update ersetzt nun die AppImage-Datei dauerhaft",
+  "version": "2.7.2",
+  "description": "CoreMail Desktop v2.7.2 - Fix: SyntaxError in Update-Install behoben",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
