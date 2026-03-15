@@ -2,6 +2,26 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.7.0] - 2026-03-15
+
+### Lollipop Theme - Farbenfrohes Candy-Design
+
+#### Neue Features
+
+- **Lollipop Theme**
+  - Komplett neues, farbenfrohes Theme im Candy-/Lollipop-Stil
+  - Heller, pastelliger Hintergrund in zartem Pink (#FFF0F7)
+  - Bunter Regenbogen-Verlauf im Sidebar (Pink → Lila → Blau → Türkis)
+  - Animierter Regenbogen-Text-Effekt (`lollipop-rainbow-text`)
+  - Akzentfarben: Pink (#FF4D8B), Lila (#BD4CFF), Gelb (#FFD60A), Grün (#00CC88), Orange (#FF7F50), Blau (#4DAFFF)
+  - Farbige Karten-Schatten in Pink und Lila
+  - Bunter Lollipop-Scrollbar (Verlauf Pink → Lila)
+  - Candy-Fokus-Ring mit mehrschichtigem Farbverlauf
+  - Bunter Trennstrich mit Regenbogen-Gradient
+  - 21 neue Tailwind-Farb-Tokens unter `lollipop.*`
+
+---
+
 ## [2.6.0] - 2026-03-15
 
 ### Manuelle Mail-Kategorisierung mit Absender-Lernen

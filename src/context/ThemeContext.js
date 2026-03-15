@@ -134,6 +134,31 @@ export const themes = {
       borderNeon: 'border-2 border-cyan-500 shadow-lg shadow-cyan-500/50'
     }
   },
+  lollipop: {
+    name: 'Lollipop',
+    description: 'Farbenfrohes Candy-Design mit bunten Akzenten',
+    colors: {
+      bg: 'bg-lollipop-bg',
+      bgSecondary: 'bg-white',
+      bgTertiary: 'bg-lollipop-surface2',
+      border: 'border-lollipop-border',
+      text: 'text-lollipop-text',
+      textSecondary: 'text-lollipop-text-secondary',
+      accent: 'text-lollipop-pink',
+      accentBg: 'bg-gradient-to-r from-lollipop-pink to-lollipop-purple',
+      accentHover: 'hover:from-lollipop-pink-light hover:to-lollipop-purple-light',
+      sidebar: 'lollipop-sidebar',
+      card: 'bg-white border border-lollipop-border shadow-lollipop',
+      input: 'bg-white border-lollipop-border text-lollipop-text placeholder-lollipop-text-secondary',
+      hover: 'hover:bg-lollipop-pink/10'
+    },
+    customStyles: {
+      rainbowGradient: 'bg-gradient-to-r from-lollipop-pink via-lollipop-purple via-lollipop-blue to-lollipop-teal',
+      candyText: 'lollipop-rainbow-text',
+      glowPink: 'shadow-lollipop-pink',
+      glowPurple: 'shadow-lollipop-purple'
+    }
+  },
   foundations: {
     name: 'Foundations',
     description: 'Professionelles Design-System mit Orange & Grün',
@@ -187,7 +212,8 @@ const THEME_ICON_MAP = {
   morphism: 'morphismus',
   glass: 'glas',
   retro: 'retro',
-  foundations: 'foundations'
+  foundations: 'foundations',
+  lollipop: 'light'
 };
 
 // Update window icon based on theme (v2.2.0)

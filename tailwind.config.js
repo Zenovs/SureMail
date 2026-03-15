@@ -28,6 +28,30 @@ module.exports = {
           yellow: '#ffff00',
           green: '#00ff00'
         },
+        // Lollipop Theme Farben (v2.7.0)
+        lollipop: {
+          bg: '#FFF0F7',
+          surface: '#FFFFFF',
+          surface2: '#FFF5FB',
+          border: '#FFB3D9',
+          pink: '#FF4D8B',
+          'pink-light': '#FF80B0',
+          'pink-dark': '#E0005A',
+          purple: '#BD4CFF',
+          'purple-light': '#D480FF',
+          'purple-dark': '#9400E6',
+          yellow: '#FFD60A',
+          'yellow-light': '#FFE566',
+          green: '#00CC88',
+          'green-light': '#00E5A0',
+          orange: '#FF7F50',
+          'orange-light': '#FFA080',
+          blue: '#4DAFFF',
+          'blue-light': '#80C8FF',
+          teal: '#00D4C8',
+          text: '#2D1B3D',
+          'text-secondary': '#7B5A8A'
+        },
         // Foundations Design-System Farben
         foundations: {
           // Hintergrundfarben (dunkel)

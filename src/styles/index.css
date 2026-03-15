@@ -201,6 +201,121 @@ body {
   100% { opacity: 0.98; }
 }
 
+/* ============ LOLLIPOP THEME (v2.7.0) ============ */
+
+/* Sidebar: bunter Verlauf von oben nach unten */
+.lollipop-sidebar {
+  background: linear-gradient(
+    180deg,
+    #fff0f7 0%,
+    #f5e6ff 25%,
+    #e6f0ff 50%,
+    #e6fff9 75%,
+    #fff5e6 100%
+  );
+  border-right: 2px solid #FFB3D9;
+}
+
+/* Regenbogen-Verlauf Text */
+.lollipop-rainbow-text {
+  background: linear-gradient(
+    90deg,
+    #FF4D8B,
+    #BD4CFF,
+    #4DAFFF,
+    #00CC88,
+    #FFD60A,
+    #FF7F50
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+  animation: lollipop-rainbow-flow 4s linear infinite;
+}
+
+@keyframes lollipop-rainbow-flow {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Karten-Schatten */
+.shadow-lollipop {
+  box-shadow:
+    0 4px 16px rgba(255, 77, 139, 0.12),
+    0 2px 6px rgba(189, 76, 255, 0.08);
+}
+
+/* Pink Glow */
+.shadow-lollipop-pink {
+  box-shadow: 0 0 12px rgba(255, 77, 139, 0.4), 0 0 24px rgba(255, 77, 139, 0.2);
+}
+
+/* Purple Glow */
+.shadow-lollipop-purple {
+  box-shadow: 0 0 12px rgba(189, 76, 255, 0.4), 0 0 24px rgba(189, 76, 255, 0.2);
+}
+
+/* Bunter Spinner für Lollipop-Theme */
+.lollipop-spinner {
+  border: 3px solid #FFB3D9;
+  border-top-color: #FF4D8B;
+  border-right-color: #BD4CFF;
+  border-bottom-color: #4DAFFF;
+  border-left-color: #00CC88;
+  border-radius: 50%;
+  animation: lollipop-spin 0.8s linear infinite;
+}
+
+@keyframes lollipop-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Akzent-Buttons im Lollipop-Theme */
+.lollipop-btn-primary {
+  background: linear-gradient(135deg, #FF4D8B, #BD4CFF);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.lollipop-btn-primary:hover {
+  background: linear-gradient(135deg, #FF80B0, #D480FF);
+  box-shadow: 0 4px 16px rgba(255, 77, 139, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Bunter Trennstrich */
+.lollipop-divider {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    #FF4D8B, #FFD60A, #00CC88, #4DAFFF, #BD4CFF, #FF7F50
+  );
+  border: none;
+  border-radius: 1px;
+  opacity: 0.5;
+}
+
+/* Candy-Fokus-Ring */
+.lollipop-focus:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 2px white,
+    0 0 0 4px #FF4D8B,
+    0 0 0 6px #BD4CFF;
+}
+
+/* Scrollbar für Lollipop */
+.theme-lollipop ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FF4D8B, #BD4CFF);
+  border-radius: 4px;
+}
+
+.theme-lollipop ::-webkit-scrollbar-track {
+  background: #FFF0F7;
+}
+
 /* ============ DRAG & DROP STYLES ============ */
 .drop-zone {
   transition: all 0.3s ease;
