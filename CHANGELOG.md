@@ -2,6 +2,22 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.2.1] - 2026-03-15
+
+### Bugfix: Desktop-Icon aktualisiert
+
+#### Behoben
+- **Desktop-Icon im App-Menü**: Das neue "C"-Icon wird nun korrekt im Schnellstart und App-Menü angezeigt
+- Neues Icon (mit "C") als Standard-Icon in `public/icon.png` und `assets/icon.png` gesetzt
+- Icon-Größen für alle Plattformen erstellt (512x512, 256x256, 128x128, 64x64, 32x32)
+
+#### Technische Änderungen
+- `public/icon.png`: Neues Standard-Icon
+- `public/icons/`: Icon in verschiedenen Größen
+- `assets/`: Aktualisierte Build-Assets
+
+---
+
 ## [2.2.0] - 2026-03-15
 
 ### Neues Feature: Dynamische Theme-Icons

@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.2.0",
-  "description": "CoreMail Desktop v2.2.0 - Dynamische Theme-Icons",
+  "version": "2.2.1",
+  "description": "CoreMail Desktop v2.2.1 - Desktop-Icon aktualisiert",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
