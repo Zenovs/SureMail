@@ -2,7 +2,7 @@
 
 ## 📥 Download & Installation
 
-**Aktuelle Version: v2.4.0**
+**Aktuelle Version: v2.4.1**
 
 ### 🚀 Schnell-Installation (Ein Befehl)
 
@@ -24,7 +24,7 @@ Das Script:
 
 ### 📦 Direkter Download
 
-**[⬇️ CoreMail Desktop v2.4.0 herunterladen](https://github.com/Zenovs/coremail/releases/download/v2.4.0/CoreMail.Desktop-2.4.0.AppImage)** (~141 MB)
+**[⬇️ CoreMail Desktop v2.4.1 herunterladen](https://github.com/Zenovs/coremail/releases/download/v2.4.1/CoreMail.Desktop-2.4.1.AppImage)** (~141 MB)
 
 ### 🗑️ Deinstallation
 

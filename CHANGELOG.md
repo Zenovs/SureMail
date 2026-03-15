@@ -2,6 +2,34 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.4.1] - 2026-03-15
+
+### Bugfix Release: Icon-Transparenz und Stabilität
+
+#### Behoben
+- **Icon-Transparenz**: Alle Icons haben jetzt korrekten transparenten Hintergrund
+  - Entfernung des grau/weißen karierten Hintergrunds
+  - Alle Icons (16px bis 512px) wurden neu generiert
+  - Theme-Icons ebenfalls mit Transparenz aktualisiert
+  - Notification-Icons mit korrektem Alpha-Kanal
+
+- **Fenster-Stabilität**: Verbesserte Fehlerbehandlung beim App-Start
+  - Automatische Wiederherstellung bei Render-Prozess-Absturz
+  - Verbesserte Fehlerprotokollierung für Debugging
+  - Responsive/Unresponsive-Zustand wird überwacht
+  - Klare Fehlermeldung wenn Build-Dateien fehlen
+
+#### Technische Änderungen
+- `main.js`:
+  - Neue Event-Handler: `did-fail-load`, `did-finish-load`
+  - `render-process-gone` Handler mit automatischem Reload
+  - `unresponsive`/`responsive` Event-Logging
+  - Verbesserte Pfadprüfung für Production-Build
+- Alle PNG-Icons zu RGBA konvertiert mit korrektem Alpha-Kanal
+- `assets/` und `public/icons/` synchronisiert
+
+---
+
 ## [2.4.0] - 2026-03-15
 
 ### Feature Release: Inbox-Unterordner mit automatischer Kategorisierung

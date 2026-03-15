@@ -62,11 +62,55 @@ function createWindow() {
 
   const isDev = process.env.NODE_ENV === 'development';
   
+  // Debug logging for loading issues (v2.4.1)
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[CoreMail] Failed to load: ${errorCode} - ${errorDescription}`);
+    console.error(`[CoreMail] URL: ${validatedURL}`);
+  });
+  
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[CoreMail] Page loaded successfully');
+  });
+  
+  // Handle render process crashes (v2.4.1)
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('[CoreMail] Render process gone:', details.reason);
+    // Attempt to reload
+    if (details.reason !== 'killed') {
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.reload();
+        }
+      }, 1000);
+    }
+  });
+  
+  mainWindow.webContents.on('unresponsive', () => {
+    console.error('[CoreMail] Window became unresponsive');
+  });
+  
+  mainWindow.webContents.on('responsive', () => {
+    console.log('[CoreMail] Window is responsive again');
+  });
+  
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, 'build', 'index.html'));
+    // Production: Load from build directory (v2.4.1 - improved path handling)
+    const indexPath = path.join(__dirname, 'build', 'index.html');
+    console.log('[CoreMail] Loading production build from:', indexPath);
+    
+    // Check if file exists
+    if (fs.existsSync(indexPath)) {
+      mainWindow.loadFile(indexPath).catch(err => {
+        console.error('[CoreMail] Error loading index.html:', err);
+      });
+    } else {
+      console.error('[CoreMail] index.html not found at:', indexPath);
+      // Show error in window
+      mainWindow.loadURL(`data:text/html,<h1>Error: Build not found</h1><p>Please run 'npm run build' first.</p>`);
+    }
   }
 
   mainWindow.on('closed', () => {
