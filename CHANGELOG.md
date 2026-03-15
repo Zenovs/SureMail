@@ -2,6 +2,32 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.2.0] - 2026-03-15
+
+### Neues Feature: Dynamische Theme-Icons
+
+#### Hinzugefügt
+- **Theme-basierte Icons**: Das App-Icon passt sich automatisch an das gewählte Theme an
+- 7 verschiedene Icon-Varianten für alle Themes:
+  - **Dark**: Dunkelblau-Variante
+  - **Light**: Original Blau-Türkis
+  - **Minimal**: Grau/Weiß-Version
+  - **Morphismus**: Lila-Pink
+  - **Glas**: Cyan/Hellblau
+  - **Retro**: Synthwave Neon
+  - **Foundations**: Orange-Rot
+- Icons wechseln automatisch beim Theme-Wechsel
+- Icons werden beim App-Start basierend auf gespeichertem Theme geladen
+
+#### Technische Änderungen
+- `main.js`: Neue IPC-Handler für Theme-Icon-Management (`theme:setIcon`, `theme:getAvailableIcons`)
+- `preload.js`: Neue API-Methoden (`setThemeIcon`, `getAvailableThemeIcons`)
+- `ThemeContext.js`: Automatische Icon-Aktualisierung bei Theme-Änderung
+- Neue Icons in `/public/icons/themes/`
+- `package.json`: Version auf 2.2.0 aktualisiert
+
+---
+
 ## [2.1.0] - 2026-03-15
 
 ### Neues Feature: Anzeigename für E-Mail-Versand

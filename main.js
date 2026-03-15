@@ -570,6 +570,57 @@ async function downloadOllamaModel(modelName, progressCallback) {
 
 // ============ IPC HANDLERS ============
 
+// === THEME ICON MANAGEMENT (v2.2.0) ===
+const THEME_ICONS = {
+  dark: 'dark.png',
+  light: 'light.png',
+  minimal: 'minimal.png',
+  morphismus: 'morphismus.png',
+  glas: 'glas.png',
+  retro: 'retro.png',
+  foundations: 'foundations.png'
+};
+
+function getIconPathForTheme(themeName) {
+  const iconFile = THEME_ICONS[themeName] || THEME_ICONS['dark'];
+  const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+  
+  if (isDev) {
+    return path.join(__dirname, 'public', 'icons', 'themes', iconFile);
+  } else {
+    return path.join(__dirname, 'build', 'icons', 'themes', iconFile);
+  }
+}
+
+function updateWindowIcon(themeName) {
+  if (!mainWindow) return false;
+  
+  const iconPath = getIconPathForTheme(themeName);
+  
+  if (fs.existsSync(iconPath)) {
+    try {
+      mainWindow.setIcon(iconPath);
+      console.log(`[Theme] Icon updated to: ${themeName}`);
+      return true;
+    } catch (error) {
+      console.error(`[Theme] Failed to set icon: ${error.message}`);
+      return false;
+    }
+  } else {
+    console.warn(`[Theme] Icon not found: ${iconPath}`);
+    return false;
+  }
+}
+
+ipcMain.handle('theme:setIcon', async (event, themeName) => {
+  const success = updateWindowIcon(themeName);
+  return { success, theme: themeName };
+});
+
+ipcMain.handle('theme:getAvailableIcons', async () => {
+  return Object.keys(THEME_ICONS);
+});
+
 // === APP INFO ===
 ipcMain.handle('app:getVersion', () => APP_VERSION);
 

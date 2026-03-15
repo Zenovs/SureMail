@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppSettings: () => ipcRenderer.invoke('app:getSettings'),
   saveAppSettings: (settings) => ipcRenderer.invoke('app:saveSettings', settings),
   
+  // Theme Icons (v2.2.0)
+  setThemeIcon: (themeName) => ipcRenderer.invoke('theme:setIcon', themeName),
+  getAvailableThemeIcons: () => ipcRenderer.invoke('theme:getAvailableIcons'),
+  
   // Updates (v1.16.0 - Auto-Update)
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   downloadUpdate: (url) => ipcRenderer.invoke('update:download', url),

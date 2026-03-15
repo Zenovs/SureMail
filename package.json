@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.1.0",
-  "description": "CoreMail Desktop v2.1.0 - Einfacher IMAP/SMTP E-Mail-Client",
+  "version": "2.2.0",
+  "description": "CoreMail Desktop v2.2.0 - Dynamische Theme-Icons",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

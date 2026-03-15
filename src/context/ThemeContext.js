@@ -179,6 +179,29 @@ export const themes = {
   }
 };
 
+// Theme to Icon mapping (v2.2.0)
+const THEME_ICON_MAP = {
+  dark: 'dark',
+  light: 'light',
+  minimal: 'minimal',
+  morphism: 'morphismus',
+  glass: 'glas',
+  retro: 'retro',
+  foundations: 'foundations'
+};
+
+// Update window icon based on theme (v2.2.0)
+const updateThemeIcon = async (themeName) => {
+  if (window.electronAPI?.setThemeIcon) {
+    try {
+      const iconName = THEME_ICON_MAP[themeName] || 'dark';
+      await window.electronAPI.setThemeIcon(iconName);
+    } catch (error) {
+      console.warn('Could not update theme icon:', error);
+    }
+  }
+};
+
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState('dark');
 
@@ -186,6 +209,11 @@ export function ThemeProvider({ children }) {
     const saved = localStorage.getItem('coremail-theme');
     if (saved && themes[saved]) {
       setTheme(saved);
+      // Update icon on initial load (v2.2.0)
+      updateThemeIcon(saved);
+    } else {
+      // Set default icon
+      updateThemeIcon('dark');
     }
   }, []);
 
@@ -193,6 +221,8 @@ export function ThemeProvider({ children }) {
     if (themes[newTheme]) {
       setTheme(newTheme);
       localStorage.setItem('coremail-theme', newTheme);
+      // Update window icon when theme changes (v2.2.0)
+      updateThemeIcon(newTheme);
     }
   };
 
