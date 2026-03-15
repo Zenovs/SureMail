@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.3.0",
-  "description": "CoreMail Desktop v2.3.0 - Multi-Select, Bulk Delete, Icon-Fix",
+  "version": "2.3.1",
+  "description": "CoreMail Desktop v2.3.1 - Fix: Alle E-Mails werden jetzt geladen (IMAP-Fetch-Fix)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

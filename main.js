@@ -1113,6 +1113,7 @@ ipcMain.handle('imap:test', async (event, settings) => {
 });
 
 // Fetch emails for specific account (v1.10.0: OAuth2 support)
+// v2.3.1: Fixed IMAP fetch to load ALL emails (no limit by default)
 ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = {}) => {
   const account = getAccountById(accountId);
   
@@ -1120,7 +1121,8 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
     return { success: false, error: 'Konto nicht gefunden' };
   }
 
-  const { folder = 'INBOX', limit = 50 } = options;
+  // v2.3.1: Changed default limit from 50 to 0 (0 = no limit, fetch all emails)
+  const { folder = 'INBOX', limit = 0 } = options;
 
   try {
     // v1.10.0: Use OAuth2-aware config helper
@@ -1143,7 +1145,10 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
     let unreadCount = 0;
     const previousUnread = store.get(`unreadCount_${accountId}`, 0);
     
-    for (const message of messages.slice(-limit).reverse()) {
+    // v2.3.1: Process ALL messages if limit is 0, otherwise apply limit
+    const messagesToProcess = limit > 0 ? messages.slice(-limit).reverse() : messages.reverse();
+    
+    for (const message of messagesToProcess) {
       try {
         const all = message.parts.find(p => p.which === '');
         const parsed = await simpleParser(all.body);
@@ -1260,7 +1265,8 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid) => {
 });
 
 // Legacy fetch emails (for backward compatibility)
-ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 50 }) => {
+// v2.3.1: Fixed to load ALL emails by default
+ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 0 }) => {
   const imapSettings = store.get('imapSettings');
   
   if (!imapSettings) {
@@ -1292,7 +1298,10 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 50 
     const messages = await connection.search(searchCriteria, fetchOptions);
     const emails = [];
     
-    for (const message of messages.slice(-limit).reverse()) {
+    // v2.3.1: Process ALL messages if limit is 0
+    const messagesToProcess = limit > 0 ? messages.slice(-limit).reverse() : messages.reverse();
+    
+    for (const message of messagesToProcess) {
       try {
         const all = message.parts.find(p => p.which === '');
         const parsed = await simpleParser(all.body);
@@ -1631,6 +1640,7 @@ ipcMain.handle('imap:listFolders', async (event, accountId) => {
 
 // Fetch emails from specific folder
 // v1.10.0: OAuth2 support
+// v2.3.1: Fixed to load ALL emails by default (limit = 0 means no limit)
 ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, options = {}) => {
   const account = getAccountById(accountId);
   
@@ -1638,7 +1648,8 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
     return { success: false, error: 'Konto nicht gefunden' };
   }
 
-  const { limit = 50, offset = 0 } = options;
+  // v2.3.1: Changed default limit from 50 to 0 (0 = no limit, fetch all emails)
+  const { limit = 0, offset = 0 } = options;
 
   try {
     const config = getImapConfigForAccount(account);
@@ -1668,7 +1679,8 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
       return dateB - dateA;
     });
 
-    const paginatedMessages = messages.slice(offset, offset + limit);
+    // v2.3.1: If limit is 0, return all messages; otherwise apply pagination
+    const paginatedMessages = limit > 0 ? messages.slice(offset, offset + limit) : messages.slice(offset);
     
     const emails = paginatedMessages.map(msg => {
       const header = msg.parts.find(p => p.which.includes('HEADER'));
@@ -1693,7 +1705,8 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
       emails,
       folder,
       total: messages.length,
-      hasMore: offset + limit < messages.length
+      // v2.3.1: hasMore is always false if limit is 0 (all loaded)
+      hasMore: limit > 0 ? (offset + limit < messages.length) : false
     };
   } catch (error) {
     console.error('IMAP Fetch Folder Fehler:', error);

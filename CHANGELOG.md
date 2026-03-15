@@ -2,6 +2,25 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.3.1] - 2026-03-15
+
+### Bugfix Release: IMAP-Fetch-Problem behoben
+
+#### Behoben
+- **Alle E-Mails werden jetzt geladen**: Das bisherige Limit von 50 E-Mails wurde entfernt
+  - E-Mails wurden vorher nur teilweise heruntergeladen (max. 50)
+  - Neue E-Mails erschienen erst nach dem Löschen alter E-Mails
+  - Jetzt werden ALLE E-Mails im Posteingang vollständig geladen
+
+#### Technische Änderungen
+- `main.js`: `imap:fetchEmailsForAccount` - Standard-Limit von 50 auf 0 (unbegrenzt) geändert
+- `main.js`: `imap:fetchEmailsFromFolder` - Standard-Limit von 50 auf 0 (unbegrenzt) geändert
+- `main.js`: `imap:fetchEmails` (Legacy) - Standard-Limit von 50 auf 0 (unbegrenzt) geändert
+- Neue Logik: `limit = 0` bedeutet "alle E-Mails laden"
+- `hasMore` gibt korrekt `false` zurück wenn alle E-Mails geladen wurden
+
+---
+
 ## [2.3.0] - 2026-03-15
 
 ### Feature Release: Multi-Select & Bulk Delete, Icon-Fixes

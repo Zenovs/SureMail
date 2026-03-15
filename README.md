@@ -89,11 +89,11 @@ Ein schlanker, moderner **E-Mail-Client für Linux** – einfach zu bedienen, lo
 curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/install.sh | bash
 ```
 
-Oder manuell: **[CoreMail.Desktop-2.3.0.AppImage](https://github.com/Zenovs/coremail/releases)**
+Oder manuell: **[CoreMail.Desktop-2.3.1.AppImage](https://github.com/Zenovs/coremail/releases)**
 
 ```bash
-chmod +x CoreMail.Desktop-2.3.0.AppImage
-./CoreMail.Desktop-2.3.0.AppImage
+chmod +x CoreMail.Desktop-2.3.1.AppImage
+./CoreMail.Desktop-2.3.1.AppImage
 ```
 
 ---
