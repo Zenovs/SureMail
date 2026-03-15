@@ -2,6 +2,67 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.6.0] - 2026-03-15
+
+### Manuelle Mail-Kategorisierung mit Absender-Lernen
+
+Dieses Feature-Release fügt ein leistungsstarkes System zur manuellen E-Mail-Kategorisierung hinzu, das Absender automatisch lernt.
+
+#### Neue Features
+
+- **Manuelle E-Mail-Kategorisierung**
+  - Neue Kategorisierungs-Buttons in der E-Mail-Vorschau
+  - 4 Kategorien: 📢 Werbung, 🚫 Spam, ⚠️ Schädlich, 🦠 Virus
+  - Visuelle Feedback mit farbigen Buttons
+  - Ein-Klick-Kategorisierung direkt beim Lesen
+
+- **Absender-Lernen (Sender Learning)**
+  - Absender werden automatisch gespeichert wenn eine E-Mail kategorisiert wird
+  - Zukünftige E-Mails vom gleichen Absender werden automatisch kategorisiert
+  - Re-Kategorisierung möglich: Neue Kategorie überschreibt alte
+  - Persistente Speicherung (überlebt App-Neustart)
+
+- **Absender-Verwaltung (Einstellungen → Absender)**
+  - Übersicht aller gelernten Absender
+  - Statistiken pro Kategorie
+  - Suche und Filterung nach Kategorie
+  - Kategorie ändern per Dropdown
+  - Einzelne Absender oder alle löschen
+  - Export/Import der Absender-Kategorien (JSON)
+
+- **Verbesserte Kategorisierung**
+  - Manuelle Kategorisierung hat Vorrang vor automatischer Spam-Erkennung
+  - Sender-basierte Kategorien werden sofort auf alle E-Mails angewendet
+  - Zähler in Inbox-Unterordnern berücksichtigen manuelle Kategorien
+
+#### Technische Änderungen
+
+- **Neue Dateien:**
+  - `src/services/SenderCategoryManager.js` - Singleton für Absender-Kategorien-Management
+  - `src/pages/SenderManagement.js` - Einstellungsseite für Absender-Verwaltung
+
+- **Geänderte Dateien:**
+  - `src/pages/InboxSplitView.js`:
+    - Import von SenderCategoryManager
+    - Neue `CategoryButtons` Komponente
+    - `handleCategorize` Handler für manuelle Kategorisierung
+    - `getEmailCategory` für effektive Kategorie (manuell > automatisch)
+    - Aktualisierte `categoryCounts` und `filteredEmails` für manuelle Kategorien
+  - `src/pages/SettingsV2.js`:
+    - Neuer Tab "Absender" mit SenderManagement-Komponente
+
+#### API
+
+**SenderCategoryManager:**
+- `setSenderCategory(email, category)` - Setzt Kategorie für Absender
+- `getSenderCategory(email)` - Holt Kategorie für Absender
+- `getAllSenders()` - Liste aller kategorisierten Absender
+- `getStats()` - Statistiken nach Kategorie
+- `removeSender(email)` - Entfernt Absender
+- `export()` / `import(data)` - Backup-Funktionen
+
+---
+
 ## [2.4.2] - 2026-03-15
 
 ### Neue Server-Vorlagen: Hostpoint & Bluewin

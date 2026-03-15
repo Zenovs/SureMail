@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { getCurrentFont } from './FontSettings';
 import { analyzeEmails, getSpamFilterSettings, TAG_STYLES } from '../utils/SpamFilter';
+import SenderCategoryManager from '../services/SenderCategoryManager';
 
 // v2.4.0: Virtual Inbox Subfolders for automatic categorization
 const INBOX_SUBFOLDERS = [
@@ -13,6 +14,79 @@ const INBOX_SUBFOLDERS = [
   { id: 'schaedlich', name: 'Schädlich', icon: ShieldAlert, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
   { id: 'virus', name: 'Virus', icon: Bug, color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
 ];
+
+// v2.6.0: Category definitions for manual categorization
+const MANUAL_CATEGORIES = [
+  { id: 'werbung', name: 'Werbung', icon: '📢', color: '#F59E0B', bgClass: 'bg-orange-500', hoverClass: 'hover:bg-orange-600' },
+  { id: 'spam', name: 'Spam', icon: '🚫', color: '#EF4444', bgClass: 'bg-red-500', hoverClass: 'hover:bg-red-600' },
+  { id: 'schaedlich', name: 'Schädlich', icon: '⚠️', color: '#EAB308', bgClass: 'bg-yellow-500', hoverClass: 'hover:bg-yellow-600' },
+  { id: 'virus', name: 'Virus', icon: '🦠', color: '#7C3AED', bgClass: 'bg-purple-500', hoverClass: 'hover:bg-purple-600' },
+];
+
+// v2.6.0: Category Buttons Component for manual email categorization
+const CategoryButtons = memo(({ email, currentCategory, onCategorize, c }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const senderEmail = SenderCategoryManager.extractEmail(email?.from);
+  const senderCategory = SenderCategoryManager.getSenderCategory(email?.from);
+  
+  return (
+    <div className={`px-4 py-3 ${c.bgSecondary} ${c.border} border-t flex items-center gap-3 flex-wrap`}>
+      <div className="flex items-center gap-2">
+        <Tag className={`w-4 h-4 ${c.textSecondary}`} />
+        <span className={`text-sm font-medium ${c.text}`}>Als markieren:</span>
+      </div>
+      
+      <div className="flex items-center gap-2 flex-wrap">
+        {MANUAL_CATEGORIES.map(cat => {
+          const isActive = currentCategory === cat.id || senderCategory === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => onCategorize(email, cat.id)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
+                isActive 
+                  ? `${cat.bgClass} text-white shadow-lg scale-105` 
+                  : `bg-transparent border-2 ${c.text} ${cat.hoverClass} hover:text-white`
+              }`}
+              style={{ borderColor: isActive ? 'transparent' : cat.color }}
+              title={`Als ${cat.name} markieren`}
+            >
+              <span>{cat.icon}</span>
+              <span>{cat.name}</span>
+              {isActive && <span className="ml-1">✓</span>}
+            </button>
+          );
+        })}
+        
+        {/* Remove category button */}
+        {(currentCategory || senderCategory) && (
+          <button
+            onClick={() => onCategorize(email, null)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all border-2 ${c.border} ${c.textSecondary} ${c.hover}`}
+            title="Kategorie entfernen"
+          >
+            <X className="w-4 h-4" />
+            <span>Entfernen</span>
+          </button>
+        )}
+      </div>
+      
+      {/* Sender info */}
+      {senderCategory && (
+        <div className={`text-xs ${c.textSecondary} ml-auto flex items-center gap-1`}>
+          <span>Absender gemerkt:</span>
+          <span className={`px-2 py-0.5 rounded-full ${
+            INBOX_SUBFOLDERS.find(f => f.id === senderCategory)?.bgColor || 'bg-gray-500/20'
+          } ${
+            INBOX_SUBFOLDERS.find(f => f.id === senderCategory)?.color || 'text-gray-400'
+          }`}>
+            {MANUAL_CATEGORIES.find(c => c.id === senderCategory)?.name || senderCategory}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+});
 
 // v1.11.1: Google Fonts list for email content styling
 const GOOGLE_FONTS = {
@@ -335,6 +409,10 @@ function InboxSplitView({ onFullView }) {
   // v2.4.0: Inbox Subfolder Filter State
   const [categoryFilter, setCategoryFilter] = useState(null); // null = alle, 'werbung', 'spam', 'schaedlich', 'virus'
   const [inboxExpanded, setInboxExpanded] = useState(true);
+  
+  // v2.6.0: Manual sender-based categorization state
+  const [manualCategories, setManualCategories] = useState(new Map()); // uid -> category
+  const [senderCategoryVersion, setSenderCategoryVersion] = useState(0); // Force re-render on sender category changes
   
   // Resizable folder column (v1.8.1)
   const [folderWidth, setFolderWidth] = useState(() => {
@@ -793,6 +871,66 @@ function InboxSplitView({ onFullView }) {
     setBulkDeleting(false);
   }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex]);
 
+  // v2.6.0: Manual categorization handler - saves sender category and updates UI
+  const handleCategorize = useCallback((email, category) => {
+    if (!email) return;
+    
+    const senderEmail = SenderCategoryManager.extractEmail(email.from);
+    
+    // Save sender category
+    SenderCategoryManager.setSenderCategory(senderEmail, category);
+    
+    // Update local state for immediate UI feedback
+    setManualCategories(prev => {
+      const newMap = new Map(prev);
+      if (category === null) {
+        newMap.delete(email.uid);
+      } else {
+        newMap.set(email.uid, category);
+      }
+      return newMap;
+    });
+    
+    // Force re-render to update all emails from this sender
+    setSenderCategoryVersion(v => v + 1);
+    
+    // Show notification
+    const catName = category 
+      ? MANUAL_CATEGORIES.find(c => c.id === category)?.name || category 
+      : 'Keine';
+    console.log(`[Categorize] ${senderEmail} -> ${catName}`);
+    
+    // Optional: Show toast notification
+    if (category) {
+      // Could integrate with a toast system here
+      console.log(`E-Mail als "${catName}" markiert. Zukünftige E-Mails von ${senderEmail} werden automatisch kategorisiert.`);
+    }
+  }, []);
+
+  // v2.6.0: Apply sender-based categories when emails change
+  useEffect(() => {
+    // Update manual categories based on sender rules
+    const newCategories = new Map();
+    emails.forEach(email => {
+      const senderCategory = SenderCategoryManager.getSenderCategory(email.from);
+      if (senderCategory) {
+        newCategories.set(email.uid, senderCategory);
+      }
+    });
+    setManualCategories(newCategories);
+  }, [emails, senderCategoryVersion]);
+
+  // v2.6.0: Get effective category for an email (manual > spam filter)
+  const getEmailCategory = useCallback((email) => {
+    // Manual/sender-based category takes precedence
+    const manualCat = manualCategories.get(email.uid);
+    if (manualCat) return manualCat;
+    
+    // Fall back to spam filter analysis
+    const analysis = spamResults.get(email.uid);
+    return analysis?.category || null;
+  }, [manualCategories, spamResults]);
+
   // Keyboard navigation (v2.3.0: added Ctrl+A for select all)
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -928,28 +1066,42 @@ function InboxSplitView({ onFullView }) {
     return emails.filter(e => !e.seen).length;
   }, [emails]);
 
-  // v2.4.0: Category counts for inbox subfolders
+  // v2.6.0: Category counts for inbox subfolders (includes manual + auto categories)
   const categoryCounts = useMemo(() => {
     const counts = { werbung: 0, spam: 0, schaedlich: 0, virus: 0 };
-    if (spamResults.size === 0 || currentFolder !== 'INBOX') return counts;
+    if (currentFolder !== 'INBOX') return counts;
     
-    spamResults.forEach((analysis) => {
-      if (analysis.category && counts.hasOwnProperty(analysis.category)) {
+    emails.forEach(email => {
+      // Check manual/sender category first
+      const manualCat = manualCategories.get(email.uid);
+      if (manualCat && counts.hasOwnProperty(manualCat)) {
+        counts[manualCat]++;
+        return;
+      }
+      
+      // Fall back to spam filter
+      const analysis = spamResults.get(email.uid);
+      if (analysis?.category && counts.hasOwnProperty(analysis.category)) {
         counts[analysis.category]++;
       }
     });
     return counts;
-  }, [spamResults, currentFolder]);
+  }, [emails, manualCategories, spamResults, currentFolder]);
 
-  // v2.4.0: Filtered emails based on category filter
+  // v2.6.0: Filtered emails based on category filter (includes manual categories)
   const filteredEmails = useMemo(() => {
     if (!categoryFilter || currentFolder !== 'INBOX') return emails;
     
     return emails.filter(email => {
+      // Check manual/sender category first
+      const manualCat = manualCategories.get(email.uid);
+      if (manualCat) return manualCat === categoryFilter;
+      
+      // Fall back to spam filter
       const analysis = spamResults.get(email.uid);
       return analysis?.category === categoryFilter;
     });
-  }, [emails, categoryFilter, spamResults, currentFolder]);
+  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder]);
 
   // v2.4.0: Reset category filter when folder changes
   useEffect(() => {
@@ -1251,23 +1403,32 @@ function InboxSplitView({ onFullView }) {
             </div>
           ) : (
             <>
-              {filteredEmails.map((email, index) => (
-                <EmailListItem
-                  key={email.uid}
-                  email={email}
-                  index={index}
-                  isSelected={index === selectedIndex}
-                  isChecked={selectedUids.has(email.uid)}
-                  onSelect={handleSelectEmail}
-                  onCheckboxChange={handleCheckboxChange}
-                  onDelete={handleDelete}
-                  onToggleRead={handleToggleRead}
-                  c={c}
-                  actionLoading={actionLoading}
-                  spamAnalysis={spamResults.get(email.uid)}
-                  showCheckboxes={showCheckboxes}
-                />
-              ))}
+              {filteredEmails.map((email, index) => {
+                // v2.6.0: Merge manual category with spam analysis
+                const manualCat = manualCategories.get(email.uid);
+                const spamAnalysis = spamResults.get(email.uid);
+                const effectiveAnalysis = manualCat 
+                  ? { ...spamAnalysis, category: manualCat, isManual: true }
+                  : spamAnalysis;
+                
+                return (
+                  <EmailListItem
+                    key={email.uid}
+                    email={email}
+                    index={index}
+                    isSelected={index === selectedIndex}
+                    isChecked={selectedUids.has(email.uid)}
+                    onSelect={handleSelectEmail}
+                    onCheckboxChange={handleCheckboxChange}
+                    onDelete={handleDelete}
+                    onToggleRead={handleToggleRead}
+                    c={c}
+                    actionLoading={actionLoading}
+                    spamAnalysis={effectiveAnalysis}
+                    showCheckboxes={showCheckboxes}
+                  />
+                );
+              })}
               {loadingMore && (
                 <div className={`p-4 text-center ${c.textSecondary}`}>
                   <LoadingSpinner size="small" message="Lade mehr..." />
@@ -1351,6 +1512,15 @@ function InboxSplitView({ onFullView }) {
                 </button>
               </div>
             </div>
+            
+            {/* v2.6.0: Manual Categorization Buttons */}
+            <CategoryButtons 
+              email={selectedEmail}
+              currentCategory={manualCategories.get(selectedEmail?.uid)}
+              onCategorize={handleCategorize}
+              c={c}
+            />
+            
             <div className={`flex-1 overflow-auto p-6 ${c.bg}`}>
               {/* v1.11.1: Apply selected font to email content */}
               {(() => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Type, Shield } from 'lucide-react';
+import { MessageCircle, Type, Shield, Users } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
@@ -10,6 +10,7 @@ import CategorySettings from './CategorySettings';
 import EmailSettings from './EmailSettings';
 import FontSettings from './FontSettings';
 import SpamFilterSettings from './SpamFilterSettings';
+import SenderManagement from './SenderManagement';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
@@ -52,6 +53,7 @@ function SettingsV2() {
     { id: 'general', name: 'Allgemein', icon: '⚙️' },
     { id: 'email', name: 'E-Mail', icon: '📧' },
     { id: 'spamfilter', name: 'Spam-Filter', icon: <Shield className="w-5 h-5" /> },
+    { id: 'senders', name: 'Absender', icon: <Users className="w-5 h-5" /> },
     { id: 'font', name: 'Schriftart', icon: <Type className="w-5 h-5" /> },
     { id: 'ai', name: 'KI-Assistent', icon: <MessageCircle className="w-5 h-5" /> },
     { id: 'sidebar', name: 'Sidebar', icon: '📐' },
@@ -210,6 +212,9 @@ function SettingsV2() {
       
       case 'spamfilter':
         return <SpamFilterSettings />;
+      
+      case 'senders':
+        return <SenderManagement />;
       
       case 'font':
         return <FontSettings />;
