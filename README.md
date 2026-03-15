@@ -1,5 +1,77 @@
 # 📧 CoreMail Desktop
 
+## 📥 Download & Installation
+
+**Aktuelle Version: v2.2.3**
+
+### 🚀 Schnell-Installation (Eine Zeile)
+
+```bash
+wget --no-check-certificate https://github.com/Zenovs/coremail/releases/download/v2.2.3/CoreMail.Desktop-2.2.3.AppImage -O ~/.local/bin/coremail-desktop && chmod +x ~/.local/bin/coremail-desktop && mkdir -p ~/.local/share/icons/hicolor/{16x16,32x32,64x64,128x128,256x256,512x512}/apps ~/.local/share/pixmaps ~/.local/share/applications && wget -q https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons/icon-16.png -O ~/.local/share/icons/hicolor/16x16/apps/coremail.png && wget -q https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons/icon-32.png -O ~/.local/share/icons/hicolor/32x32/apps/coremail.png && wget -q https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons/icon-64.png -O ~/.local/share/icons/hicolor/64x64/apps/coremail.png && wget -q https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons/icon-128.png -O ~/.local/share/icons/hicolor/128x128/apps/coremail.png && wget -q https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons/icon-256.png -O ~/.local/share/icons/hicolor/256x256/apps/coremail.png && wget -q https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons/icon-512.png -O ~/.local/share/icons/hicolor/512x512/apps/coremail.png && wget -q https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons/icon-512.png -O ~/.local/share/pixmaps/coremail.png && cat > ~/.local/share/icons/hicolor/index.theme << 'EOF'
+[Icon Theme]
+Name=Hicolor
+Comment=Fallback icon theme
+Hidden=true
+Directories=16x16/apps,32x32/apps,64x64/apps,128x128/apps,256x256/apps,512x512/apps
+
+[16x16/apps]
+Size=16
+Context=Applications
+Type=Threshold
+
+[32x32/apps]
+Size=32
+Context=Applications
+Type=Threshold
+
+[64x64/apps]
+Size=64
+Context=Applications
+Type=Threshold
+
+[128x128/apps]
+Size=128
+Context=Applications
+Type=Threshold
+
+[256x256/apps]
+Size=256
+Context=Applications
+Type=Threshold
+
+[512x512/apps]
+Size=512
+Context=Applications
+Type=Threshold
+EOF
+cat > ~/.local/share/applications/coremail.desktop << 'EOF'
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=CoreMail Desktop
+Comment=E-Mail Client für Linux
+Exec=/home/$USER/.local/bin/coremail-desktop --no-sandbox
+Icon=coremail
+Terminal=false
+Categories=Network;Email;Office;
+StartupNotify=true
+Keywords=email;mail;imap;smtp;
+EOF
+chmod +x ~/.local/share/applications/coremail.desktop && gtk-update-icon-cache -f ~/.local/share/icons/hicolor 2>/dev/null && update-desktop-database ~/.local/share/applications 2>/dev/null && ~/.local/bin/coremail-desktop --no-sandbox
+```
+
+### 📦 Direkter Download
+
+**[⬇️ CoreMail Desktop v2.2.3 herunterladen](https://github.com/Zenovs/coremail/releases/download/v2.2.3/CoreMail.Desktop-2.2.3.AppImage)** (141 MB)
+
+### 🗑️ Deinstallation
+
+```bash
+pkill -9 -f coremail ; pkill -9 -f CoreMail ; sleep 1 ; rm -rf ~/.local/bin/coremail* ~/.local/bin/CoreMail* ~/.local/share/applications/coremail* ~/.local/share/applications/CoreMail* ~/.local/share/icons/hicolor/*/apps/coremail* ~/.local/share/icons/hicolor/*/apps/CoreMail* ~/.local/share/icons/hicolor/index.theme ~/.local/share/pixmaps/coremail* ~/.local/share/pixmaps/CoreMail* ~/.config/coremail* ~/.config/CoreMail* /usr/share/applications/coremail* /usr/share/applications/CoreMail* 2>/dev/null ; gtk-update-icon-cache -f ~/.local/share/icons/hicolor 2>/dev/null ; update-desktop-database ~/.local/share/applications 2>/dev/null ; echo "✅ CoreMail wurde komplett entfernt!"
+```
+
+---
+
 Ein schlanker, moderner **E-Mail-Client für Linux** – einfach zu bedienen, lokal und sicher.
 
 <p align="center">
