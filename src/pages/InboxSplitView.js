@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -158,9 +158,9 @@ const SpamTagBadge = memo(({ category }) => {
   );
 });
 
-// v1.12.2: Improved Email List Item with text wrapping and dynamic height
+// v2.3.0: Improved Email List Item with multi-select checkbox
 // v1.14.0: Added spam filter tags
-const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onToggleRead, c, actionLoading, spamAnalysis }) => {
+const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes }) => {
   const isUnread = !email.seen;
   const spamCategory = spamAnalysis?.category;
   const spamTags = spamAnalysis?.tags || [];
@@ -175,16 +175,36 @@ const EmailListItem = memo(({ email, index, isSelected, onSelect, onDelete, onTo
     return 'border-l-transparent';
   };
   
+  // v2.3.0: Handle checkbox click
+  const handleCheckboxClick = (e) => {
+    e.stopPropagation();
+    onCheckboxChange(email.uid, e.shiftKey);
+  };
+  
   return (
     <div
       onClick={() => onSelect(index)}
       className={`p-3 cursor-pointer transition-all ${c.border} border-b relative group
-        ${isSelected ? c.bgTertiary : isUnread ? 'bg-blue-500/5 hover:bg-blue-500/10' : c.hover}
+        ${isSelected ? c.bgTertiary : isChecked ? 'bg-cyan-500/10' : isUnread ? 'bg-blue-500/5 hover:bg-blue-500/10' : c.hover}
         ${getBorderColor()}
       `}
       style={{ borderLeftWidth: '3px', minHeight: '60px' }}
     >
       <div className="flex items-start justify-between gap-2">
+        {/* v2.3.0: Checkbox for multi-select */}
+        {showCheckboxes && (
+          <div 
+            className="flex-shrink-0 mt-0.5"
+            onClick={handleCheckboxClick}
+          >
+            {isChecked ? (
+              <CheckSquare className={`w-5 h-5 ${c.accent} cursor-pointer`} />
+            ) : (
+              <Square className={`w-5 h-5 ${c.textSecondary} hover:${c.accent} cursor-pointer`} />
+            )}
+          </div>
+        )}
+        
         <div className="flex-1 min-w-0 overflow-hidden">
           {/* Sender with unread indicator - v1.12.2: text wrapping */}
           <div 
@@ -296,6 +316,13 @@ function InboxSplitView({ onFullView }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const c = currentTheme.colors;
+  
+  // v2.3.0: Multi-Select State
+  const [selectedUids, setSelectedUids] = useState(new Set());
+  const [showCheckboxes, setShowCheckboxes] = useState(false);
+  const [lastClickedIndex, setLastClickedIndex] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   
   // Resizable folder column (v1.8.1)
   const [folderWidth, setFolderWidth] = useState(() => {
@@ -660,22 +687,137 @@ function InboxSplitView({ onFullView }) {
     setActionLoading(null);
   }, [activeAccountId, currentFolder, emails, selectedEmail, hasMore, getCacheKey]);
 
-  // Keyboard navigation
+  // v2.3.0: Multi-Select Handlers
+  const handleCheckboxChange = useCallback((uid, shiftKey) => {
+    setSelectedUids(prev => {
+      const newSet = new Set(prev);
+      
+      if (shiftKey && lastClickedIndex !== null) {
+        // Shift+Click: Select range
+        const clickedIndex = emails.findIndex(e => e.uid === uid);
+        const start = Math.min(lastClickedIndex, clickedIndex);
+        const end = Math.max(lastClickedIndex, clickedIndex);
+        
+        for (let i = start; i <= end; i++) {
+          newSet.add(emails[i].uid);
+        }
+      } else {
+        // Normal click: Toggle single
+        if (newSet.has(uid)) {
+          newSet.delete(uid);
+        } else {
+          newSet.add(uid);
+        }
+      }
+      
+      return newSet;
+    });
+    
+    // Track last clicked index for shift-select
+    const clickedIndex = emails.findIndex(e => e.uid === uid);
+    setLastClickedIndex(clickedIndex);
+  }, [emails, lastClickedIndex]);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedUids.size === emails.length) {
+      // Deselect all
+      setSelectedUids(new Set());
+    } else {
+      // Select all
+      setSelectedUids(new Set(emails.map(e => e.uid)));
+    }
+  }, [emails, selectedUids]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedUids(new Set());
+    setShowCheckboxes(false);
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!window.electronAPI || !activeAccountId || selectedUids.size === 0) return;
+    
+    setBulkDeleting(true);
+    const uidsToDelete = Array.from(selectedUids);
+    let deletedCount = 0;
+    
+    try {
+      for (const uid of uidsToDelete) {
+        const result = await window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder);
+        if (result.success) {
+          deletedCount++;
+          // Remove from IndexedDB
+          await removeEmailFromIndexedDB(activeAccountId, currentFolder, uid);
+        }
+      }
+      
+      // Update local state
+      const newEmails = emails.filter(e => !selectedUids.has(e.uid));
+      setEmails(newEmails);
+      
+      // Update cache
+      const cacheKey = getCacheKey(activeAccountId, currentFolder);
+      emailCache.set(cacheKey, { data: newEmails, hasMore, timestamp: Date.now() });
+      
+      // Clear selection
+      setSelectedUids(new Set());
+      setShowDeleteConfirm(false);
+      
+      // Select next email
+      if (newEmails.length > 0) {
+        const newIndex = Math.min(selectedIndex, newEmails.length - 1);
+        setSelectedIndex(newIndex);
+        loadEmailPreview(newEmails[newIndex].uid);
+      } else {
+        setSelectedEmail(null);
+      }
+      
+      console.log(`[BulkDelete] Deleted ${deletedCount}/${uidsToDelete.length} emails`);
+    } catch (err) {
+      console.error('Bulk delete error:', err);
+      alert('Fehler beim Löschen einiger E-Mails: ' + err.message);
+    }
+    
+    setBulkDeleting(false);
+  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex]);
+
+  // Keyboard navigation (v2.3.0: added Ctrl+A for select all)
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Ctrl+A or Cmd+A: Select all emails
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a' && emails.length > 0) {
+        e.preventDefault();
+        setShowCheckboxes(true);
+        handleSelectAll();
+        return;
+      }
+      
+      // Escape: Clear selection
+      if (e.key === 'Escape' && selectedUids.size > 0) {
+        handleClearSelection();
+        return;
+      }
+      
+      // Delete: Delete selected emails or current email
+      if (e.key === 'Delete') {
+        if (selectedUids.size > 0) {
+          setShowDeleteConfirm(true);
+        } else if (emails[selectedIndex]) {
+          handleDelete(emails[selectedIndex].uid);
+        }
+        return;
+      }
+      
       if (e.key === 'ArrowDown' && selectedIndex < emails.length - 1) {
         handleSelectEmail(selectedIndex + 1);
       } else if (e.key === 'ArrowUp' && selectedIndex > 0) {
         handleSelectEmail(selectedIndex - 1);
       } else if (e.key === 'Enter' && selectedEmail) {
         onFullView(selectedEmail, currentFolder);
-      } else if (e.key === 'Delete' && emails[selectedIndex]) {
-        handleDelete(emails[selectedIndex].uid);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, emails, selectedEmail, onFullView, currentFolder, handleDelete]);
+  }, [selectedIndex, emails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids]);
 
   // Scroll handler for infinite loading
   const handleScroll = useCallback((e) => {
@@ -880,28 +1022,82 @@ function InboxSplitView({ onFullView }) {
         />
       </div>
 
-      {/* Email List - v1.12.2: Resizable */}
+      {/* Email List - v1.12.2: Resizable, v2.3.0: Multi-Select */}
       <div 
         className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden relative`} 
         style={{ width: `${emailListWidth}px`, minWidth: `${EMAIL_LIST_MIN_WIDTH}px`, maxWidth: `${EMAIL_LIST_MAX_WIDTH}px` }}
       >
-        <div className={`p-4 ${c.border} border-b flex items-center justify-between`}>
-          <div>
-            <h2 className={`font-semibold ${c.text}`}>{account?.name || 'Posteingang'}</h2>
-            <p className={`text-sm ${c.textSecondary}`}>
-              {emails.length} E-Mails {currentFolder !== 'INBOX' && `in ${currentFolder}`}
-              {unreadCount > 0 && (
-                <span className="ml-2 text-blue-400">({unreadCount} ungelesen)</span>
-              )}
-            </p>
+        <div className={`p-4 ${c.border} border-b`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className={`font-semibold ${c.text}`}>{account?.name || 'Posteingang'}</h2>
+              <p className={`text-sm ${c.textSecondary}`}>
+                {emails.length} E-Mails {currentFolder !== 'INBOX' && `in ${currentFolder}`}
+                {unreadCount > 0 && (
+                  <span className="ml-2 text-blue-400">({unreadCount} ungelesen)</span>
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              {/* v2.3.0: Toggle Multi-Select */}
+              <button
+                onClick={() => {
+                  setShowCheckboxes(!showCheckboxes);
+                  if (showCheckboxes) setSelectedUids(new Set());
+                }}
+                className={`p-2 ${showCheckboxes ? c.accentBg + ' text-white' : c.hover} rounded-lg transition-colors ${c.textSecondary}`}
+                title="Mehrfachauswahl"
+              >
+                <CheckSquare className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => fetchEmails(false)}
+                className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary}`}
+                title="Aktualisieren"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => fetchEmails(false)}
-            className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary}`}
-            title="Aktualisieren"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          
+          {/* v2.3.0: Multi-Select Controls */}
+          {showCheckboxes && (
+            <div className={`mt-3 pt-3 ${c.border} border-t flex items-center justify-between gap-2`}>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSelectAll}
+                  className={`px-3 py-1.5 text-xs ${c.hover} rounded-lg transition-colors ${c.textSecondary} flex items-center gap-1.5`}
+                >
+                  {selectedUids.size === emails.length ? (
+                    <>
+                      <XSquare className="w-4 h-4" />
+                      Keine
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare className="w-4 h-4" />
+                      Alle
+                    </>
+                  )}
+                </button>
+                {selectedUids.size > 0 && (
+                  <span className={`text-xs ${c.accent}`}>
+                    {selectedUids.size} ausgewählt
+                  </span>
+                )}
+              </div>
+              
+              {selectedUids.size > 0 && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Löschen ({selectedUids.size})
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <div 
           className="flex-1 overflow-y-auto"
@@ -919,12 +1115,15 @@ function InboxSplitView({ onFullView }) {
                   email={email}
                   index={index}
                   isSelected={index === selectedIndex}
+                  isChecked={selectedUids.has(email.uid)}
                   onSelect={handleSelectEmail}
+                  onCheckboxChange={handleCheckboxChange}
                   onDelete={handleDelete}
                   onToggleRead={handleToggleRead}
                   c={c}
                   actionLoading={actionLoading}
                   spamAnalysis={spamResults.get(email.uid)}
+                  showCheckboxes={showCheckboxes}
                 />
               ))}
               {loadingMore && (
@@ -1056,6 +1255,56 @@ function InboxSplitView({ onFullView }) {
           </div>
         )}
       </div>
+      
+      {/* v2.3.0: Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-500/20 rounded-full">
+                <Trash2 className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h3 className={`text-lg font-semibold ${c.text}`}>E-Mails löschen?</h3>
+                <p className={`text-sm ${c.textSecondary}`}>
+                  {selectedUids.size} E-Mail{selectedUids.size > 1 ? 's' : ''} werden gelöscht
+                </p>
+              </div>
+            </div>
+            
+            <p className={`text-sm ${c.textSecondary} mb-6`}>
+              Diese Aktion kann nicht rückgängig gemacht werden. Die E-Mails werden in den Papierkorb verschoben.
+            </p>
+            
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className={`px-4 py-2 ${c.hover} ${c.border} border rounded-lg transition-colors ${c.text}`}
+                disabled={bulkDeleting}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-2"
+              >
+                {bulkDeleting ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    Lösche...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Löschen
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
