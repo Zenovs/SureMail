@@ -2,6 +2,24 @@
 
 Alle wichtigen Änderungen an CoreMail Desktop werden in dieser Datei dokumentiert.
 
+## [2.2.2] - 2026-03-15
+
+### Bugfix: Icon-Transparenz und alle Größen
+
+#### Behoben
+- **Transparenter Hintergrund**: Alle Icons haben nun 100% transparenten Hintergrund
+- **Icon-Probleme behoben**: Schnellsuche, Taskbar und Benachrichtigungen zeigen korrekte Icons
+- **Alle Icon-Größen**: 512x512, 256x256, 128x128, 64x64, 32x32, 16x16 erstellt
+- **RGBA-Format**: Alle Icons verwenden RGBA mit Alpha-Kanal für echte Transparenz
+
+#### Technische Änderungen
+- `public/icon.png`: Icon mit transparentem Hintergrund (RGBA)
+- `public/icons/`: Alle Größen mit Transparenz (icon-16.png bis icon-512.png)
+- `assets/`: Aktualisierte Build-Assets mit Transparenz
+- `public/install-icons.sh`: Neues Script zur manuellen Icon-Installation
+
+---
+
 ## [2.2.1] - 2026-03-15
 
 ### Bugfix: Desktop-Icon aktualisiert
