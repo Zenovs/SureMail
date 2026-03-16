@@ -725,6 +725,10 @@ ipcMain.handle('theme:getAvailableIcons', async () => {
 // === APP INFO ===
 ipcMain.handle('app:getVersion', () => APP_VERSION);
 
+ipcMain.handle('app:openDevTools', () => {
+  if (mainWindow) mainWindow.webContents.openDevTools();
+});
+
 ipcMain.handle('app:getSettings', () => {
   return store.get('appSettings', {
     autoCheckUpdates: true,

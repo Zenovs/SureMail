@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.7.7",
-  "description": "CoreMail Desktop v2.7.7 - Fix: IMAP-Verbindungsfehler behoben, bessere Fehlermeldungen",
+  "version": "2.7.8",
+  "description": "CoreMail Desktop v2.7.8 - Diagnose: Fehlerdetails und DevTools im Posteingang-Fehlerscreen",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

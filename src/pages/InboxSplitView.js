@@ -1152,22 +1152,35 @@ function InboxSplitView({ onFullView, onNavigate }) {
   }
 
   if (error) {
+    const activeAccount = getActiveAccount();
     return (
       <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
-        <div className="text-center max-w-sm">
+        <div className="text-center max-w-lg px-4">
           <div className="text-red-400 text-5xl mb-4">⚠️</div>
           <h3 className={`font-semibold ${c.text} mb-2`}>Verbindung fehlgeschlagen</h3>
-          <p className="text-red-400 text-sm mb-1">{error}</p>
+          {activeAccount && (
+            <p className={`text-xs ${c.textSecondary} mb-2`}>
+              {activeAccount.imap?.host}:{activeAccount.imap?.port} ({activeAccount.imap?.username})
+            </p>
+          )}
+          <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 mb-3 text-left">
+            <p className="text-red-400 text-sm font-mono break-all">{error}</p>
+          </div>
           <p className={`text-xs ${c.textSecondary} mb-4`}>
-            Bitte überprüfe Host, Port, Benutzername und Passwort in den Konto-Einstellungen.
+            Überprüfe Host, Port, Benutzername und Passwort. Bei Gmail/Outlook wird ein App-Passwort benötigt.
           </p>
-          <div className="flex gap-2 justify-center">
+          <div className="flex flex-wrap gap-2 justify-center">
             <button onClick={() => fetchEmails(false)} className={`px-4 py-2 ${c.accentBg} text-white rounded-lg text-sm`}>
               Erneut versuchen
             </button>
             {onNavigate && (
               <button onClick={() => onNavigate('accounts')} className={`px-4 py-2 ${c.bgTertiary} ${c.text} ${c.border} border rounded-lg text-sm`}>
                 Konto-Einstellungen
+              </button>
+            )}
+            {window.electronAPI?.openDevTools && (
+              <button onClick={() => window.electronAPI.openDevTools()} className={`px-4 py-2 ${c.bgTertiary} ${c.textSecondary} ${c.border} border rounded-lg text-sm`}>
+                DevTools
               </button>
             )}
           </div>
