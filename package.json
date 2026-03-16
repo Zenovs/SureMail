@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.7.8",
-  "description": "CoreMail Desktop v2.7.8 - Diagnose: Fehlerdetails und DevTools im Posteingang-Fehlerscreen",
+  "version": "2.7.9",
+  "description": "CoreMail Desktop v2.7.9 - Fix: TDZ-Fehler 'Cannot access filteredEmails before initialization' im Posteingang",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

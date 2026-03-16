@@ -413,6 +413,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // v2.6.0: Manual sender-based categorization state
   const [manualCategories, setManualCategories] = useState(new Map()); // uid -> category
   const [senderCategoryVersion, setSenderCategoryVersion] = useState(0); // Force re-render on sender category changes
+
+  // v1.14.0: Spam filter analysis results (moved up to avoid TDZ in filteredEmails)
+  const [spamResults, setSpamResults] = useState(new Map());
   
   // Resizable folder column (v1.8.1)
   const [folderWidth, setFolderWidth] = useState(() => {
@@ -809,6 +812,21 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLastClickedIndex(clickedIndex);
   }, [emails, lastClickedIndex]);
 
+  // v2.6.0: Filtered emails based on category filter (moved up to avoid TDZ)
+  const filteredEmails = useMemo(() => {
+    if (!categoryFilter || currentFolder !== 'INBOX') return emails;
+
+    return emails.filter(email => {
+      // Check manual/sender category first
+      const manualCat = manualCategories.get(email.uid);
+      if (manualCat) return manualCat === categoryFilter;
+
+      // Fall back to spam filter
+      const analysis = spamResults.get(email.uid);
+      return analysis?.category === categoryFilter;
+    });
+  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder]);
+
   const handleSelectAll = useCallback(() => {
     if (selectedUids.size === filteredEmails.length) {
       // Deselect all
@@ -1042,9 +1060,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return flat;
   }, [sortedFolders]);
 
-  // v1.14.0: Spam filter analysis results
-  const [spamResults, setSpamResults] = useState(new Map());
-  
   // v1.14.0: Run spam analysis when emails change
   useEffect(() => {
     const settings = getSpamFilterSettings();
@@ -1087,21 +1102,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
     });
     return counts;
   }, [emails, manualCategories, spamResults, currentFolder]);
-
-  // v2.6.0: Filtered emails based on category filter (includes manual categories)
-  const filteredEmails = useMemo(() => {
-    if (!categoryFilter || currentFolder !== 'INBOX') return emails;
-    
-    return emails.filter(email => {
-      // Check manual/sender category first
-      const manualCat = manualCategories.get(email.uid);
-      if (manualCat) return manualCat === categoryFilter;
-      
-      // Fall back to spam filter
-      const analysis = spamResults.get(email.uid);
-      return analysis?.category === categoryFilter;
-    });
-  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder]);
 
   // v2.4.0: Reset category filter when folder changes
   useEffect(() => {
