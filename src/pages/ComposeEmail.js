@@ -1,335 +1,441 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import { useOllama } from '../context/OllamaContext';
 
+// ─── HTML-Vorlagen ───────────────────────────────────────────────────────────
+const HTML_TEMPLATES = [
+  {
+    id: 'blank',
+    name: 'Leer',
+    icon: '📄',
+    html: '<p></p>',
+  },
+  {
+    id: 'formal',
+    name: 'Formeller Brief',
+    icon: '💼',
+    html: `<p>Sehr geehrte Damen und Herren,</p>
+<p>ich schreibe Ihnen bezüglich <em>[Thema]</em>.</p>
+<p>[Ihr Text hier]</p>
+<p>Für Rückfragen stehe ich Ihnen gerne zur Verfügung.</p>
+<p>Mit freundlichen Grüßen</p>`,
+  },
+  {
+    id: 'newsletter',
+    name: 'Newsletter',
+    icon: '📰',
+    html: `<div style="max-width:600px;margin:0 auto;font-family:Arial,sans-serif;color:#333">
+  <h2 style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:8px">Betreff des Newsletters</h2>
+  <p>Hallo,</p>
+  <p>hier sind unsere neuesten Informationen für Sie:</p>
+  <h3 style="color:#0891b2">Abschnitt 1</h3>
+  <p>Inhalt des ersten Abschnitts...</p>
+  <h3 style="color:#0891b2">Abschnitt 2</h3>
+  <p>Inhalt des zweiten Abschnitts...</p>
+  <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+  <p style="color:#999;font-size:12px">Sie erhalten diese E-Mail, weil Sie sich für unseren Newsletter angemeldet haben.</p>
+</div>`,
+  },
+  {
+    id: 'offer',
+    name: 'Angebot',
+    icon: '💰',
+    html: `<p>Sehr geehrte Damen und Herren,</p>
+<p>wir freuen uns, Ihnen folgendes Angebot zu unterbreiten:</p>
+<table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:14px">
+  <thead>
+    <tr style="background:#0891b2;color:white">
+      <th style="padding:10px;text-align:left;border:1px solid #0891b2">Position</th>
+      <th style="padding:10px;text-align:left;border:1px solid #0891b2">Beschreibung</th>
+      <th style="padding:10px;text-align:right;border:1px solid #0891b2">Preis</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:8px;border:1px solid #ddd">1</td>
+      <td style="padding:8px;border:1px solid #ddd">Leistung/Produkt</td>
+      <td style="padding:8px;border:1px solid #ddd;text-align:right">€ 0,00</td>
+    </tr>
+    <tr style="background:#f9f9f9">
+      <td colspan="2" style="padding:8px;border:1px solid #ddd;text-align:right;font-weight:bold">Gesamt (netto)</td>
+      <td style="padding:8px;border:1px solid #ddd;text-align:right;font-weight:bold">€ 0,00</td>
+    </tr>
+  </tbody>
+</table>
+<p>Dieses Angebot ist gültig bis [Datum].</p>
+<p>Mit freundlichen Grüßen</p>`,
+  },
+  {
+    id: 'custom',
+    name: 'HTML einfügen',
+    icon: '🧩',
+    html: null, // will open paste dialog
+  },
+];
+
+// ─── Toolbar-Konfiguration ────────────────────────────────────────────────────
+const TOOLBAR = [
+  [
+    { cmd: 'bold',         icon: <strong>B</strong>, title: 'Fett (Ctrl+B)' },
+    { cmd: 'italic',       icon: <em>I</em>,          title: 'Kursiv (Ctrl+I)' },
+    { cmd: 'underline',    icon: <span style={{textDecoration:'underline'}}>U</span>, title: 'Unterstrichen (Ctrl+U)' },
+    { cmd: 'strikeThrough',icon: <span style={{textDecoration:'line-through'}}>S</span>, title: 'Durchgestrichen' },
+  ],
+  [
+    { cmd: 'insertOrderedList',   icon: '1.', title: 'Nummerierte Liste' },
+    { cmd: 'insertUnorderedList', icon: '•',  title: 'Aufzählungsliste' },
+  ],
+  [
+    { cmd: 'justifyLeft',   icon: '⬛⬜', title: 'Links' },
+    { cmd: 'justifyCenter', icon: '⬜⬛', title: 'Zentriert' },
+    { cmd: 'justifyRight',  icon: '⬜⬛', title: 'Rechts' },
+  ],
+  [
+    { cmd: 'removeFormat', icon: '✕', title: 'Formatierung entfernen' },
+  ],
+];
+
+const HEADINGS = [
+  { label: 'Normal', tag: 'div' },
+  { label: 'H1',     tag: 'h1' },
+  { label: 'H2',     tag: 'h2' },
+  { label: 'H3',     tag: 'h3' },
+];
+
+// ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
+const formatFileSize = (bytes) => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
+const getFileIcon = (contentType, filename) => {
+  if (contentType.startsWith('image/')) return '🖼️';
+  if (contentType === 'application/pdf') return '📕';
+  if (contentType.includes('word') || filename?.endsWith('.docx')) return '📘';
+  if (contentType.includes('excel') || filename?.endsWith('.xlsx')) return '📗';
+  if (contentType.includes('zip') || contentType.includes('archive')) return '📦';
+  if (contentType.startsWith('video/')) return '🎬';
+  if (contentType.startsWith('audio/')) return '🎵';
+  return '📄';
+};
+
+// ─── Hauptkomponente ──────────────────────────────────────────────────────────
 function ComposeEmail({ onBack, replyTo = null }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount, accounts } = useAccounts();
   const { isAvailable: aiAvailable, suggestReply, improveText } = useOllama();
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId);
-  const [signatures, setSignatures] = useState({});
-  const [useSignature, setUseSignature] = useState(true);
-  const [showSignaturePreview, setShowSignaturePreview] = useState(false);
-  
-  // Attachments state
-  const [attachments, setAttachments] = useState([]);
-  const [uploadProgress, setUploadProgress] = useState({});
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef(null);
-  const dropZoneRef = useRef(null);
-  
-  // AI state
-  const [showAiPanel, setShowAiPanel] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  
   const c = currentTheme.colors;
 
+  // --- Formularfelder ---
   const [form, setForm] = useState({
-    to: replyTo?.from || '',
-    cc: '',
-    bcc: '',
+    to:      replyTo?.from || '',
+    cc:      '',
+    bcc:     '',
     subject: replyTo ? `Re: ${replyTo.subject}` : '',
-    body: ''
   });
+  const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId);
+  const [senderName, setSenderName] = useState('');
 
+  // --- Editor ---
+  const editorRef  = useRef(null);
+  const [editorMode,  setEditorMode]  = useState('richtext'); // 'richtext' | 'html' | 'preview'
+  const [htmlSource,  setHtmlSource]  = useState('');
+
+  // --- Templates ---
+  const [showTemplates,  setShowTemplates]  = useState(false);
+  const [customHtmlPaste, setCustomHtmlPaste] = useState('');
+  const [showCustomPaste, setShowCustomPaste] = useState(false);
+
+  // --- Senden ---
+  const [sending, setSending] = useState(false);
+  const [error,   setError]   = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  // --- Anhänge ---
+  const [attachments,    setAttachments]    = useState([]);
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [isDragging,     setIsDragging]     = useState(false);
+  const fileInputRef = useRef(null);
+  const dropZoneRef  = useRef(null);
+
+  // --- Signatur ---
+  const [signatures,           setSignatures]           = useState({});
+  const [useSignature,         setUseSignature]         = useState(true);
+  const [showSignaturePreview, setShowSignaturePreview] = useState(false);
+
+  // --- KI ---
+  const [showAiPanel,  setShowAiPanel]  = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState('');
+  const [aiLoading,    setAiLoading]    = useState(false);
+
+  // ── Initialisierung ─────────────────────────────────────────────────────────
   useEffect(() => {
     loadSignatures();
   }, []);
 
+  // Absendername aus Konto übernehmen
   useEffect(() => {
-    // Update signature preview when account changes
-    setShowSignaturePreview(false);
-  }, [selectedAccountId]);
+    const acc = accounts.find(a => a.id === selectedAccountId);
+    setSenderName(acc?.displayName || '');
+  }, [selectedAccountId, accounts]);
+
+  // Antwort-Zitat in Editor einfügen
+  useEffect(() => {
+    if (editorRef.current && replyTo) {
+      const quoted = replyTo.html
+        ? replyTo.html
+        : (replyTo.text || '').replace(/\n/g, '<br>');
+      editorRef.current.innerHTML =
+        `<p></p><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${quoted}</blockquote>`;
+    }
+  }, []); // eslint-disable-line
 
   const loadSignatures = async () => {
     if (window.electronAPI?.loadSignatures) {
       const result = await window.electronAPI.loadSignatures();
-      if (result.success) {
-        setSignatures(result.signatures);
-      }
+      if (result.success) setSignatures(result.signatures);
     }
   };
 
   const currentSignature = signatures[selectedAccountId];
   const hasSignature = currentSignature?.enabled && currentSignature?.html;
 
-  // ============ ATTACHMENT HANDLING ============
-  
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    addFiles(files);
+  // ── Editor-Modus wechseln ───────────────────────────────────────────────────
+  const switchMode = (mode) => {
+    if (mode === editorMode) return;
+    if (editorMode === 'richtext' && editorRef.current) {
+      setHtmlSource(editorRef.current.innerHTML);
+    }
+    if (mode === 'richtext' && editorRef.current) {
+      setTimeout(() => {
+        if (editorRef.current) editorRef.current.innerHTML = htmlSource;
+      }, 0);
+    }
+    setEditorMode(mode);
   };
 
+  const getEditorHtml = useCallback(() => {
+    if (editorMode === 'html') return htmlSource;
+    return editorRef.current?.innerHTML || '';
+  }, [editorMode, htmlSource]);
+
+  const getEditorText = useCallback(() => {
+    if (editorMode === 'html') return htmlSource.replace(/<[^>]*>/g, '');
+    return editorRef.current?.innerText || '';
+  }, [editorMode, htmlSource]);
+
+  const getPreviewHtml = useCallback(() => {
+    let html = getEditorHtml();
+    if (useSignature && hasSignature) {
+      html += `<hr style="margin:20px 0;border:none;border-top:1px solid #ddd"><div>${currentSignature.html}</div>`;
+    }
+    return html;
+  }, [getEditorHtml, useSignature, hasSignature, currentSignature]);
+
+  // ── Formatierung ─────────────────────────────────────────────────────────────
+  const execFormat = (cmd, value = null) => {
+    editorRef.current?.focus();
+    document.execCommand(cmd, false, value);
+  };
+
+  const insertLink = () => {
+    const url = prompt('URL eingeben:', 'https://');
+    if (url) execFormat('createLink', url);
+  };
+
+  const applyHeading = (tag) => {
+    editorRef.current?.focus();
+    document.execCommand('formatBlock', false, tag);
+  };
+
+  const setFontColor = (color) => {
+    execFormat('foreColor', color);
+  };
+
+  // ── Templates ────────────────────────────────────────────────────────────────
+  const insertTemplate = (tpl) => {
+    if (tpl.id === 'custom') {
+      setShowCustomPaste(true);
+      return;
+    }
+    if (editorMode === 'html') {
+      setHtmlSource(tpl.html);
+    } else if (editorRef.current) {
+      editorRef.current.innerHTML = tpl.html;
+      editorRef.current.focus();
+    }
+    setShowTemplates(false);
+  };
+
+  const applyCustomHtml = () => {
+    if (editorMode === 'html') {
+      setHtmlSource(customHtmlPaste);
+    } else if (editorRef.current) {
+      editorRef.current.innerHTML = customHtmlPaste;
+      editorRef.current.focus();
+      setHtmlSource(customHtmlPaste);
+    }
+    setShowCustomPaste(false);
+    setShowTemplates(false);
+    setCustomHtmlPaste('');
+  };
+
+  // ── Anhänge ──────────────────────────────────────────────────────────────────
   const addFiles = (files) => {
     const newAttachments = files.map(file => {
-      // Read file as base64
       const reader = new FileReader();
       const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      reader.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(prev => ({ ...prev, [id]: progress }));
+      reader.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+          setUploadProgress(prev => ({ ...prev, [id]: Math.round((ev.loaded / ev.total) * 100) }));
         }
       };
-      
-      reader.onload = (event) => {
-        setAttachments(prev => prev.map(att => 
-          att.id === id 
-            ? { ...att, content: event.target.result.split(',')[1], loaded: true }
-            : att
+      reader.onload = (ev) => {
+        setAttachments(prev => prev.map(a =>
+          a.id === id ? { ...a, content: ev.target.result.split(',')[1], loaded: true } : a
         ));
-        setUploadProgress(prev => {
-          const newProgress = { ...prev };
-          delete newProgress[id];
-          return newProgress;
-        });
+        setUploadProgress(prev => { const n = { ...prev }; delete n[id]; return n; });
       };
-      
       reader.readAsDataURL(file);
-      
-      return {
-        id,
-        filename: file.name,
-        contentType: file.type || 'application/octet-stream',
-        size: file.size,
-        content: null,
-        loaded: false
-      };
+      return { id, filename: file.name, contentType: file.type || 'application/octet-stream', size: file.size, content: null, loaded: false };
     });
-    
     setAttachments(prev => [...prev, ...newAttachments]);
   };
 
-  const removeAttachment = (id) => {
-    setAttachments(prev => prev.filter(att => att.id !== id));
-  };
-
-  // Drag and Drop handlers
-  const handleDragEnter = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
+  const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
   const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // Only set dragging to false if we're actually leaving the drop zone
-    if (e.currentTarget === dropZoneRef.current) {
-      setIsDragging(false);
-    }
+    e.preventDefault(); e.stopPropagation();
+    if (e.currentTarget === dropZoneRef.current) setIsDragging(false);
   };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
+  const handleDragOver  = (e) => { e.preventDefault(); e.stopPropagation(); };
+  const handleDrop      = (e) => {
+    e.preventDefault(); e.stopPropagation(); setIsDragging(false);
     const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0) {
-      addFiles(files);
-    }
+    if (files.length > 0) addFiles(files);
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
+  const getTotalSize = () => attachments.reduce((s, a) => s + a.size, 0);
 
-  const getFileIcon = (contentType, filename) => {
-    if (contentType.startsWith('image/')) return '🖼️';
-    if (contentType === 'application/pdf') return '📕';
-    if (contentType.includes('word') || filename?.endsWith('.doc') || filename?.endsWith('.docx')) return '📘';
-    if (contentType.includes('excel') || filename?.endsWith('.xls') || filename?.endsWith('.xlsx')) return '📗';
-    if (contentType.includes('powerpoint') || filename?.endsWith('.ppt') || filename?.endsWith('.pptx')) return '📙';
-    if (contentType.includes('zip') || contentType.includes('archive')) return '📦';
-    if (contentType.startsWith('video/')) return '🎬';
-    if (contentType.startsWith('audio/')) return '🎵';
-    if (contentType.includes('text')) return '📝';
-    return '📄';
-  };
-
-  const getTotalSize = () => {
-    return attachments.reduce((sum, att) => sum + att.size, 0);
-  };
-
-  // ============ AI FUNCTIONS ============
-
+  // ── KI ───────────────────────────────────────────────────────────────────────
   const handleAiSuggestReply = async () => {
     if (!replyTo || aiLoading) return;
-    
-    setAiLoading(true);
-    setAiSuggestion('');
-    
+    setAiLoading(true); setAiSuggestion('');
     const emailContent = replyTo.text || replyTo.html?.replace(/<[^>]*>/g, '') || '';
-    const suggestion = await suggestReply(emailContent, replyTo.subject, replyTo.from);
-    
-    if (suggestion) {
-      setAiSuggestion(suggestion);
-    } else {
-      setAiSuggestion('Fehler: Konnte keinen Vorschlag generieren.');
-    }
-    
+    const s = await suggestReply(emailContent, replyTo.subject, replyTo.from);
+    setAiSuggestion(s || 'Fehler: Konnte keinen Vorschlag generieren.');
     setAiLoading(false);
   };
 
-  const handleAiImprove = async (instruction = 'Verbessere und verfeinere') => {
-    if (!form.body.trim() || aiLoading) return;
-    
-    setAiLoading(true);
-    setAiSuggestion('');
-    
-    const improved = await improveText(form.body, instruction);
-    
-    if (improved) {
-      setAiSuggestion(improved);
-    } else {
-      setAiSuggestion('Fehler: Text konnte nicht verbessert werden.');
-    }
-    
+  const handleAiImprove = async (instruction) => {
+    const text = getEditorText();
+    if (!text.trim() || aiLoading) return;
+    setAiLoading(true); setAiSuggestion('');
+    const improved = await improveText(text, instruction);
+    setAiSuggestion(improved || 'Fehler: Text konnte nicht verbessert werden.');
     setAiLoading(false);
   };
 
   const applyAiSuggestion = () => {
-    if (aiSuggestion) {
-      setForm(f => ({ ...f, body: aiSuggestion }));
-      setAiSuggestion('');
-      setShowAiPanel(false);
+    if (!aiSuggestion) return;
+    const html = aiSuggestion.replace(/\n/g, '<br>');
+    if (editorMode === 'html') {
+      setHtmlSource(html);
+    } else if (editorRef.current) {
+      editorRef.current.innerHTML = html;
     }
+    setAiSuggestion(''); setShowAiPanel(false);
   };
 
-  // ============ SEND EMAIL ============
-
+  // ── Senden ───────────────────────────────────────────────────────────────────
   const handleSend = async () => {
-    if (!form.to || !form.subject) {
-      setError('Bitte Empfänger und Betreff ausfüllen');
-      return;
-    }
+    if (!form.to || !form.subject) { setError('Bitte Empfänger und Betreff ausfüllen'); return; }
+    if (attachments.some(a => !a.loaded)) { setError('Bitte warten, bis alle Anhänge geladen sind'); return; }
 
-    // Check if all attachments are loaded
-    const pendingAttachments = attachments.filter(att => !att.loaded);
-    if (pendingAttachments.length > 0) {
-      setError('Bitte warten, bis alle Anhänge geladen sind');
-      return;
-    }
-
-    setSending(true);
-    setError(null);
-
+    setSending(true); setError(null);
     try {
-      let bodyHtml = `<p>${form.body.replace(/\n/g, '</p><p>')}</p>`;
-      let bodyText = form.body;
-
-      // Append signature if enabled
+      let bodyHtml = getEditorHtml();
+      let bodyText = getEditorText();
       if (useSignature && hasSignature) {
         bodyHtml += `<br><br>${currentSignature.html}`;
         bodyText += `\n\n${currentSignature.text || ''}`;
       }
 
       const emailData = {
+        fromName: senderName,
         to: form.to,
         cc: form.cc || undefined,
         bcc: form.bcc || undefined,
         subject: form.subject,
         text: bodyText,
         html: bodyHtml,
-        attachments: attachments.map(att => ({
-          filename: att.filename,
-          content: att.content,
-          contentType: att.contentType
-        }))
+        attachments: attachments.map(a => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
       };
 
-      let result;
-      if (selectedAccountId && window.electronAPI.sendEmailForAccount) {
-        result = await window.electronAPI.sendEmailForAccount(selectedAccountId, emailData);
-      } else {
-        result = await window.electronAPI.sendEmail(emailData);
-      }
+      const result = selectedAccountId && window.electronAPI.sendEmailForAccount
+        ? await window.electronAPI.sendEmailForAccount(selectedAccountId, emailData)
+        : await window.electronAPI.sendEmail(emailData);
 
-      if (result.success) {
-        setSuccess(true);
-        setTimeout(() => onBack(), 2000);
-      } else {
-        setError(result.error);
-      }
-    } catch (e) {
-      setError(e.message);
-    }
-
+      if (result.success) { setSuccess(true); setTimeout(() => onBack(), 2000); }
+      else setError(result.error);
+    } catch (e) { setError(e.message); }
     setSending(false);
   };
 
-  const account = getActiveAccount();
-
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div 
+    <div
       ref={dropZoneRef}
-      className={`flex-1 flex flex-col ${c.bg} relative drop-zone ${isDragging ? 'drag-over' : ''}`}
+      className={`flex-1 flex flex-col ${c.bg} relative`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* Drag Overlay */}
+      {/* Drag-Overlay */}
       {isDragging && (
         <div className="absolute inset-0 bg-cyan-500/10 border-4 border-dashed border-cyan-500 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className={`text-center ${c.text}`}>
             <div className="text-6xl mb-4">📎</div>
             <p className="text-xl font-semibold">Dateien hier ablegen</p>
-            <p className={`text-sm ${c.textSecondary} mt-2`}>Unterstützt: Bilder, PDFs, Dokumente und mehr</p>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <header className={`px-6 py-4 ${c.border} border-b ${c.bgSecondary}`}>
+      <header className={`px-6 py-3 ${c.border} border-b ${c.bgSecondary} flex-shrink-0`}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary}`}
-            >
-              ←
-            </button>
-            <h2 className={`text-lg font-semibold ${c.text}`}>Neue E-Mail</h2>
-          </div>
           <div className="flex items-center gap-3">
+            <button onClick={onBack} className={`p-2 ${c.hover} rounded-lg ${c.textSecondary}`}>←</button>
+            <h2 className={`text-base font-semibold ${c.text}`}>{replyTo ? 'Antworten' : 'Neue E-Mail'}</h2>
+          </div>
+          <div className="flex items-center gap-2">
             {attachments.length > 0 && (
-              <span className={`text-sm ${c.textSecondary}`}>
-                📎 {attachments.length} ({formatFileSize(getTotalSize())})
-              </span>
+              <span className={`text-xs ${c.textSecondary}`}>📎 {attachments.length} ({formatFileSize(getTotalSize())})</span>
             )}
+            {/* Templates Button */}
+            <button
+              onClick={() => setShowTemplates(!showTemplates)}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${showTemplates ? 'bg-cyan-500/30 text-cyan-400' : `${c.bgTertiary} ${c.hover} ${c.textSecondary}`}`}
+            >
+              🧩 Vorlagen
+            </button>
             {aiAvailable && (
               <button
                 onClick={() => setShowAiPanel(!showAiPanel)}
-                className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                  showAiPanel
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1 ${
+                  showAiPanel ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
                 }`}
-                title="KI-Assistent"
               >
-                <MessageCircle className="w-4 h-4 inline mr-1" /> KI-Assistent
+                <MessageCircle className="w-3.5 h-3.5" /> KI
               </button>
             )}
             <button
               onClick={handleSend}
               disabled={sending || success}
-              className={`px-6 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors disabled:opacity-50`}
+              className={`px-5 py-1.5 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors disabled:opacity-50`}
             >
               {sending ? 'Sende...' : success ? '✓ Gesendet!' : '📤 Senden'}
             </button>
@@ -337,355 +443,430 @@ function ComposeEmail({ onBack, replyTo = null }) {
         </div>
       </header>
 
-      {/* Form */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="max-w-3xl mx-auto space-y-4">
-          {error && (
-            <div className="p-4 bg-red-900/20 border border-red-600 rounded-lg text-red-400">
-              {error}
-            </div>
-          )}
+      {/* Hauptbereich */}
+      <div className="flex flex-1 min-h-0">
+        {/* Formular (scrollbar) */}
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="max-w-3xl mx-auto space-y-3">
 
-          {success && (
-            <div className="p-4 bg-green-900/20 border border-green-600 rounded-lg text-green-400">
-              ✓ E-Mail erfolgreich gesendet!
-            </div>
-          )}
+            {/* Fehler / Erfolg */}
+            {error && <div className="p-3 bg-red-900/20 border border-red-600 rounded-lg text-red-400 text-sm">{error}</div>}
+            {success && <div className="p-3 bg-green-900/20 border border-green-600 rounded-lg text-green-400 text-sm">✓ E-Mail erfolgreich gesendet!</div>}
 
-          {/* Account Auswahl */}
-          {accounts.length > 1 ? (
-            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-              <label className={`block text-sm ${c.textSecondary} mb-2`}>Von:</label>
-              <select
-                value={selectedAccountId || ''}
-                onChange={e => setSelectedAccountId(e.target.value)}
-                className={`w-full px-4 py-2 rounded-lg ${c.input} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-              >
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>
-                    {acc.displayName
-                      ? `${acc.displayName} <${acc.smtp.fromEmail || acc.smtp.username}>`
-                      : `${acc.name} (${acc.smtp.fromEmail || acc.smtp.username})`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : accounts.length === 1 && accounts[0].displayName ? (
-            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-              <label className={`block text-sm ${c.textSecondary} mb-1`}>Von:</label>
-              <div className={`${c.text} text-sm`}>
-                {accounts[0].displayName} &lt;{accounts[0].smtp.fromEmail || accounts[0].smtp.username}&gt;
+            {/* Von-Bereich */}
+            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4 space-y-3`}>
+              <div className="flex items-start gap-3">
+                <span className={`text-sm ${c.textSecondary} w-16 flex-shrink-0 mt-2`}>Von:</span>
+                <div className="flex-1 space-y-2">
+                  {/* Konto-Auswahl */}
+                  {accounts.length > 1 ? (
+                    <select
+                      value={selectedAccountId || ''}
+                      onChange={e => setSelectedAccountId(e.target.value)}
+                      className={`w-full px-3 py-1.5 rounded-lg ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                    >
+                      {accounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.smtp.fromEmail || acc.smtp.username}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className={`text-sm ${c.textSecondary}`}>
+                      {accounts[0]?.smtp?.fromEmail || accounts[0]?.smtp?.username || '–'}
+                    </div>
+                  )}
+                  {/* Absendername-Override */}
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs ${c.textSecondary} flex-shrink-0`}>Angezeigter Name:</span>
+                    <input
+                      type="text"
+                      value={senderName}
+                      onChange={e => setSenderName(e.target.value)}
+                      placeholder="z. B. Max Mustermann"
+                      className={`flex-1 px-3 py-1 rounded ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          ) : null}
 
-          {/* An, CC, BCC */}
-          <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-            <label className={`block text-sm ${c.textSecondary} mb-2`}>An:</label>
-            <input
-              type="email"
-              value={form.to}
-              onChange={e => setForm(f => ({ ...f, to: e.target.value }))}
-              placeholder="empfaenger@example.com"
-              className={`w-full px-4 py-2 rounded-lg ${c.input} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-            />
-            <div className="grid grid-cols-2 gap-4 mt-3">
-              <div>
-                <label className={`block text-xs ${c.textSecondary} mb-1`}>CC:</label>
+            {/* An / CC / BCC */}
+            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4 space-y-2`}>
+              <div className="flex items-center gap-3">
+                <label className={`text-sm ${c.textSecondary} w-16 flex-shrink-0`}>An:</label>
                 <input
-                  type="email"
+                  type="text"
+                  value={form.to}
+                  onChange={e => setForm(f => ({ ...f, to: e.target.value }))}
+                  placeholder="empfaenger@example.com, weitere@example.com"
+                  className={`flex-1 px-3 py-1.5 rounded-lg ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <label className={`text-xs ${c.textSecondary} w-16 flex-shrink-0`}>CC:</label>
+                <input
+                  type="text"
                   value={form.cc}
                   onChange={e => setForm(f => ({ ...f, cc: e.target.value }))}
                   placeholder="cc@example.com"
-                  className={`w-full px-3 py-1.5 rounded ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                  className={`flex-1 px-3 py-1 rounded ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                 />
               </div>
-              <div>
-                <label className={`block text-xs ${c.textSecondary} mb-1`}>BCC:</label>
+              <div className="flex items-center gap-3">
+                <label className={`text-xs ${c.textSecondary} w-16 flex-shrink-0`}>BCC:</label>
                 <input
-                  type="email"
+                  type="text"
                   value={form.bcc}
                   onChange={e => setForm(f => ({ ...f, bcc: e.target.value }))}
                   placeholder="bcc@example.com"
-                  className={`w-full px-3 py-1.5 rounded ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                  className={`flex-1 px-3 py-1 rounded ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                 />
               </div>
             </div>
-          </div>
 
-          {/* Betreff */}
-          <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-            <label className={`block text-sm ${c.textSecondary} mb-2`}>Betreff:</label>
-            <input
-              type="text"
-              value={form.subject}
-              onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
-              placeholder="Betreff eingeben..."
-              className={`w-full px-4 py-2 rounded-lg ${c.input} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-            />
-          </div>
-
-          {/* Attachments */}
-          <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-            <div className="flex items-center justify-between mb-3">
-              <label className={`text-sm ${c.textSecondary}`}>📎 Anhänge</label>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className={`px-3 py-1.5 ${c.bgTertiary} ${c.hover} ${c.text} rounded text-sm transition-colors`}
-              >
-                + Dateien hinzufügen
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </div>
-            
-            {attachments.length === 0 ? (
-              <div className={`border-2 border-dashed ${c.border} rounded-lg p-6 text-center`}>
-                <div className="text-3xl mb-2">📎</div>
-                <p className={`${c.textSecondary} text-sm`}>
-                  Ziehe Dateien hierher oder klicke "Dateien hinzufügen"
-                </p>
+            {/* Betreff */}
+            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
+              <div className="flex items-center gap-3">
+                <label className={`text-sm ${c.textSecondary} w-16 flex-shrink-0`}>Betreff:</label>
+                <input
+                  type="text"
+                  value={form.subject}
+                  onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
+                  placeholder="Betreff eingeben..."
+                  className={`flex-1 px-3 py-1.5 rounded-lg ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                />
               </div>
-            ) : (
-              <div className="space-y-2">
-                {attachments.map(att => (
-                  <div 
-                    key={att.id}
-                    className={`flex items-center justify-between p-3 ${c.bgTertiary} rounded-lg`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xl flex-shrink-0">
-                        {getFileIcon(att.contentType, att.filename)}
-                      </span>
-                      <div className="min-w-0">
-                        <p className={`text-sm ${c.text} truncate`}>{att.filename}</p>
-                        <p className={`text-xs ${c.textSecondary}`}>{formatFileSize(att.size)}</p>
+            </div>
+
+            {/* Anhänge */}
+            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={`text-sm ${c.textSecondary}`}>📎 Anhänge</span>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`px-3 py-1 ${c.bgTertiary} ${c.hover} ${c.text} rounded text-xs transition-colors`}
+                >
+                  + Hinzufügen
+                </button>
+                <input ref={fileInputRef} type="file" multiple onChange={e => addFiles(Array.from(e.target.files))} className="hidden" />
+              </div>
+              {attachments.length === 0 ? (
+                <div className={`border-2 border-dashed ${c.border} rounded-lg p-4 text-center`}>
+                  <p className={`${c.textSecondary} text-xs`}>Ziehe Dateien hierher oder klicke "Hinzufügen"</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {attachments.map(att => (
+                    <div key={att.id} className={`flex items-center justify-between p-2 ${c.bgTertiary} rounded-lg`}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span>{getFileIcon(att.contentType, att.filename)}</span>
+                        <div className="min-w-0">
+                          <p className={`text-xs ${c.text} truncate`}>{att.filename}</p>
+                          <p className={`text-xs ${c.textSecondary}`}>{formatFileSize(att.size)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {!att.loaded && uploadProgress[att.id] !== undefined && (
+                          <div className="w-16 h-1 bg-gray-600 rounded-full">
+                            <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${uploadProgress[att.id]}%` }} />
+                          </div>
+                        )}
+                        {att.loaded && <span className="text-green-400 text-xs">✓</span>}
+                        <button onClick={() => setAttachments(prev => prev.filter(a => a.id !== att.id))}
+                          className={`p-0.5 ${c.hover} rounded text-red-400 text-xs`}>✕</button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {!att.loaded && uploadProgress[att.id] !== undefined && (
-                        <div className="w-20 h-1.5 bg-gray-600 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-cyan-500 transition-all upload-progress-bar"
-                            style={{ width: `${uploadProgress[att.id]}%` }}
-                          />
-                        </div>
-                      )}
-                      {att.loaded && (
-                        <span className="text-green-400 text-xs">✓</span>
-                      )}
-                      <button
-                        onClick={() => removeAttachment(att.id)}
-                        className={`p-1 ${c.hover} rounded text-red-400 hover:text-red-300`}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                <p className={`text-xs ${c.textSecondary} mt-2`}>
-                  Gesamt: {formatFileSize(getTotalSize())}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Body */}
-          <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-            <label className={`block text-sm ${c.textSecondary} mb-2`}>Nachricht:</label>
-            <textarea
-              value={form.body}
-              onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
-              placeholder="Nachricht schreiben..."
-              rows={10}
-              className={`w-full px-4 py-3 rounded-lg ${c.input} focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none`}
-            />
-          </div>
-
-          {/* Signature Toggle */}
-          {hasSignature && (
-            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="useSignature"
-                    checked={useSignature}
-                    onChange={e => setUseSignature(e.target.checked)}
-                    className="w-5 h-5 rounded accent-cyan-500"
-                  />
-                  <label htmlFor="useSignature" className={`${c.text} cursor-pointer`}>
-                    ✍️ Signatur anhängen
-                  </label>
+                  ))}
+                  <p className={`text-xs ${c.textSecondary}`}>Gesamt: {formatFileSize(getTotalSize())}</p>
                 </div>
-                <button
-                  onClick={() => setShowSignaturePreview(!showSignaturePreview)}
-                  className={`text-sm ${c.accent} hover:underline`}
-                >
-                  {showSignaturePreview ? 'Verbergen' : 'Vorschau'}
-                </button>
+              )}
+            </div>
+
+            {/* Nachricht / Editor */}
+            <div className={`${c.bgSecondary} ${c.border} border rounded-lg overflow-hidden`}>
+              {/* Editor-Tabs */}
+              <div className={`flex items-center gap-0 border-b ${c.border} ${c.bgTertiary}`}>
+                {[
+                  { id: 'richtext', label: '✏️ Bearbeiten' },
+                  { id: 'html',    label: '<> HTML' },
+                  { id: 'preview', label: '👁 Vorschau' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => switchMode(tab.id)}
+                    className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 ${
+                      editorMode === tab.id
+                        ? 'border-cyan-500 text-cyan-400'
+                        : `border-transparent ${c.textSecondary} hover:text-cyan-400`
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
               </div>
-              
-              {showSignaturePreview && useSignature && (
-                <div className="mt-4 pt-4 border-t border-gray-600">
-                  <p className={`text-xs ${c.textSecondary} mb-2`}>Signatur-Vorschau:</p>
-                  <div 
-                    className="p-3 bg-white rounded text-gray-800 text-sm"
-                    dangerouslySetInnerHTML={{ __html: currentSignature.html }}
+
+              {/* Toolbar (nur im richtext-Modus) */}
+              {editorMode === 'richtext' && (
+                <div className={`flex flex-wrap items-center gap-1 px-3 py-2 border-b ${c.border} ${c.bg}`}>
+                  {/* Überschriften */}
+                  <select
+                    onChange={e => applyHeading(e.target.value)}
+                    defaultValue="div"
+                    className={`px-2 py-1 rounded text-xs ${c.input} focus:outline-none mr-1`}
+                  >
+                    {HEADINGS.map(h => <option key={h.tag} value={h.tag}>{h.label}</option>)}
+                  </select>
+
+                  {/* Trennlinie */}
+                  <div className={`w-px h-5 ${c.border} border-l mx-1`} />
+
+                  {/* Format-Buttons */}
+                  {TOOLBAR.map((group, gi) => (
+                    <React.Fragment key={gi}>
+                      {group.map((btn, bi) => (
+                        <button
+                          key={bi}
+                          onMouseDown={e => { e.preventDefault(); execFormat(btn.cmd); }}
+                          title={btn.title}
+                          className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${c.textSecondary} hover:text-cyan-400 transition-colors`}
+                        >
+                          {btn.icon}
+                        </button>
+                      ))}
+                      {gi < TOOLBAR.length - 1 && (
+                        <div className={`w-px h-5 ${c.border} border-l mx-1`} />
+                      )}
+                    </React.Fragment>
+                  ))}
+
+                  <div className={`w-px h-5 ${c.border} border-l mx-1`} />
+
+                  {/* Link */}
+                  <button
+                    onMouseDown={e => { e.preventDefault(); insertLink(); }}
+                    title="Link einfügen"
+                    className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${c.textSecondary} hover:text-cyan-400`}
+                  >
+                    🔗
+                  </button>
+
+                  {/* Schriftfarbe */}
+                  <div className="relative flex items-center" title="Schriftfarbe">
+                    <input
+                      type="color"
+                      defaultValue="#ffffff"
+                      onChange={e => setFontColor(e.target.value)}
+                      className="w-7 h-7 rounded cursor-pointer border-0 bg-transparent p-0.5"
+                      title="Schriftfarbe"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Editor-Inhalt */}
+              {editorMode === 'richtext' && (
+                <div
+                  ref={editorRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  className={`w-full min-h-64 p-4 ${c.text} focus:outline-none overflow-y-auto`}
+                  style={{ fontSize: '14px', lineHeight: '1.6', maxHeight: '480px' }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      // Standardverhalten: neuer <p>-Block statt <br>
+                    }
+                  }}
+                />
+              )}
+
+              {editorMode === 'html' && (
+                <textarea
+                  value={htmlSource}
+                  onChange={e => setHtmlSource(e.target.value)}
+                  placeholder="<p>HTML-Quellcode eingeben...</p>"
+                  className={`w-full min-h-64 p-4 ${c.input} font-mono text-xs focus:outline-none resize-none border-0`}
+                  style={{ minHeight: '320px', maxHeight: '480px' }}
+                />
+              )}
+
+              {editorMode === 'preview' && (
+                <div className="p-4 bg-white" style={{ minHeight: '320px', maxHeight: '480px', overflowY: 'auto' }}>
+                  <div
+                    className="text-gray-800 text-sm"
+                    dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
                   />
                 </div>
               )}
             </div>
-          )}
 
-          {/* No Signature Hint */}
-          {!hasSignature && (
-            <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-              <p className={`text-sm ${c.textSecondary}`}>
-                💡 Tipp: Du kannst unter Einstellungen → Signaturen eine E-Mail-Signatur erstellen.
+            {/* Signatur */}
+            {hasSignature && (
+              <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="useSignature"
+                      checked={useSignature}
+                      onChange={e => setUseSignature(e.target.checked)}
+                      className="w-4 h-4 rounded accent-cyan-500"
+                    />
+                    <label htmlFor="useSignature" className={`${c.text} cursor-pointer text-sm`}>✍️ Signatur anhängen</label>
+                  </div>
+                  <button
+                    onClick={() => setShowSignaturePreview(!showSignaturePreview)}
+                    className={`text-xs ${c.accent} hover:underline`}
+                  >
+                    {showSignaturePreview ? 'Verbergen' : 'Vorschau'}
+                  </button>
+                </div>
+                {showSignaturePreview && useSignature && (
+                  <div className="mt-3 pt-3 border-t border-gray-600">
+                    <div className="p-3 bg-white rounded text-gray-800 text-sm"
+                      dangerouslySetInnerHTML={{ __html: currentSignature.html }} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!hasSignature && (
+              <p className={`text-xs ${c.textSecondary} text-center`}>
+                💡 Tipp: Unter Einstellungen → Signaturen kannst du eine E-Mail-Signatur erstellen.
               </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        {/* KI-Panel */}
+        {showAiPanel && aiAvailable && (
+          <div className={`w-72 ${c.bgSecondary} ${c.border} border-l flex flex-col flex-shrink-0`}>
+            <div className={`p-4 border-b ${c.border} flex items-center justify-between`}>
+              <h3 className={`font-semibold ${c.text} flex items-center gap-2 text-sm`}>
+                <MessageCircle className="w-4 h-4" /> KI-Assistent
+              </h3>
+              <button onClick={() => setShowAiPanel(false)} className={`${c.textSecondary} hover:${c.text} text-sm`}>✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              <div className="space-y-2">
+                {replyTo && (
+                  <button onClick={handleAiSuggestReply} disabled={aiLoading}
+                    className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 ${aiLoading ? 'opacity-50 cursor-not-allowed' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}>
+                    💬 Antwort vorschlagen
+                  </button>
+                )}
+                {[
+                  ['✨ Verbessern', 'Verbessere und mache professioneller'],
+                  ['📝 Kürzen', 'Kürze den Text und mache ihn prägnanter'],
+                  ['💼 Förmlicher', 'Mache den Text förmlicher und geschäftlicher'],
+                  ['😊 Freundlicher', 'Mache den Text freundlicher und lockerer'],
+                ].map(([label, instruction]) => (
+                  <button key={label} onClick={() => handleAiImprove(instruction)} disabled={aiLoading}
+                    className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 ${aiLoading ? 'opacity-50 cursor-not-allowed' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {aiLoading && (
+                <div className="flex items-center gap-2 text-purple-400 justify-center py-2">
+                  <span className="animate-spin text-sm">⏳</span>
+                  <span className="text-xs">KI denkt nach...</span>
+                </div>
+              )}
+              {aiSuggestion && (
+                <div className="space-y-2">
+                  <p className={`text-xs ${c.textSecondary}`}>Vorschlag:</p>
+                  <div className={`p-3 rounded-lg ${c.bg} border ${c.border} max-h-48 overflow-y-auto`}>
+                    <p className={`text-xs ${c.text} whitespace-pre-wrap`}>{aiSuggestion}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={applyAiSuggestion}
+                      className="flex-1 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-medium">
+                      ✓ Übernehmen
+                    </button>
+                    <button onClick={() => setAiSuggestion('')}
+                      className={`px-3 py-1.5 ${c.bgTertiary} ${c.text} rounded-lg text-xs`}>
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* AI Assistant Panel */}
-      {showAiPanel && aiAvailable && (
-        <div className={`w-80 ${c.bgSecondary} ${c.border} border-l flex flex-col`}>
-          <div className="p-4 border-b border-gray-700">
-            <div className="flex items-center justify-between">
-              <h3 className={`font-semibold ${c.text} flex items-center gap-2`}>
-                <MessageCircle className="w-5 h-5" /> KI-Assistent
-              </h3>
-              <button
-                onClick={() => setShowAiPanel(false)}
-                className={`${c.textMuted} hover:${c.text}`}
-              >
-                ✕
-              </button>
+      {/* Vorlagen-Panel (Overlay) */}
+      {showTemplates && (
+        <div className="absolute inset-0 z-40 flex items-start justify-center pt-20 bg-black/40" onClick={() => setShowTemplates(false)}>
+          <div
+            className={`${c.bgSecondary} ${c.border} border rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className={`px-5 py-4 border-b ${c.border} flex items-center justify-between`}>
+              <h3 className={`font-semibold ${c.text}`}>🧩 HTML-Vorlage auswählen</h3>
+              <button onClick={() => setShowTemplates(false)} className={`${c.textSecondary} hover:${c.text}`}>✕</button>
+            </div>
+            <div className="p-5 grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+              {HTML_TEMPLATES.map(tpl => (
+                <button
+                  key={tpl.id}
+                  onClick={() => insertTemplate(tpl)}
+                  className={`p-4 ${c.bgTertiary} ${c.hover} rounded-xl text-left border ${c.border} transition-colors group`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">{tpl.icon}</span>
+                    <span className={`font-medium ${c.text} text-sm`}>{tpl.name}</span>
+                  </div>
+                  {tpl.html && (
+                    <div className="bg-white rounded p-2 text-xs text-gray-700 max-h-20 overflow-hidden pointer-events-none select-none"
+                      dangerouslySetInnerHTML={{ __html: tpl.html }} />
+                  )}
+                  {!tpl.html && (
+                    <p className={`text-xs ${c.textSecondary}`}>Eigenes HTML einfügen</p>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {/* Actions */}
-            <div className="space-y-2">
-              <p className={`text-xs ${c.textMuted} uppercase tracking-wider`}>Aktionen</p>
-              
-              {replyTo && (
-                <button
-                  onClick={handleAiSuggestReply}
-                  disabled={aiLoading}
-                  className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
-                    aiLoading
-                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                      : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                  }`}
-                >
-                  <span>💬</span>
-                  <span>Antwort vorschlagen</span>
-                </button>
-              )}
-              
-              <button
-                onClick={() => handleAiImprove('Verbessere und mache professioneller')}
-                disabled={aiLoading || !form.body.trim()}
-                className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
-                  aiLoading || !form.body.trim()
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                }`}
-              >
-                <span>✨</span>
-                <span>Text verbessern</span>
-              </button>
-
-              <button
-                onClick={() => handleAiImprove('Kürze den Text und mache ihn prägnanter')}
-                disabled={aiLoading || !form.body.trim()}
-                className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
-                  aiLoading || !form.body.trim()
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                }`}
-              >
-                <span>📝</span>
-                <span>Kürzen</span>
-              </button>
-
-              <button
-                onClick={() => handleAiImprove('Mache den Text förmlicher und geschäftlicher')}
-                disabled={aiLoading || !form.body.trim()}
-                className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
-                  aiLoading || !form.body.trim()
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                }`}
-              >
-                <span>💼</span>
-                <span>Förmlicher</span>
-              </button>
-
-              <button
-                onClick={() => handleAiImprove('Mache den Text freundlicher und lockerer')}
-                disabled={aiLoading || !form.body.trim()}
-                className={`w-full px-4 py-2.5 rounded-lg text-left transition-colors flex items-center gap-2 ${
-                  aiLoading || !form.body.trim()
-                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                    : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                }`}
-              >
-                <span>😊</span>
-                <span>Freundlicher</span>
-              </button>
+      {/* Custom-HTML-Paste-Dialog */}
+      {showCustomPaste && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className={`${c.bgSecondary} ${c.border} border rounded-xl shadow-2xl w-full max-w-2xl mx-4`}>
+            <div className={`px-5 py-4 border-b ${c.border} flex items-center justify-between`}>
+              <h3 className={`font-semibold ${c.text}`}>🧩 HTML einfügen</h3>
+              <button onClick={() => { setShowCustomPaste(false); setCustomHtmlPaste(''); }} className={`${c.textSecondary}`}>✕</button>
             </div>
-
-            {/* Loading */}
-            {aiLoading && (
-              <div className="flex items-center justify-center py-4">
-                <div className="flex items-center gap-2 text-purple-400">
-                  <span className="animate-spin">⏳</span>
-                  <span className="text-sm">KI denkt nach...</span>
+            <div className="p-5 space-y-4">
+              <textarea
+                value={customHtmlPaste}
+                onChange={e => setCustomHtmlPaste(e.target.value)}
+                placeholder="HTML-Code hier einfügen..."
+                className={`w-full h-56 px-4 py-3 rounded-lg ${c.input} font-mono text-xs focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none`}
+                autoFocus
+              />
+              {customHtmlPaste && (
+                <div>
+                  <p className={`text-xs ${c.textSecondary} mb-2`}>Vorschau:</p>
+                  <div className="bg-white rounded-lg p-3 max-h-40 overflow-y-auto">
+                    <div className="text-gray-800 text-sm" dangerouslySetInnerHTML={{ __html: customHtmlPaste }} />
+                  </div>
                 </div>
+              )}
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => { setShowCustomPaste(false); setCustomHtmlPaste(''); }}
+                  className={`px-4 py-2 ${c.bgTertiary} ${c.text} rounded-lg text-sm`}>
+                  Abbrechen
+                </button>
+                <button onClick={applyCustomHtml} disabled={!customHtmlPaste.trim()}
+                  className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm disabled:opacity-50`}>
+                  Einfügen
+                </button>
               </div>
-            )}
-
-            {/* Suggestion */}
-            {aiSuggestion && (
-              <div className="space-y-2">
-                <p className={`text-xs ${c.textMuted} uppercase tracking-wider`}>Vorschlag</p>
-                <div className={`p-3 rounded-lg ${c.bg} border ${c.border} max-h-60 overflow-y-auto`}>
-                  <p className={`text-sm ${c.text} whitespace-pre-wrap`}>{aiSuggestion}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={applyAiSuggestion}
-                    className="flex-1 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:from-purple-400 hover:to-pink-400"
-                  >
-                    ✓ Übernehmen
-                  </button>
-                  <button
-                    onClick={() => setAiSuggestion('')}
-                    className={`px-3 py-2 ${c.bgTertiary} ${c.text} rounded-lg text-sm`}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Tips */}
-            {!aiLoading && !aiSuggestion && (
-              <div className={`p-3 rounded-lg bg-purple-500/5 border border-purple-500/20`}>
-                <p className={`text-xs ${c.textMuted}`}>
-                  💡 <strong>Tipp:</strong> Schreibe erst deinen Text, dann lass ihn von der KI verbessern.
-                </p>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}

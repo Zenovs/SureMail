@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.8.1",
-  "description": "CoreMail Desktop v2.8.1 - Fix: Progressive Synchronisation lud keine weiteren Mails (stabiler Interval)",
+  "version": "2.8.2",
+  "description": "CoreMail Desktop v2.8.2 - Erweitertes Verfassen-Fenster: Richtext-Editor, HTML-Vorlagen, Vorschau, Absendername",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

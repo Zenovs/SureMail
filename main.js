@@ -1527,7 +1527,15 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
 
   try {
     // v1.10.0: Use OAuth2-aware SMTP transporter
-    const { transporter, fromEmail } = getSmtpTransporterForAccount(account);
+    const { transporter, fromEmail: defaultFrom } = getSmtpTransporterForAccount(account);
+
+    // v2.8.2: Allow per-email sender name override
+    let fromEmail = defaultFrom;
+    if (emailData.fromName !== undefined) {
+      const emailAddr = account.smtp.fromEmail || account.smtp.username;
+      const safeName = (emailData.fromName || '').replace(/["\\\r\n]/g, '').trim();
+      fromEmail = safeName ? `"${safeName}" <${emailAddr}>` : emailAddr;
+    }
 
     const mailOptions = {
       from: fromEmail,
