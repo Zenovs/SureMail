@@ -398,6 +398,11 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [hasMore, setHasMore] = useState(false);
   const [bgLoadOffset, setBgLoadOffset] = useState(50); // Tracks how many emails have been loaded for background batching
   const [loadingMore, setLoadingMore] = useState(false);
+  // Refs so syncEmails always reads latest values without being recreated on each state change
+  const hasMoreRef = useRef(false);
+  const bgLoadOffsetRef = useRef(50);
+  useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
+  useEffect(() => { bgLoadOffsetRef.current = bgLoadOffset; }, [bgLoadOffset]);
   const c = currentTheme.colors;
   
   // v2.3.0: Multi-Select State
@@ -637,7 +642,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLoadingMore(false);
   }, [activeAccountId, currentFolder, emails, hasMore, loadingMore, getCacheKey]);
 
-  // v2.7.9: Progressive sync - merge new emails at top + load next 50 older emails in background
+  // v2.8.0: Progressive sync - merge new emails at top + load next 50 older emails in background
+  // Uses refs for hasMore/bgLoadOffset so the callback stays stable and the interval never resets
   const syncEmails = useCallback(async () => {
     if (!window.electronAPI || !activeAccountId) return;
     try {
@@ -657,12 +663,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
       }
 
       // 2. Background batch: silently load next 50 older emails if there are more
-      if (hasMore) {
+      // Read from refs so we always get the latest value without recreating this callback
+      if (hasMoreRef.current) {
+        const currentOffset = bgLoadOffsetRef.current;
         let batchResult;
         if (currentFolder === 'INBOX') {
-          batchResult = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { limit: 50, offset: bgLoadOffset });
+          batchResult = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { limit: 50, offset: currentOffset });
         } else {
-          batchResult = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50, offset: bgLoadOffset });
+          batchResult = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50, offset: currentOffset });
         }
         if (batchResult.success) {
           if (batchResult.emails.length > 0) {
@@ -679,7 +687,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
     } catch (e) {
       console.error('[Sync] Error:', e);
     }
-  }, [activeAccountId, currentFolder, hasMore, bgLoadOffset]);
+  }, [activeAccountId, currentFolder]); // Stable deps — refs handle hasMore/bgLoadOffset
 
   // Initial load
   useEffect(() => {
