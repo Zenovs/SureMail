@@ -396,6 +396,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [hasMore, setHasMore] = useState(false);
+  const [bgLoadOffset, setBgLoadOffset] = useState(50); // Tracks how many emails have been loaded for background batching
   const [loadingMore, setLoadingMore] = useState(false);
   const c = currentTheme.colors;
   
@@ -570,7 +571,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
       if (result.success) {
         setEmails(result.emails);
         setHasMore(result.hasMore || false);
-        
+        setBgLoadOffset(result.emails.length); // Reset background load position
+
         // Update memory cache
         emailCache.set(cacheKey, { 
           data: result.emails, 
@@ -635,6 +637,50 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLoadingMore(false);
   }, [activeAccountId, currentFolder, emails, hasMore, loadingMore, getCacheKey]);
 
+  // v2.7.9: Progressive sync - merge new emails at top + load next 50 older emails in background
+  const syncEmails = useCallback(async () => {
+    if (!window.electronAPI || !activeAccountId) return;
+    try {
+      // 1. Fetch latest 50 to catch new emails, merge without replacing older ones
+      let freshResult;
+      if (currentFolder === 'INBOX') {
+        freshResult = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { limit: 50, offset: 0 });
+      } else {
+        freshResult = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50, offset: 0 });
+      }
+      if (freshResult.success) {
+        setEmails(prev => {
+          const existingUids = new Set(prev.map(e => e.uid));
+          const newOnes = freshResult.emails.filter(e => !existingUids.has(e.uid));
+          return newOnes.length > 0 ? [...newOnes, ...prev] : prev;
+        });
+      }
+
+      // 2. Background batch: silently load next 50 older emails if there are more
+      if (hasMore) {
+        let batchResult;
+        if (currentFolder === 'INBOX') {
+          batchResult = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { limit: 50, offset: bgLoadOffset });
+        } else {
+          batchResult = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50, offset: bgLoadOffset });
+        }
+        if (batchResult.success) {
+          if (batchResult.emails.length > 0) {
+            setEmails(prev => {
+              const existingUids = new Set(prev.map(e => e.uid));
+              const olderOnes = batchResult.emails.filter(e => !existingUids.has(e.uid));
+              return olderOnes.length > 0 ? [...prev, ...olderOnes] : prev;
+            });
+            setBgLoadOffset(prev => prev + batchResult.emails.length);
+          }
+          setHasMore(batchResult.hasMore || false);
+        }
+      }
+    } catch (e) {
+      console.error('[Sync] Error:', e);
+    }
+  }, [activeAccountId, currentFolder, hasMore, bgLoadOffset]);
+
   // Initial load
   useEffect(() => {
     setCurrentFolder('INBOX');
@@ -663,8 +709,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
       const interval = getRefreshInterval();
       if (interval > 0 && activeAccountId) {
         intervalId = setInterval(() => {
-          console.log('[AutoRefresh] Fetching emails...');
-          fetchEmails(false); // Force refresh, don't use cache
+          console.log('[AutoRefresh] Syncing emails (new + background batch)...');
+          syncEmails();
         }, interval);
       }
     };
@@ -684,7 +730,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       if (intervalId) clearInterval(intervalId);
       window.removeEventListener('emailSettingsChanged', handleSettingsChange);
     };
-  }, [activeAccountId, fetchEmails]);
+  }, [activeAccountId, syncEmails]);
 
   const loadEmailPreview = async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;

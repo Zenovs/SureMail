@@ -1183,7 +1183,7 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
   }
 
   // v2.3.1: Changed default limit from 50 to 0 (0 = no limit, fetch all emails)
-  const { folder = 'INBOX', limit = 0 } = options;
+  const { folder = 'INBOX', limit = 0, offset = 0 } = options;
 
   try {
     // v1.10.0: Use OAuth2-aware config helper
@@ -1206,8 +1206,9 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
     let unreadCount = 0;
     const previousUnread = store.get(`unreadCount_${accountId}`, 0);
     
-    // v2.3.1: Process ALL messages if limit is 0, otherwise apply limit
-    const messagesToProcess = limit > 0 ? messages.slice(-limit).reverse() : messages.reverse();
+    // v2.3.1: Process ALL messages if limit is 0, otherwise apply limit with offset support
+    const allMessages = messages.reverse(); // newest first (IMAP returns oldest first)
+    const messagesToProcess = limit > 0 ? allMessages.slice(offset, offset + limit) : allMessages.slice(offset);
     
     for (const message of messagesToProcess) {
       try {
@@ -1255,7 +1256,13 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
     store.set(`unreadCount_${accountId}`, unreadCount);
 
     await connection.end();
-    return { success: true, emails, unreadCount };
+    return {
+      success: true,
+      emails,
+      unreadCount,
+      total: allMessages.length,
+      hasMore: limit > 0 ? (offset + limit < allMessages.length) : false
+    };
   } catch (error) {
     console.error('IMAP Fehler:', error);
     return { success: false, error: error.message };

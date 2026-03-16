@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.7.9",
-  "description": "CoreMail Desktop v2.7.9 - Fix: TDZ-Fehler 'Cannot access filteredEmails before initialization' im Posteingang",
+  "version": "2.8.0",
+  "description": "CoreMail Desktop v2.8.0 - Progressive E-Mail-Synchronisation: 50 neue + 50 ältere Mails pro Intervall",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
