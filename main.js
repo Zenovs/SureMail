@@ -1147,6 +1147,25 @@ ipcMain.handle('attachment:selectDownloadFolder', async () => {
 
 ipcMain.handle('accounts:save', async (event, data) => {
   try {
+    // v2.9.0: Migrate Microsoft token cache from tempId to real account id
+    const prevAccounts = store.get('accounts', []);
+    const prevIds = new Set(prevAccounts.map(a => a.id));
+
+    for (const acc of (data.accounts || [])) {
+      if (acc.type === 'microsoft' && acc.microsoft?.tempId && !prevIds.has(acc.id)) {
+        // New Microsoft account – move token cache from tempId key to real account id key
+        const tempKey = `msalCache_${acc.microsoft.tempId}`;
+        const realKey = `msalCache_${acc.id}`;
+        const cached = store.get(tempKey);
+        if (cached) {
+          store.set(realKey, cached);
+          store.delete(tempKey);
+        }
+        // Remove tempId from stored account (no longer needed)
+        delete acc.microsoft.tempId;
+      }
+    }
+
     store.set('accounts', data.accounts);
     store.set('categories', data.categories);
     return { success: true };
@@ -2129,23 +2148,354 @@ ipcMain.handle('search:quickSearch', async (event, { query, limit = 20 }) => {
 ipcMain.handle('search:updateCache', async (event, { accountId, emails }) => {
   try {
     const cache = store.get('emailCache', []);
-    
+
     // Remove old entries for this account
     const filtered = cache.filter(e => e.accountId !== accountId);
-    
+
     // Add new entries
     const newEntries = emails.map(e => ({
       ...e,
       accountId,
       cachedAt: new Date().toISOString()
     }));
-    
+
     // Keep cache manageable (max 1000 entries)
     const updated = [...newEntries, ...filtered].slice(0, 1000);
     store.set('emailCache', updated);
-    
+
     return { success: true };
   } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+
+// ============================================================
+// MICROSOFT EXCHANGE / MICROSOFT 365 via Graph API (v2.9.0)
+// ============================================================
+
+const msalInstances = {}; // clientId → PublicClientApplication
+
+const MS_GRAPH_SCOPES = [
+  'https://graph.microsoft.com/Mail.ReadWrite',
+  'https://graph.microsoft.com/Mail.Send',
+  'https://graph.microsoft.com/User.Read',
+  'offline_access'
+];
+
+const GRAPH_FOLDER_MAP = {
+  'INBOX': 'inbox',
+  'Sent': 'sentitems',
+  'Drafts': 'drafts',
+  'Deleted': 'deleteditems',
+  'Trash': 'deleteditems',
+  'Junk': 'junkemail',
+  'Spam': 'junkemail',
+  'Archive': 'archive'
+};
+
+function getMsalApp(clientId) {
+  if (!msalInstances[clientId]) {
+    const msal = require('@azure/msal-node');
+    msalInstances[clientId] = new msal.PublicClientApplication({
+      auth: {
+        clientId,
+        authority: 'https://login.microsoftonline.com/common'
+      },
+      system: {
+        loggerOptions: {
+          loggerCallback: () => {},
+          piiLoggingEnabled: false,
+          logLevel: 3
+        }
+      }
+    });
+  }
+  return msalInstances[clientId];
+}
+
+async function getGraphAccessToken(accountId) {
+  const account = getAccountById(accountId);
+  if (!account || account.type !== 'microsoft') throw new Error('Kein Microsoft-Konto');
+
+  const clientId = account.microsoft.clientId;
+  const pca = getMsalApp(clientId);
+
+  // Restore token cache from store
+  const cacheKey = `msalCache_${accountId}`;
+  const cachedData = store.get(cacheKey, '');
+  if (cachedData) {
+    pca.getTokenCache().deserialize(cachedData);
+  }
+
+  const msalAccounts = await pca.getTokenCache().getAllAccounts();
+  if (msalAccounts.length === 0) {
+    throw new Error('TOKEN_EXPIRED');
+  }
+
+  const result = await pca.acquireTokenSilent({
+    scopes: MS_GRAPH_SCOPES,
+    account: msalAccounts[0]
+  });
+
+  // Persist refreshed cache
+  store.set(cacheKey, pca.getTokenCache().serialize());
+  return result.accessToken;
+}
+
+async function graphRequest(accountId, method, apiPath, body) {
+  const fetch = require('node-fetch');
+  const token = await getGraphAccessToken(accountId);
+
+  const opts = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+
+  const resp = await fetch(`https://graph.microsoft.com/v1.0${apiPath}`, opts);
+
+  if (resp.status === 204) return null; // No content (DELETE/PATCH)
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Graph ${resp.status}: ${errText.slice(0, 200)}`);
+  }
+  return resp.json();
+}
+
+function normalizeGraphEmail(msg) {
+  return {
+    uid: msg.id,
+    subject: msg.subject || '(Kein Betreff)',
+    from: msg.from?.emailAddress?.address || '',
+    fromName: msg.from?.emailAddress?.name || '',
+    to: (msg.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+    date: msg.receivedDateTime || new Date().toISOString(),
+    seen: msg.isRead === true,
+    hasAttachments: msg.hasAttachments === true,
+    preview: msg.bodyPreview || '',
+    flags: msg.isRead ? ['\\Seen'] : []
+  };
+}
+
+// --- IPC: Microsoft OAuth2 Login ---
+ipcMain.handle('msauth:startLogin', async (event, { clientId }) => {
+  try {
+    const msal = require('@azure/msal-node');
+    // Fresh instance for login (avoids stale cache issues)
+    const pca = new msal.PublicClientApplication({
+      auth: {
+        clientId,
+        authority: 'https://login.microsoftonline.com/common'
+      }
+    });
+
+    const result = await pca.acquireTokenInteractive({
+      scopes: MS_GRAPH_SCOPES,
+      openBrowser: async (authUrl) => {
+        await shell.openExternal(authUrl);
+      },
+      successTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#3fb950">✅ Anmeldung erfolgreich!</h2><p>Du kannst dieses Fenster schließen und zu CoreMail zurückkehren.</p></body></html>',
+      errorTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#f85149">❌ Anmeldung fehlgeschlagen</h2><p>{error}</p></body></html>'
+    });
+
+    // Fetch display name and email via Graph
+    const fetch = require('node-fetch');
+    const userResp = await fetch('https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName', {
+      headers: { 'Authorization': `Bearer ${result.accessToken}` }
+    });
+    const userInfo = await userResp.json();
+    const email = userInfo.mail || userInfo.userPrincipalName || result.account.username || '';
+    const displayName = userInfo.displayName || email;
+
+    // Temporary ID used until account is saved; caller replaces with final ID
+    const tempId = `ms_${Date.now()}`;
+    store.set(`msalCache_${tempId}`, pca.getTokenCache().serialize());
+
+    return { success: true, email, displayName, tempId, clientId };
+  } catch (error) {
+    console.error('[MSAuth] Login error:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// --- IPC: Re-login (token refresh after expiry) ---
+ipcMain.handle('msauth:relogin', async (event, accountId) => {
+  try {
+    const account = getAccountById(accountId);
+    if (!account?.microsoft?.clientId) return { success: false, error: 'Kein Microsoft-Konto' };
+
+    const msal = require('@azure/msal-node');
+    const pca = new msal.PublicClientApplication({
+      auth: { clientId: account.microsoft.clientId, authority: 'https://login.microsoftonline.com/common' }
+    });
+
+    const result = await pca.acquireTokenInteractive({
+      scopes: MS_GRAPH_SCOPES,
+      openBrowser: async (authUrl) => { await shell.openExternal(authUrl); },
+      successTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#3fb950">✅ Erneut angemeldet!</h2><p>Du kannst dieses Fenster schließen.</p></body></html>',
+      errorTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#f85149">❌ Fehler</h2><p>{error}</p></body></html>'
+    });
+
+    store.set(`msalCache_${accountId}`, pca.getTokenCache().serialize());
+    msalInstances[account.microsoft.clientId] = pca; // update cached instance
+    return { success: true };
+  } catch (error) {
+    console.error('[MSAuth] Relogin error:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// --- IPC: Logout (clear tokens) ---
+ipcMain.handle('msauth:logout', async (event, accountId) => {
+  try {
+    const account = getAccountById(accountId);
+    if (account?.microsoft?.clientId) delete msalInstances[account.microsoft.clientId];
+    store.delete(`msalCache_${accountId}`);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// --- IPC: Graph – Fetch emails from folder ---
+ipcMain.handle('graph:fetchEmails', async (event, accountId, { folder = 'INBOX', limit = 50, skip = 0 } = {}) => {
+  try {
+    const graphFolder = GRAPH_FOLDER_MAP[folder] || folder;
+    const select = 'id,subject,from,toRecipients,receivedDateTime,isRead,hasAttachments,bodyPreview';
+    const data = await graphRequest(
+      accountId, 'GET',
+      `/me/mailFolders/${graphFolder}/messages?$top=${limit}&$skip=${skip}&$select=${select}&$orderby=receivedDateTime desc`
+    );
+    const emails = (data?.value || []).map(normalizeGraphEmail);
+    return { success: true, emails, hasMore: !!(data['@odata.nextLink']), total: emails.length };
+  } catch (error) {
+    console.error('[Graph] fetchEmails:', error.message);
+    if (error.message === 'TOKEN_EXPIRED') return { success: false, error: 'TOKEN_EXPIRED', emails: [] };
+    return { success: false, error: error.message, emails: [] };
+  }
+});
+
+// --- IPC: Graph – Fetch single email with body ---
+ipcMain.handle('graph:fetchEmail', async (event, accountId, messageId) => {
+  try {
+    const data = await graphRequest(
+      accountId, 'GET',
+      `/me/messages/${messageId}?$select=id,subject,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,isRead,hasAttachments,body&$expand=attachments`
+    );
+    const email = {
+      ...normalizeGraphEmail(data),
+      html: data.body?.contentType?.toLowerCase() === 'html' ? data.body.content : null,
+      text: data.body?.contentType?.toLowerCase() === 'text' ? data.body.content : null,
+      cc: (data.ccRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+      bcc: (data.bccRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+      attachments: (data.attachments || []).map(att => ({
+        filename: att.name,
+        size: att.size,
+        contentType: att.contentType,
+        content: att.contentBytes ? Buffer.from(att.contentBytes, 'base64') : null,
+        id: att.id
+      }))
+    };
+    return { success: true, email };
+  } catch (error) {
+    console.error('[Graph] fetchEmail:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// --- IPC: Graph – Send email ---
+ipcMain.handle('graph:sendEmail', async (event, accountId, emailData) => {
+  try {
+    const parseAddrs = (str) => (str || '').split(/[,;]/).map(s => s.trim()).filter(Boolean)
+      .map(addr => ({ emailAddress: { address: addr } }));
+
+    const message = {
+      subject: emailData.subject || '(Kein Betreff)',
+      body: {
+        contentType: emailData.html ? 'html' : 'text',
+        content: emailData.html || emailData.text || ''
+      },
+      toRecipients: parseAddrs(emailData.to),
+      ccRecipients: parseAddrs(emailData.cc)
+    };
+
+    await graphRequest(accountId, 'POST', '/me/sendMail', { message, saveToSentItems: true });
+    return { success: true };
+  } catch (error) {
+    console.error('[Graph] sendEmail:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// --- IPC: Graph – Delete email ---
+ipcMain.handle('graph:deleteEmail', async (event, accountId, messageId) => {
+  try {
+    await graphRequest(accountId, 'DELETE', `/me/messages/${messageId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('[Graph] deleteEmail:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// --- IPC: Graph – Mark as read/unread ---
+ipcMain.handle('graph:markAsRead', async (event, accountId, messageId, isRead) => {
+  try {
+    await graphRequest(accountId, 'PATCH', `/me/messages/${messageId}`, { isRead });
+    return { success: true };
+  } catch (error) {
+    console.error('[Graph] markAsRead:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// --- IPC: Graph – Move email ---
+ipcMain.handle('graph:moveEmail', async (event, accountId, messageId, destinationFolderId) => {
+  try {
+    const result = await graphRequest(accountId, 'POST', `/me/messages/${messageId}/move`, {
+      destinationId: destinationFolderId
+    });
+    return { success: true, newId: result?.id };
+  } catch (error) {
+    console.error('[Graph] moveEmail:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+// --- IPC: Graph – List mail folders ---
+ipcMain.handle('graph:listFolders', async (event, accountId) => {
+  try {
+    const data = await graphRequest(
+      accountId, 'GET',
+      '/me/mailFolders?$top=50&$select=id,displayName,unreadItemCount,totalItemCount,wellKnownName'
+    );
+    const folderOrder = ['inbox', 'sentitems', 'drafts', 'deleteditems', 'junkemail', 'archive'];
+    const folders = (data?.value || [])
+      .map(f => ({
+        id: f.id,
+        name: f.displayName,
+        path: f.id,
+        wellKnown: f.wellKnownName || null,
+        unread: f.unreadItemCount || 0,
+        total: f.totalItemCount || 0,
+        type: f.wellKnownName || 'folder'
+      }))
+      .sort((a, b) => {
+        const ai = folderOrder.indexOf(a.wellKnown);
+        const bi = folderOrder.indexOf(b.wellKnown);
+        if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      });
+    return { success: true, folders };
+  } catch (error) {
+    console.error('[Graph] listFolders:', error.message);
     return { success: false, error: error.message };
   }
 });

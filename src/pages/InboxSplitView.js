@@ -491,30 +491,53 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // Generate cache key
   const getCacheKey = useCallback((accountId, folder) => `${accountId}:${folder}`, []);
 
+  // v2.9.0: Helper to check if current account uses Microsoft Graph API
+  const isGraphAccount = useCallback(() => {
+    const acc = getActiveAccount();
+    return acc?.type === 'microsoft';
+  }, [getActiveAccount]);
+
   // Load folders for account
   const loadFolders = useCallback(async () => {
     if (!window.electronAPI || !activeAccountId) return;
-    
-    // Check cache first
+
     const cacheKey = `folders:${activeAccountId}`;
     const cached = folderCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       setFolders(cached.data);
       return;
     }
-    
+
     setLoadingFolders(true);
     try {
-      const result = await window.electronAPI.listFolders(activeAccountId);
-      if (result.success) {
-        setFolders(result.folders);
-        folderCache.set(cacheKey, { data: result.folders, timestamp: Date.now() });
+      let result;
+      if (isGraphAccount()) {
+        // v2.9.0: Microsoft Graph folders
+        result = await window.electronAPI.listGraphFolders(activeAccountId);
+        if (result.success) {
+          // Normalize Graph folders to the same shape as IMAP folders
+          const normalized = result.folders.map(f => ({
+            name: f.name,
+            path: f.path,        // Graph folder ID used as path
+            type: f.type,
+            children: [],
+            unread: f.unread || 0
+          }));
+          setFolders(normalized);
+          folderCache.set(cacheKey, { data: normalized, timestamp: Date.now() });
+        }
+      } else {
+        result = await window.electronAPI.listFolders(activeAccountId);
+        if (result.success) {
+          setFolders(result.folders);
+          folderCache.set(cacheKey, { data: result.folders, timestamp: Date.now() });
+        }
       }
     } catch (err) {
       console.error('Error loading folders:', err);
     }
     setLoadingFolders(false);
-  }, [activeAccountId]);
+  }, [activeAccountId, isGraphAccount]);
 
   // v2.8.3: Background batch loading — runs a loop loading 50 emails at a time
   // until all are loaded or aborted (account/folder change).
@@ -617,7 +640,15 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
     try {
       let result;
-      if (currentFolder === 'INBOX') {
+      if (isGraphAccount()) {
+        // v2.9.0: Microsoft Graph fetch
+        result = await window.electronAPI.fetchGraphEmails(activeAccountId, { folder: currentFolder, limit: 50, skip: 0 });
+        if (result?.error === 'TOKEN_EXPIRED') {
+          setError('Microsoft-Token abgelaufen. Bitte Konto erneut verbinden (Einstellungen → Kontenverwaltung).');
+          setLoading(false);
+          return;
+        }
+      } else if (currentFolder === 'INBOX') {
         result = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { limit: 50 });
       } else {
         result = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50 });
@@ -673,19 +704,21 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // Load more emails (pagination)
   const loadMoreEmails = useCallback(async () => {
     if (!window.electronAPI || !activeAccountId || loadingMore || !hasMore) return;
-    
+
     setLoadingMore(true);
     try {
       let result;
-      if (currentFolder === 'INBOX') {
-        result = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { 
-          limit: 50, 
-          offset: emails.length 
+      if (isGraphAccount()) {
+        result = await window.electronAPI.fetchGraphEmails(activeAccountId, {
+          folder: currentFolder, limit: 50, skip: emails.length
+        });
+      } else if (currentFolder === 'INBOX') {
+        result = await window.electronAPI.fetchEmailsForAccount(activeAccountId, {
+          limit: 50, offset: emails.length
         });
       } else {
-        result = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { 
-          limit: 50, 
-          offset: emails.length 
+        result = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, {
+          limit: 50, offset: emails.length
         });
       }
       
@@ -709,17 +742,18 @@ function InboxSplitView({ onFullView, onNavigate }) {
   }, [activeAccountId, currentFolder, emails, hasMore, loadingMore, getCacheKey]);
 
   // v2.8.3: Sync only — check for new emails at top, merge without replacing older ones
-  // Background loading is handled separately by startBackgroundLoading
   const syncEmails = useCallback(async () => {
     if (!window.electronAPI || !activeAccountId) return;
     try {
       let freshResult;
-      if (currentFolder === 'INBOX') {
+      if (isGraphAccount()) {
+        freshResult = await window.electronAPI.fetchGraphEmails(activeAccountId, { folder: currentFolder, limit: 50, skip: 0 });
+      } else if (currentFolder === 'INBOX') {
         freshResult = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { limit: 50, offset: 0 });
       } else {
         freshResult = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50, offset: 0 });
       }
-      if (freshResult.success) {
+      if (freshResult?.success) {
         setEmails(prev => {
           const existingUids = new Set(prev.map(e => e.uid));
           const newOnes = freshResult.emails.filter(e => !existingUids.has(e.uid));
@@ -729,7 +763,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
     } catch (e) {
       console.error('[Sync] Error:', e);
     }
-  }, [activeAccountId, currentFolder]);
+  }, [activeAccountId, currentFolder, isGraphAccount]);
 
   // Initial load
   useEffect(() => {
@@ -784,11 +818,16 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
   const loadEmailPreview = async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
-    
+
     setLoadingPreview(true);
     try {
-      const result = await window.electronAPI.fetchEmailForAccount(activeAccountId, uid);
-      if (result.success) {
+      let result;
+      if (isGraphAccount()) {
+        result = await window.electronAPI.fetchGraphEmail(activeAccountId, uid);
+      } else {
+        result = await window.electronAPI.fetchEmailForAccount(activeAccountId, uid);
+      }
+      if (result?.success) {
         setSelectedEmail(result.email);
       }
     } catch (e) {
@@ -815,10 +854,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // v1.12.1: Fixed - now also removes from IndexedDB to prevent deleted emails from reappearing
   const handleDelete = useCallback(async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
-    
+
     setActionLoading(`delete-${uid}`);
     try {
-      const result = await window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder);
+      const result = isGraphAccount()
+        ? await window.electronAPI.deleteGraphEmail(activeAccountId, uid)
+        : await window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder);
       if (result.success) {
         // Remove from local state and cache
         const newEmails = emails.filter(e => e.uid !== uid);
@@ -847,14 +888,16 @@ function InboxSplitView({ onFullView, onNavigate }) {
       alert('Fehler: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, emails, selectedIndex, hasMore, getCacheKey]);
+  }, [activeAccountId, currentFolder, emails, selectedIndex, hasMore, getCacheKey, isGraphAccount]);
 
   const handleToggleRead = useCallback(async (uid, currentSeen) => {
     if (!window.electronAPI || !activeAccountId) return;
-    
+
     setActionLoading(`read-${uid}`);
     try {
-      const result = await window.electronAPI.markAsRead(activeAccountId, uid, !currentSeen, currentFolder);
+      const result = isGraphAccount()
+        ? await window.electronAPI.markGraphAsRead(activeAccountId, uid, !currentSeen)
+        : await window.electronAPI.markAsRead(activeAccountId, uid, !currentSeen, currentFolder);
       if (result.success) {
         // Update local state
         const newEmails = emails.map(e => 
@@ -875,7 +918,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       console.error('Error toggling read status:', err);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, emails, selectedEmail, hasMore, getCacheKey]);
+  }, [activeAccountId, currentFolder, emails, selectedEmail, hasMore, getCacheKey, isGraphAccount]);
 
   // v2.3.0: Multi-Select Handlers
   const handleCheckboxChange = useCallback((uid, shiftKey) => {

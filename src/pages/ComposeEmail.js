@@ -382,9 +382,16 @@ function ComposeEmail({ onBack, replyTo = null }) {
         attachments: attachments.map(a => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
       };
 
-      const result = selectedAccountId && window.electronAPI.sendEmailForAccount
-        ? await window.electronAPI.sendEmailForAccount(selectedAccountId, emailData)
-        : await window.electronAPI.sendEmail(emailData);
+      // v2.9.0: Route to Graph API for Microsoft accounts
+      const activeAcc = accounts.find(a => a.id === selectedAccountId);
+      let result;
+      if (activeAcc?.type === 'microsoft') {
+        result = await window.electronAPI.sendGraphEmail(selectedAccountId, emailData);
+      } else if (selectedAccountId && window.electronAPI.sendEmailForAccount) {
+        result = await window.electronAPI.sendEmailForAccount(selectedAccountId, emailData);
+      } else {
+        result = await window.electronAPI.sendEmail(emailData);
+      }
 
       if (result.success) { setSuccess(true); setTimeout(() => onBack(), 2000); }
       else setError(result.error);

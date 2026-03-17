@@ -82,5 +82,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSpamFilterSettings: (settings) => ipcRenderer.invoke('spamfilter:saveSettings', settings),
   loadSpamFilterSettings: () => ipcRenderer.invoke('spamfilter:loadSettings'),
   saveSpamAnalysis: (accountId, data) => ipcRenderer.invoke('spamfilter:saveAnalysis', accountId, data),
-  loadSpamAnalysis: (accountId) => ipcRenderer.invoke('spamfilter:loadAnalysis', accountId)
+  loadSpamAnalysis: (accountId) => ipcRenderer.invoke('spamfilter:loadAnalysis', accountId),
+
+  // Microsoft Exchange / Microsoft 365 via Graph API (v2.9.0)
+  microsoftLogin: (clientId) => ipcRenderer.invoke('msauth:startLogin', { clientId }),
+  microsoftRelogin: (accountId) => ipcRenderer.invoke('msauth:relogin', accountId),
+  microsoftLogout: (accountId) => ipcRenderer.invoke('msauth:logout', accountId),
+
+  // Microsoft Graph – Email operations
+  fetchGraphEmails: (accountId, options) => ipcRenderer.invoke('graph:fetchEmails', accountId, options),
+  fetchGraphEmail: (accountId, messageId) => ipcRenderer.invoke('graph:fetchEmail', accountId, messageId),
+  sendGraphEmail: (accountId, emailData) => ipcRenderer.invoke('graph:sendEmail', accountId, emailData),
+  deleteGraphEmail: (accountId, messageId) => ipcRenderer.invoke('graph:deleteEmail', accountId, messageId),
+  markGraphAsRead: (accountId, messageId, isRead) => ipcRenderer.invoke('graph:markAsRead', accountId, messageId, isRead),
+  moveGraphEmail: (accountId, messageId, destFolderId) => ipcRenderer.invoke('graph:moveEmail', accountId, messageId, destFolderId),
+  listGraphFolders: (accountId) => ipcRenderer.invoke('graph:listFolders', accountId)
 });
