@@ -208,6 +208,53 @@ function getImapConfigForAccount(account) {
   };
 }
 
+// v2.8.4: Find the Sent folder by \Sent attribute or common names
+async function findSentFolderName(connection) {
+  try {
+    const boxes = await connection.getBoxes();
+    const COMMON_SENT = ['Sent', 'Sent Items', 'Sent Mail', '[Gmail]/Sent Mail',
+      'INBOX.Sent', 'Gesendet', 'INBOX.Gesendet', 'Gesendete Elemente'];
+
+    const search = (boxes, prefix) => {
+      for (const [name, box] of Object.entries(boxes)) {
+        const sep = box.delimiter || '/';
+        const fullName = prefix ? `${prefix}${sep}${name}` : name;
+        if (box.attribs && (box.attribs.includes('\\Sent') || box.attribs.includes('\\sent')))
+          return fullName;
+        if (box.children) {
+          const found = search(box.children, fullName);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const byAttrib = search(boxes, '');
+    if (byAttrib) return byAttrib;
+
+    // Collect all folder names and try common patterns
+    const allNames = [];
+    const collect = (boxes, prefix) => {
+      for (const [name, box] of Object.entries(boxes)) {
+        const sep = box.delimiter || '/';
+        const fullName = prefix ? `${prefix}${sep}${name}` : name;
+        allNames.push(fullName);
+        if (box.children) collect(box.children, fullName);
+      }
+    };
+    collect(boxes, '');
+
+    for (const common of COMMON_SENT) {
+      const found = allNames.find(n => n.toLowerCase() === common.toLowerCase());
+      if (found) return found;
+    }
+    return null;
+  } catch (e) {
+    console.error('[Sent] findSentFolderName error:', e);
+    return null;
+  }
+}
+
 // v2.1.0: SMTP-Transporter für ein Konto erstellen (mit Anzeigename-Unterstützung)
 function getSmtpTransporterForAccount(account) {
   const smtp = account.smtp;
@@ -1551,6 +1598,33 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
     };
 
     await transporter.sendMail(mailOptions);
+
+    // v2.8.4: Append sent email to IMAP Sent folder
+    try {
+      const streamTransport = nodemailer.createTransport({ streamTransport: true, newline: 'unix' });
+      const info = await streamTransport.sendMail(mailOptions);
+      const chunks = [];
+      await new Promise((resolve, reject) => {
+        info.message.on('data', c => chunks.push(c));
+        info.message.on('end', resolve);
+        info.message.on('error', reject);
+      });
+      const rawMessage = Buffer.concat(chunks);
+
+      const imapConfig = getImapConfigForAccount(account);
+      const imapConn = await imapSimple.connect(imapConfig);
+      const sentFolder = await findSentFolderName(imapConn);
+      if (sentFolder) {
+        await new Promise((resolve, reject) => {
+          imapConn.imap.append(rawMessage, { mailbox: sentFolder, flags: ['\\Seen'], date: new Date() },
+            err => err ? reject(err) : resolve());
+        });
+      }
+      imapConn.end();
+    } catch (appendErr) {
+      console.error('[Sent] Failed to save to Sent folder:', appendErr);
+    }
+
     return { success: true, message: 'E-Mail erfolgreich gesendet!' };
   } catch (error) {
     console.error('SMTP Fehler:', error);

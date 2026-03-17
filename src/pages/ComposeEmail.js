@@ -206,15 +206,23 @@ function ComposeEmail({ onBack, replyTo = null }) {
   // ── Editor-Modus wechseln ───────────────────────────────────────────────────
   const switchMode = (mode) => {
     if (mode === editorMode) return;
+
+    // Capture current HTML before any state change
+    let currentHtml = htmlSource;
     if (editorMode === 'richtext' && editorRef.current) {
-      setHtmlSource(editorRef.current.innerHTML);
+      currentHtml = editorRef.current.innerHTML;
+      setHtmlSource(currentHtml);
     }
-    if (mode === 'richtext' && editorRef.current) {
-      setTimeout(() => {
-        if (editorRef.current) editorRef.current.innerHTML = htmlSource;
-      }, 0);
-    }
+
     setEditorMode(mode);
+
+    // When switching to richtext: editorRef.current is null now (div not yet in DOM).
+    // Schedule restore AFTER React re-renders and attaches the ref.
+    if (mode === 'richtext') {
+      setTimeout(() => {
+        if (editorRef.current) editorRef.current.innerHTML = currentHtml;
+      }, 50);
+    }
   };
 
   const getEditorHtml = useCallback(() => {

@@ -520,9 +520,13 @@ function InboxSplitView({ onFullView, onNavigate }) {
   }, [activeAccountId]);
 
   // v2.8.3: Background batch loading — runs a loop loading 50 emails at a time
-  // until all are loaded or aborted (account/folder change)
-  const startBackgroundLoading = useCallback(async (startOffset, accountId, folder) => {
+  // until all are loaded or aborted (account/folder change).
+  // Tracks full running list locally so cache + IndexedDB stay up-to-date,
+  // meaning a later account switch restores all emails instantly.
+  const startBackgroundLoading = useCallback(async (startOffset, accountId, folder, initialEmails) => {
     let offset = startOffset;
+    let runningList = [...initialEmails]; // full list so far (for cache/DB saves)
+
     while (true) {
       if (bgLoadAbortRef.current) break;
 
@@ -543,13 +547,20 @@ function InboxSplitView({ onFullView, onNavigate }) {
         if (bgLoadAbortRef.current || !result.success) break;
 
         if (result.emails.length > 0) {
-          setEmails(prev => {
-            const existingUids = new Set(prev.map(e => e.uid));
-            const olderOnes = result.emails.filter(e => !existingUids.has(e.uid));
-            return olderOnes.length > 0 ? [...prev, ...olderOnes] : prev;
-          });
-          offset += result.emails.length;
-          setBgLoadOffset(offset);
+          const existingUids = new Set(runningList.map(e => e.uid));
+          const olderOnes = result.emails.filter(e => !existingUids.has(e.uid));
+          if (olderOnes.length > 0) {
+            runningList = [...runningList, ...olderOnes];
+            setEmails(runningList);
+            offset += olderOnes.length;
+            setBgLoadOffset(offset);
+
+            // Keep memory cache and IndexedDB up-to-date so account switches restore correctly
+            const cacheKey = `${accountId}:${folder}`;
+            emailCache.set(cacheKey, { data: runningList, hasMore: result.hasMore, timestamp: Date.now() });
+            const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
+            if (localStorageEnabled) saveEmailsToIndexedDB(accountId, folder, runningList);
+          }
         }
 
         setHasMore(result.hasMore || false);
@@ -623,7 +634,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
         // v2.8.3: Start background batch loading immediately after initial fetch
         if (result.hasMore) {
           bgLoadAbortRef.current = false;
-          startBackgroundLoading(result.emails.length, activeAccountId, currentFolder);
+          startBackgroundLoading(result.emails.length, activeAccountId, currentFolder, result.emails);
         }
 
         // Update memory cache
