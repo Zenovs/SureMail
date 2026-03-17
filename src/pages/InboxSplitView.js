@@ -266,7 +266,7 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
   return (
     <div
       onClick={() => onSelect(index)}
-      className={`p-3 cursor-pointer transition-all ${c.border} border-b relative group
+      className={`p-3 cursor-pointer transition-colors ${c.border} border-b relative group
         ${isSelected ? c.bgTertiary : isChecked ? 'bg-cyan-500/10' : isUnread ? 'bg-blue-500/5 hover:bg-blue-500/10' : c.hover}
         ${getBorderColor()}
       `}
@@ -289,19 +289,17 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
         
         <div className="flex-1 min-w-0 overflow-hidden">
           {/* Sender with unread indicator - v1.12.2: text wrapping */}
-          <div 
-            className={`text-sm flex items-start gap-2 ${isUnread ? `${c.accent} font-semibold` : c.text}`}
+          <div
+            className={`text-sm flex items-start gap-2 font-medium ${isUnread ? c.accent : c.text}`}
             style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}
           >
-            {isUnread && (
-              <span className="inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse mt-1.5" />
-            )}
+            <span className={`inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse mt-1.5 ${isUnread ? '' : 'invisible'}`} />
             <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{email.from}</span>
           </div>
-          
+
           {/* Subject - v1.12.2: text wrapping enabled */}
-          <div 
-            className={`text-sm mt-1 ${isUnread ? `${c.text} font-semibold` : c.text}`}
+          <div
+            className={`text-sm mt-1 font-medium ${isUnread ? c.text : c.textSecondary}`}
             style={{ overflowWrap: 'break-word', wordBreak: 'break-word', lineHeight: '1.4' }}
           >
             {email.subject}
@@ -325,11 +323,9 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
                 minute: '2-digit'
               })}
             </span>
-            {isUnread && (
-              <span className="px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium">
-                Neu
-              </span>
-            )}
+            <span className={`px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium ${isUnread ? '' : 'invisible'}`}>
+              Neu
+            </span>
             {/* v1.14.0: Spam filter tags */}
             {spamCategory && spamCategory !== 'sicher' && (
               <SpamTagBadge category={spamCategory} />
@@ -412,6 +408,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // v2.4.0: Inbox Subfolder Filter State
   const [categoryFilter, setCategoryFilter] = useState(null); // null = alle, 'werbung', 'spam', 'schaedlich', 'virus'
   const [inboxExpanded, setInboxExpanded] = useState(true);
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   
   // v2.6.0: Manual sender-based categorization state
   const [manualCategories, setManualCategories] = useState(new Map()); // uid -> category
@@ -600,21 +597,21 @@ function InboxSplitView({ onFullView, onNavigate }) {
     }
 
     // v1.8.2: Try IndexedDB first (stale-while-revalidate)
+    let existingEmails = [];
     if (localStorageEnabled && useCache) {
       const localData = await loadEmailsFromIndexedDB(activeAccountId, currentFolder);
       if (localData && localData.emails?.length > 0) {
+        existingEmails = localData.emails;
         // Show cached data immediately
-        setEmails(localData.emails);
+        setEmails(existingEmails);
         setLoading(false);
-        if (localData.emails.length > 0) {
-          loadEmailPreview(localData.emails[0].uid);
-        }
+        loadEmailPreview(existingEmails[0].uid);
         // Continue to fetch fresh data in background
       }
     }
 
     setError(null);
-    if (!localStorageEnabled || !useCache) {
+    if (existingEmails.length === 0) {
       setLoading(true);
     }
 
@@ -625,32 +622,42 @@ function InboxSplitView({ onFullView, onNavigate }) {
       } else {
         result = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50 });
       }
-      
-      if (result.success) {
-        setEmails(result.emails);
-        setHasMore(result.hasMore || false);
-        setBgLoadOffset(result.emails.length);
 
-        // v2.8.3: Start background batch loading immediately after initial fetch
+      if (result.success) {
+        // v2.8.5: Merge fresh emails with existing (IndexedDB) emails — don't replace
+        let finalEmails;
+        if (existingEmails.length > 0) {
+          const existingUids = new Set(existingEmails.map(e => e.uid));
+          const newOnes = result.emails.filter(e => !existingUids.has(e.uid));
+          finalEmails = newOnes.length > 0 ? [...newOnes, ...existingEmails] : existingEmails;
+        } else {
+          finalEmails = result.emails;
+        }
+
+        setEmails(finalEmails);
+        setHasMore(result.hasMore || false);
+        setBgLoadOffset(finalEmails.length);
+
+        // Start background loading if server has more than we have locally
         if (result.hasMore) {
           bgLoadAbortRef.current = false;
-          startBackgroundLoading(result.emails.length, activeAccountId, currentFolder, result.emails);
+          startBackgroundLoading(finalEmails.length, activeAccountId, currentFolder, finalEmails);
         }
 
         // Update memory cache
-        emailCache.set(cacheKey, { 
-          data: result.emails, 
+        emailCache.set(cacheKey, {
+          data: finalEmails,
           hasMore: result.hasMore,
-          timestamp: Date.now() 
+          timestamp: Date.now()
         });
-        
+
         // v1.8.2: Save to IndexedDB for offline access
         if (localStorageEnabled) {
-          saveEmailsToIndexedDB(activeAccountId, currentFolder, result.emails);
+          saveEmailsToIndexedDB(activeAccountId, currentFolder, finalEmails);
         }
-        
-        if (result.emails.length > 0) {
-          loadEmailPreview(result.emails[0].uid);
+
+        if (finalEmails.length > 0) {
+          loadEmailPreview(finalEmails[0].uid);
         } else {
           setSelectedEmail(null);
         }
@@ -903,18 +910,23 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
   // v2.6.0: Filtered emails based on category filter (moved up to avoid TDZ)
   const filteredEmails = useMemo(() => {
-    if (!categoryFilter || currentFolder !== 'INBOX') return emails;
+    let result = emails;
 
-    return emails.filter(email => {
-      // Check manual/sender category first
-      const manualCat = manualCategories.get(email.uid);
-      if (manualCat) return manualCat === categoryFilter;
+    if (categoryFilter && currentFolder === 'INBOX') {
+      result = result.filter(email => {
+        const manualCat = manualCategories.get(email.uid);
+        if (manualCat) return manualCat === categoryFilter;
+        const analysis = spamResults.get(email.uid);
+        return analysis?.category === categoryFilter;
+      });
+    }
 
-      // Fall back to spam filter
-      const analysis = spamResults.get(email.uid);
-      return analysis?.category === categoryFilter;
-    });
-  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder]);
+    if (showUnreadOnly) {
+      result = result.filter(email => !email.seen);
+    }
+
+    return result;
+  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder, showUnreadOnly]);
 
   const handleSelectAll = useCallback(() => {
     if (selectedUids.size === filteredEmails.length) {
@@ -1197,6 +1209,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
     if (currentFolder !== 'INBOX') {
       setCategoryFilter(null);
     }
+    setShowUnreadOnly(false);
   }, [currentFolder]);
 
   // v2.4.0: Reset selection when category filter changes
@@ -1426,13 +1439,21 @@ function InboxSplitView({ onFullView, onNavigate }) {
               </div>
               <p className={`text-sm ${c.textSecondary}`}>
                 {filteredEmails.length} E-Mails {currentFolder !== 'INBOX' && `in ${currentFolder}`}
-                {categoryFilter && ` (von ${emails.length} gesamt)`}
-                {!categoryFilter && unreadCount > 0 && (
+                {(categoryFilter || showUnreadOnly) && ` (von ${emails.length} gesamt)`}
+                {!categoryFilter && !showUnreadOnly && unreadCount > 0 && (
                   <span className="ml-2 text-blue-400">({unreadCount} ungelesen)</span>
                 )}
               </p>
             </div>
             <div className="flex items-center gap-1">
+              {/* v2.8.5: Ungelesen-Filter */}
+              <button
+                onClick={() => setShowUnreadOnly(v => !v)}
+                className={`p-2 rounded-lg transition-colors ${showUnreadOnly ? 'bg-blue-500 text-white' : `${c.hover} ${c.textSecondary}`}`}
+                title={showUnreadOnly ? 'Alle E-Mails anzeigen' : 'Nur ungelesene anzeigen'}
+              >
+                <Mail className="w-4 h-4" />
+              </button>
               {/* v2.3.0: Toggle Multi-Select */}
               <button
                 onClick={() => {
@@ -1499,11 +1520,22 @@ function InboxSplitView({ onFullView, onNavigate }) {
         >
           {filteredEmails.length === 0 ? (
             <div className={`p-8 text-center ${c.textSecondary}`}>
-              {categoryFilter ? (
+              {showUnreadOnly ? (
+                <div>
+                  <div className="text-3xl mb-2">✅</div>
+                  <p>Keine ungelesenen E-Mails</p>
+                  <button
+                    onClick={() => setShowUnreadOnly(false)}
+                    className={`mt-2 text-sm ${c.accent} hover:underline`}
+                  >
+                    Alle E-Mails anzeigen
+                  </button>
+                </div>
+              ) : categoryFilter ? (
                 <div>
                   <div className="text-3xl mb-2">✨</div>
                   <p>Keine E-Mails in dieser Kategorie</p>
-                  <button 
+                  <button
                     onClick={() => setCategoryFilter(null)}
                     className={`mt-2 text-sm ${c.accent} hover:underline`}
                   >
