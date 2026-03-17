@@ -396,13 +396,10 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [hasMore, setHasMore] = useState(false);
-  const [bgLoadOffset, setBgLoadOffset] = useState(50); // Tracks how many emails have been loaded for background batching
+  const [bgLoadOffset, setBgLoadOffset] = useState(50);
   const [loadingMore, setLoadingMore] = useState(false);
-  // Refs so syncEmails always reads latest values without being recreated on each state change
-  const hasMoreRef = useRef(false);
-  const bgLoadOffsetRef = useRef(50);
-  useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
-  useEffect(() => { bgLoadOffsetRef.current = bgLoadOffset; }, [bgLoadOffset]);
+  // Abort signal for background batch loading — set to true when account/folder changes
+  const bgLoadAbortRef = useRef(false);
   const c = currentTheme.colors;
   
   // v2.3.0: Multi-Select State
@@ -522,12 +519,57 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLoadingFolders(false);
   }, [activeAccountId]);
 
+  // v2.8.3: Background batch loading — runs a loop loading 50 emails at a time
+  // until all are loaded or aborted (account/folder change)
+  const startBackgroundLoading = useCallback(async (startOffset, accountId, folder) => {
+    let offset = startOffset;
+    while (true) {
+      if (bgLoadAbortRef.current) break;
+
+      // Small pause between batches to avoid hammering the IMAP server
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      if (bgLoadAbortRef.current) break;
+      if (!window.electronAPI) break;
+
+      try {
+        let result;
+        if (folder === 'INBOX') {
+          result = await window.electronAPI.fetchEmailsForAccount(accountId, { limit: 50, offset });
+        } else {
+          result = await window.electronAPI.fetchEmailsFromFolder(accountId, folder, { limit: 50, offset });
+        }
+
+        if (bgLoadAbortRef.current || !result.success) break;
+
+        if (result.emails.length > 0) {
+          setEmails(prev => {
+            const existingUids = new Set(prev.map(e => e.uid));
+            const olderOnes = result.emails.filter(e => !existingUids.has(e.uid));
+            return olderOnes.length > 0 ? [...prev, ...olderOnes] : prev;
+          });
+          offset += result.emails.length;
+          setBgLoadOffset(offset);
+        }
+
+        setHasMore(result.hasMore || false);
+        if (!result.hasMore) break;
+      } catch (e) {
+        console.error('[BgLoad] Error:', e);
+        break;
+      }
+    }
+  }, []); // no deps — uses ref for abort, params passed explicitly
+
   // v1.8.2: Fetch emails with caching and IndexedDB (stale-while-revalidate)
   const fetchEmails = useCallback(async (useCache = true) => {
     if (!window.electronAPI || !activeAccountId) {
       setLoading(false);
       return;
     }
+
+    // Abort any running background batch load
+    bgLoadAbortRef.current = true;
 
     const cacheKey = getCacheKey(activeAccountId, currentFolder);
     const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
@@ -576,7 +618,13 @@ function InboxSplitView({ onFullView, onNavigate }) {
       if (result.success) {
         setEmails(result.emails);
         setHasMore(result.hasMore || false);
-        setBgLoadOffset(result.emails.length); // Reset background load position
+        setBgLoadOffset(result.emails.length);
+
+        // v2.8.3: Start background batch loading immediately after initial fetch
+        if (result.hasMore) {
+          bgLoadAbortRef.current = false;
+          startBackgroundLoading(result.emails.length, activeAccountId, currentFolder);
+        }
 
         // Update memory cache
         emailCache.set(cacheKey, { 
@@ -642,12 +690,11 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLoadingMore(false);
   }, [activeAccountId, currentFolder, emails, hasMore, loadingMore, getCacheKey]);
 
-  // v2.8.0: Progressive sync - merge new emails at top + load next 50 older emails in background
-  // Uses refs for hasMore/bgLoadOffset so the callback stays stable and the interval never resets
+  // v2.8.3: Sync only — check for new emails at top, merge without replacing older ones
+  // Background loading is handled separately by startBackgroundLoading
   const syncEmails = useCallback(async () => {
     if (!window.electronAPI || !activeAccountId) return;
     try {
-      // 1. Fetch latest 50 to catch new emails, merge without replacing older ones
       let freshResult;
       if (currentFolder === 'INBOX') {
         freshResult = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { limit: 50, offset: 0 });
@@ -661,33 +708,10 @@ function InboxSplitView({ onFullView, onNavigate }) {
           return newOnes.length > 0 ? [...newOnes, ...prev] : prev;
         });
       }
-
-      // 2. Background batch: silently load next 50 older emails if there are more
-      // Read from refs so we always get the latest value without recreating this callback
-      if (hasMoreRef.current) {
-        const currentOffset = bgLoadOffsetRef.current;
-        let batchResult;
-        if (currentFolder === 'INBOX') {
-          batchResult = await window.electronAPI.fetchEmailsForAccount(activeAccountId, { limit: 50, offset: currentOffset });
-        } else {
-          batchResult = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50, offset: currentOffset });
-        }
-        if (batchResult.success) {
-          if (batchResult.emails.length > 0) {
-            setEmails(prev => {
-              const existingUids = new Set(prev.map(e => e.uid));
-              const olderOnes = batchResult.emails.filter(e => !existingUids.has(e.uid));
-              return olderOnes.length > 0 ? [...prev, ...olderOnes] : prev;
-            });
-            setBgLoadOffset(prev => prev + batchResult.emails.length);
-          }
-          setHasMore(batchResult.hasMore || false);
-        }
-      }
     } catch (e) {
       console.error('[Sync] Error:', e);
     }
-  }, [activeAccountId, currentFolder]); // Stable deps — refs handle hasMore/bgLoadOffset
+  }, [activeAccountId, currentFolder]);
 
   // Initial load
   useEffect(() => {

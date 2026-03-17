@@ -1193,46 +1193,50 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
     await connection.openBox(folder);
 
     const searchCriteria = ['ALL'];
+    // v2.8.3: Header-only fetch for fast listing (full body only when viewing email)
     const fetchOptions = {
-      bodies: ['HEADER', 'TEXT', ''],
+      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
       markSeen: false,
       struct: true
     };
 
     const messages = await connection.search(searchCriteria, fetchOptions);
-    const emails = [];
-    
+
+    // Sort newest first (by UID descending — higher UID = newer)
+    messages.sort((a, b) => b.attributes.uid - a.attributes.uid);
+
+    const allMessages = messages;
+    const messagesToProcess = limit > 0 ? allMessages.slice(offset, offset + limit) : allMessages.slice(offset);
+
     // Track unread count for notifications
     let unreadCount = 0;
     const previousUnread = store.get(`unreadCount_${accountId}`, 0);
-    
-    // v2.3.1: Process ALL messages if limit is 0, otherwise apply limit with offset support
-    const allMessages = messages.reverse(); // newest first (IMAP returns oldest first)
-    const messagesToProcess = limit > 0 ? allMessages.slice(offset, offset + limit) : allMessages.slice(offset);
-    
-    for (const message of messagesToProcess) {
-      try {
-        const all = message.parts.find(p => p.which === '');
-        const parsed = await simpleParser(all.body);
-        const isUnread = !message.attributes.flags.includes('\\Seen');
-        
-        if (isUnread) unreadCount++;
-        
-        emails.push({
-          uid: message.attributes.uid,
-          subject: parsed.subject || '(Kein Betreff)',
-          from: parsed.from?.text || 'Unbekannt',
-          fromName: parsed.from?.value?.[0]?.name || parsed.from?.text?.split('<')[0]?.trim() || 'Unbekannt',
-          to: parsed.to?.text || '',
-          date: parsed.date || new Date(),
-          seen: !isUnread,
-          hasAttachments: parsed.attachments && parsed.attachments.length > 0,
-          preview: parsed.text ? parsed.text.substring(0, 100) + '...' : ''
-        });
-      } catch (e) {
-        console.error('Fehler beim Parsen einer E-Mail:', e);
-      }
-    }
+
+    const emails = messagesToProcess.map(msg => {
+      const header = msg.parts.find(p => p.which.includes('HEADER'));
+      const h = header?.body || {};
+      const isUnread = !msg.attributes.flags.includes('\\Seen');
+      if (isUnread) unreadCount++;
+
+      const fromRaw = (h.from || ['Unbekannt'])[0];
+      const fromMatch = fromRaw.match(/^(.*?)\s*<(.+?)>$/);
+      const fromName = fromMatch
+        ? fromMatch[1].replace(/^["']+|["']+$/g, '').trim() || fromMatch[2]
+        : fromRaw.split('@')[0].trim();
+
+      return {
+        uid: msg.attributes.uid,
+        subject: (h.subject || ['(Kein Betreff)'])[0],
+        from: fromRaw,
+        fromName,
+        to: (h.to || [''])[0],
+        date: msg.attributes.date || (h.date ? new Date(h.date[0]) : new Date()),
+        seen: !isUnread,
+        hasAttachments: Array.isArray(msg.attributes.struct) &&
+          msg.attributes.struct.some(p => p.disposition?.type?.toLowerCase() === 'attachment'),
+        preview: ''
+      };
+    });
 
     // Check for new unread emails and notify
     const settings = store.get('appSettings', {});
@@ -1252,7 +1256,7 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
         );
       }
     }
-    
+
     store.set(`unreadCount_${accountId}`, unreadCount);
 
     await connection.end();
