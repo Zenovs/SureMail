@@ -5,78 +5,15 @@ import { useAccounts } from '../context/AccountContext';
 
 // v2.0.0: Server Presets - Nur IMAP/SMTP (OAuth2 entfernt)
 const SERVER_PRESETS = [
-  { 
-    id: 'custom', 
+  {
+    id: 'custom',
     name: 'Benutzerdefiniert',
     icon: '⚙️',
     imap: { host: '', port: '993', tls: true },
     smtp: { host: '', port: '465', secure: true }
   },
-  { 
-    id: 'microsoft', 
-    name: 'Microsoft 365 / Outlook',
-    icon: '📬',
-    imap: { host: 'outlook.office365.com', port: '993', tls: true },
-    smtp: { host: 'smtp.office365.com', port: '587', secure: false, starttls: true },
-    note: 'Outlook.com, Hotmail, Live.com, Microsoft 365 - Erfordert App-Passwort',
-    autoFillUsername: true,
-    requiresAppPassword: true,
-    appPasswordHelp: 'https://account.microsoft.com/security'
-  },
-  { 
-    id: 'gmail', 
-    name: 'Gmail',
-    icon: '📧',
-    imap: { host: 'imap.gmail.com', port: '993', tls: true },
-    smtp: { host: 'smtp.gmail.com', port: '465', secure: true },
-    note: 'Erfordert App-Passwort',
-    help: 'https://support.google.com/accounts/answer/185833',
-    autoFillUsername: true,
-    requiresAppPassword: true
-  },
-  { 
-    id: 'icloud', 
-    name: 'iCloud Mail',
-    icon: '☁️',
-    imap: { host: 'imap.mail.me.com', port: '993', tls: true },
-    smtp: { host: 'smtp.mail.me.com', port: '587', secure: false, starttls: true },
-    note: 'Erfordert App-Passwort',
-    help: 'https://support.apple.com/de-de/HT204397',
-    requiresAppPassword: true
-  },
-  { 
-    id: 'yahoo', 
-    name: 'Yahoo Mail',
-    icon: '📨',
-    imap: { host: 'imap.mail.yahoo.com', port: '993', tls: true },
-    smtp: { host: 'smtp.mail.yahoo.com', port: '465', secure: true },
-    note: 'Erfordert App-Passwort',
-    help: 'https://help.yahoo.com/kb/SLN15241.html',
-    requiresAppPassword: true
-  },
-  { 
-    id: 'gmx', 
-    name: 'GMX',
-    icon: '📩',
-    imap: { host: 'imap.gmx.net', port: '993', tls: true },
-    smtp: { host: 'mail.gmx.net', port: '587', secure: false, starttls: true }
-  },
-  { 
-    id: 'webde', 
-    name: 'WEB.DE',
-    icon: '📪',
-    imap: { host: 'imap.web.de', port: '993', tls: true },
-    smtp: { host: 'smtp.web.de', port: '587', secure: false, starttls: true }
-  },
-  { 
-    id: 'ionos', 
-    name: 'IONOS / 1&1',
-    icon: '🌐',
-    imap: { host: 'imap.ionos.de', port: '993', tls: true },
-    smtp: { host: 'smtp.ionos.de', port: '587', secure: false, starttls: true }
-  },
-  { 
-    id: 'hostpoint', 
+  {
+    id: 'hostpoint',
     name: 'Hostpoint',
     icon: '🇨🇭',
     imap: { host: 'imap.mail.hostpoint.ch', port: '993', tls: true },
@@ -84,8 +21,8 @@ const SERVER_PRESETS = [
     note: 'Schweizer Hosting-Anbieter - Benutzername ist die vollständige E-Mail-Adresse',
     autoFillUsername: true
   },
-  { 
-    id: 'bluewin', 
+  {
+    id: 'bluewin',
     name: 'Bluewin (Swisscom)',
     icon: '📶',
     imap: { host: 'imaps.bluewin.ch', port: '993', tls: true },
