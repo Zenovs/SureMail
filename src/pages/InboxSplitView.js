@@ -1163,6 +1163,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // Keyboard navigation (v2.3.0: added Ctrl+A for select all)
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Ignore all shortcuts when typing in an input, textarea, or contentEditable (e.g. reply editor)
+      if (e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
       // Ctrl+A or Cmd+A: Select all emails
       if ((e.ctrlKey || e.metaKey) && e.key === 'a' && filteredEmails.length > 0) {
         e.preventDefault();
@@ -1170,13 +1173,13 @@ function InboxSplitView({ onFullView, onNavigate }) {
         handleSelectAll();
         return;
       }
-      
+
       // Escape: Clear selection
       if (e.key === 'Escape' && selectedUids.size > 0) {
         handleClearSelection();
         return;
       }
-      
+
       // Delete: Delete selected emails or current email
       if (e.key === 'Delete') {
         if (selectedUids.size > 0) {
@@ -1186,7 +1189,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
         }
         return;
       }
-      
+
       if (e.key === 'ArrowDown' && selectedIndex < filteredEmails.length - 1) {
         handleSelectEmail(selectedIndex + 1);
       } else if (e.key === 'ArrowUp' && selectedIndex > 0) {
@@ -1816,13 +1819,63 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     <div className={`text-sm font-medium ${c.text} flex items-center gap-2`}>
                       {replyMode === 'replyAll' ? <ReplyAll className="w-4 h-4" /> : <Reply className="w-4 h-4" />}
                       <span>{replyMode === 'replyAll' ? 'Allen antworten' : 'Antworten'}</span>
-                      <span className={`${c.textSecondary} font-normal`}>an {selectedEmail.from}</span>
+                      <span className={`${c.textSecondary} font-normal truncate max-w-[200px]`}>an {selectedEmail.from}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      {replyError && <span className="text-xs text-red-400">{replyError}</span>}
+                      <button
+                        onClick={handleSendReply}
+                        disabled={replySending}
+                        className={`px-3 py-1.5 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors flex items-center gap-1.5 disabled:opacity-50`}
+                      >
+                        {replySending ? <><span className="animate-spin text-xs">⏳</span> Sende...</> : <><Send className="w-3.5 h-3.5" /> Senden</>}
+                      </button>
+                      <button
+                        onClick={() => { setReplyMode(null); setReplyError(null); if (replyEditorRef.current) replyEditorRef.current.innerHTML = ''; }}
+                        className={`p-1.5 ${c.hover} rounded ${c.textSecondary}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Formatting toolbar */}
+                  <div className={`flex items-center gap-1 px-3 py-1.5 border-b ${c.border} ${c.bg}`}>
+                    {[
+                      { cmd: 'bold',      label: <strong>B</strong>,  title: 'Fett (Ctrl+B)' },
+                      { cmd: 'italic',    label: <em>I</em>,           title: 'Kursiv (Ctrl+I)' },
+                      { cmd: 'underline', label: <span style={{textDecoration:'underline'}}>U</span>, title: 'Unterstrichen (Ctrl+U)' },
+                    ].map(btn => (
+                      <button
+                        key={btn.cmd}
+                        onMouseDown={e => { e.preventDefault(); replyEditorRef.current?.focus(); document.execCommand(btn.cmd, false, null); }}
+                        title={btn.title}
+                        className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${c.textSecondary} hover:text-cyan-400`}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                    <div className={`w-px h-4 ${c.border} border-l mx-1`} />
+                    {[
+                      { cmd: 'insertUnorderedList', label: '•', title: 'Aufzählungsliste' },
+                      { cmd: 'insertOrderedList',   label: '1.', title: 'Nummerierte Liste' },
+                    ].map(btn => (
+                      <button
+                        key={btn.cmd}
+                        onMouseDown={e => { e.preventDefault(); replyEditorRef.current?.focus(); document.execCommand(btn.cmd, false, null); }}
+                        title={btn.title}
+                        className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${c.textSecondary} hover:text-cyan-400`}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                    <div className={`w-px h-4 ${c.border} border-l mx-1`} />
                     <button
-                      onClick={() => { setReplyMode(null); setReplyError(null); if (replyEditorRef.current) replyEditorRef.current.innerHTML = ''; }}
-                      className={`p-1 ${c.hover} rounded ${c.textSecondary}`}
+                      onMouseDown={e => { e.preventDefault(); replyEditorRef.current?.focus(); document.execCommand('removeFormat', false, null); }}
+                      title="Formatierung entfernen"
+                      className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${c.textSecondary} hover:text-cyan-400`}
                     >
-                      <X className="w-4 h-4" />
+                      ✕
                     </button>
                   </div>
 
@@ -1831,37 +1884,19 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     ref={replyEditorRef}
                     contentEditable
                     suppressContentEditableWarning
-                    className={`min-h-[120px] max-h-[200px] overflow-y-auto p-4 focus:outline-none ${c.text}`}
+                    className={`min-h-[120px] max-h-[240px] overflow-y-auto p-4 focus:outline-none ${c.text}`}
                     style={{ fontSize: '14px', lineHeight: '1.6' }}
                     data-placeholder="Antwort schreiben..."
                   />
 
                   {/* Quoted original email */}
-                  <div className={`mx-4 mb-3 pl-3 border-l-2 border-gray-500 text-xs ${c.textSecondary} max-h-24 overflow-hidden`}>
+                  <div className={`mx-4 mb-3 pl-3 border-l-2 border-gray-500 text-xs ${c.textSecondary} max-h-20 overflow-hidden`}>
                     <p className="font-medium mb-1">
                       Am {new Date(selectedEmail.date).toLocaleString('de-DE')} schrieb {selectedEmail.from}:
                     </p>
-                    <div className="truncate opacity-70">
-                      {selectedEmail.text?.slice(0, 200) || selectedEmail.html?.replace(/<[^>]*>/g, '').slice(0, 200)}...
+                    <div className="opacity-70 line-clamp-3">
+                      {selectedEmail.text?.slice(0, 200) || selectedEmail.html?.replace(/<[^>]*>/g, '').slice(0, 200)}
                     </div>
-                  </div>
-
-                  {/* Error + Send */}
-                  {replyError && (
-                    <p className="px-4 pb-2 text-xs text-red-400">{replyError}</p>
-                  )}
-                  <div className={`px-4 pb-3 flex justify-end`}>
-                    <button
-                      onClick={handleSendReply}
-                      disabled={replySending}
-                      className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors flex items-center gap-2 disabled:opacity-50`}
-                    >
-                      {replySending ? (
-                        <><span className="animate-spin">⏳</span> Sende...</>
-                      ) : (
-                        <><Send className="w-4 h-4" /> Senden</>
-                      )}
-                    </button>
                   </div>
                 </div>
               )}
