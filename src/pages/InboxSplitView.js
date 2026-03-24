@@ -666,12 +666,24 @@ function InboxSplitView({ onFullView, onNavigate }) {
       }
 
       if (result.success) {
-        // v2.8.5: Merge fresh emails with existing (IndexedDB) emails — don't replace
+        // v2.9.7: Server is authoritative — use server list as base, preserve local seen status,
+        // keep older cached emails (pagination) that aren't in the server page.
+        // This prevents deleted emails from reappearing and keeps read status intact.
         let finalEmails;
         if (existingEmails.length > 0) {
-          const existingUids = new Set(existingEmails.map(e => e.uid));
-          const newOnes = result.emails.filter(e => !existingUids.has(e.uid));
-          finalEmails = newOnes.length > 0 ? [...newOnes, ...existingEmails] : existingEmails;
+          const serverUids = new Set(result.emails.map(e => e.uid));
+          const existingByUid = new Map(existingEmails.map(e => [e.uid, e]));
+
+          // Server emails with local seen-status preserved
+          const mergedServer = result.emails.map(e => {
+            const cached = existingByUid.get(e.uid);
+            return cached ? { ...e, seen: cached.seen } : e;
+          });
+
+          // Keep only truly older cached emails not covered by the server page
+          const olderCached = existingEmails.filter(e => !serverUids.has(e.uid));
+
+          finalEmails = [...mergedServer, ...olderCached];
         } else {
           finalEmails = result.emails;
         }
@@ -872,14 +884,17 @@ function InboxSplitView({ onFullView, onNavigate }) {
         ? await window.electronAPI.deleteGraphEmail(activeAccountId, uid)
         : await window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder);
       if (result.success) {
+        // Stop background loader immediately so it can't write the deleted email back
+        bgLoadAbortRef.current = true;
+
         // Remove from local state and cache
         const newEmails = emails.filter(e => e.uid !== uid);
         setEmails(newEmails);
-        
+
         // Update memory cache
         const cacheKey = getCacheKey(activeAccountId, currentFolder);
         emailCache.set(cacheKey, { data: newEmails, hasMore, timestamp: Date.now() });
-        
+
         // v1.12.1: Also remove from IndexedDB to prevent re-fetching
         await removeEmailFromIndexedDB(activeAccountId, currentFolder, uid);
         
@@ -911,15 +926,19 @@ function InboxSplitView({ onFullView, onNavigate }) {
         : await window.electronAPI.markAsRead(activeAccountId, uid, !currentSeen, currentFolder);
       if (result.success) {
         // Update local state
-        const newEmails = emails.map(e => 
+        const newEmails = emails.map(e =>
           e.uid === uid ? { ...e, seen: !currentSeen } : e
         );
         setEmails(newEmails);
-        
-        // Update cache
+
+        // Update memory cache
         const cacheKey = getCacheKey(activeAccountId, currentFolder);
         emailCache.set(cacheKey, { data: newEmails, hasMore, timestamp: Date.now() });
-        
+
+        // Also persist to IndexedDB so read status survives account switches
+        const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
+        if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, newEmails);
+
         // Update selected email if needed
         if (selectedEmail?.uid === uid) {
           setSelectedEmail({ ...selectedEmail, seen: !currentSeen });
