@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.9.0",
-  "description": "CoreMail Desktop v2.9.0 - Microsoft Exchange / Microsoft 365 via OAuth2 + Graph API",
+  "version": "2.9.3",
+  "description": "CoreMail Desktop v2.9.3 - Inline-Antwort in Vorschau, CC/BCC Fix, Gesendete Empfänger",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

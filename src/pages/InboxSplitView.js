@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -13,10 +13,12 @@ const INBOX_SUBFOLDERS = [
   { id: 'spam', name: 'Spam', icon: Ban, color: 'text-red-400', bgColor: 'bg-red-500/20' },
   { id: 'schaedlich', name: 'Schädlich', icon: ShieldAlert, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
   { id: 'virus', name: 'Virus', icon: Bug, color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+  { id: 'whitelist', name: 'Vertrauenswürdig', icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-500/20' },
 ];
 
 // v2.6.0: Category definitions for manual categorization
 const MANUAL_CATEGORIES = [
+  { id: 'whitelist', name: 'Vertrauenswürdig', icon: '✅', color: '#10B981', bgClass: 'bg-green-500', hoverClass: 'hover:bg-green-600' },
   { id: 'werbung', name: 'Werbung', icon: '📢', color: '#F59E0B', bgClass: 'bg-orange-500', hoverClass: 'hover:bg-orange-600' },
   { id: 'spam', name: 'Spam', icon: '🚫', color: '#EF4444', bgClass: 'bg-red-500', hoverClass: 'hover:bg-red-600' },
   { id: 'schaedlich', name: 'Schädlich', icon: '⚠️', color: '#EAB308', bgClass: 'bg-yellow-500', hoverClass: 'hover:bg-yellow-600' },
@@ -242,10 +244,11 @@ const SpamTagBadge = memo(({ category }) => {
 
 // v2.3.0: Improved Email List Item with multi-select checkbox
 // v1.14.0: Added spam filter tags
-const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes }) => {
+const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes, isSentFolder }) => {
   const isUnread = !email.seen;
   const spamCategory = spamAnalysis?.category;
   const spamTags = spamAnalysis?.tags || [];
+  const displayAddress = isSentFolder ? (email.to || email.from) : email.from;
   
   // v1.14.0: Border color based on spam category
   const getBorderColor = () => {
@@ -253,6 +256,7 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
     if (spamCategory === 'schaedlich') return 'border-l-yellow-500';
     if (spamCategory === 'spam') return 'border-l-red-400';
     if (spamCategory === 'werbung') return 'border-l-orange-400';
+    if (spamCategory === 'whitelist') return 'border-l-green-500';
     if (isUnread) return 'border-l-blue-500';
     return 'border-l-transparent';
   };
@@ -294,7 +298,8 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}
           >
             <span className={`inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse mt-1.5 ${isUnread ? '' : 'invisible'}`} />
-            <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{email.from}</span>
+            {isSentFolder && <span className={`text-xs ${c.textSecondary} flex-shrink-0`}>An:</span>}
+            <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{displayAddress}</span>
           </div>
 
           {/* Subject - v1.12.2: text wrapping enabled */}
@@ -327,7 +332,7 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
               Neu
             </span>
             {/* v1.14.0: Spam filter tags */}
-            {spamCategory && spamCategory !== 'sicher' && (
+            {spamCategory && spamCategory !== 'sicher' && spamCategory !== 'whitelist' && (
               <SpamTagBadge category={spamCategory} />
             )}
           </div>
@@ -380,7 +385,7 @@ const getFolderIcon = (type) => {
 
 function InboxSplitView({ onFullView, onNavigate }) {
   const { currentTheme } = useTheme();
-  const { activeAccountId, getActiveAccount, updateAccountStats } = useAccounts();
+  const { activeAccountId, getActiveAccount, accounts, updateAccountStats } = useAccounts();
   const [emails, setEmails] = useState([]);
   const [folders, setFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState('INBOX');
@@ -413,6 +418,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // v2.6.0: Manual sender-based categorization state
   const [manualCategories, setManualCategories] = useState(new Map()); // uid -> category
   const [senderCategoryVersion, setSenderCategoryVersion] = useState(0); // Force re-render on sender category changes
+
+  // v2.9.3: Inline reply state
+  const [replyMode, setReplyMode] = useState(null); // null | 'reply' | 'replyAll'
+  const [replySending, setReplySending] = useState(false);
+  const [replyError, setReplyError] = useState(null);
+  const replyEditorRef = useRef(null);
 
   // v1.14.0: Spam filter analysis results (moved up to avoid TDZ in filteredEmails)
   const [spamResults, setSpamResults] = useState(new Map());
@@ -1093,6 +1104,62 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return analysis?.category || null;
   }, [manualCategories, spamResults]);
 
+  // v2.9.3: Reset reply panel when selected email changes
+  useEffect(() => {
+    setReplyMode(null);
+    setReplyError(null);
+    if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
+  }, [selectedEmail?.uid]);
+
+  // v2.9.3: Send inline reply
+  const handleSendReply = useCallback(async () => {
+    if (!selectedEmail || !replyEditorRef.current) return;
+    setReplySending(true);
+    setReplyError(null);
+
+    const account = accounts.find(a => a.id === activeAccountId);
+    const replyBodyHtml = replyEditorRef.current.innerHTML || '';
+    const originalHtml = selectedEmail.html || `<p>${(selectedEmail.text || '').replace(/\n/g, '<br>')}</p>`;
+    const fullHtml = `${replyBodyHtml}<br><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${originalHtml}</blockquote>`;
+
+    // Build CC for replyAll: original CC + all recipients except own address
+    let ccVal;
+    if (replyMode === 'replyAll') {
+      const ownEmail = account?.smtp?.fromEmail || account?.smtp?.username || account?.microsoft?.email || '';
+      const toAddrs = (selectedEmail.to || '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
+      const ccAddrs = (selectedEmail.cc || '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
+      const allAddrs = [...toAddrs, ...ccAddrs].filter(a => a && !a.toLowerCase().includes(ownEmail.toLowerCase()));
+      ccVal = allAddrs.join(', ') || undefined;
+    }
+
+    const emailData = {
+      to: selectedEmail.from,
+      cc: ccVal,
+      subject: selectedEmail.subject?.startsWith('Re:') ? selectedEmail.subject : `Re: ${selectedEmail.subject || ''}`,
+      text: replyEditorRef.current.innerText || '',
+      html: fullHtml,
+      attachments: [],
+    };
+
+    try {
+      let result;
+      if (account?.type === 'microsoft') {
+        result = await window.electronAPI.sendGraphEmail(activeAccountId, emailData);
+      } else {
+        result = await window.electronAPI.sendEmailForAccount(activeAccountId, emailData);
+      }
+      if (result?.success) {
+        setReplyMode(null);
+        if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
+      } else {
+        setReplyError(result?.error || 'Senden fehlgeschlagen');
+      }
+    } catch (e) {
+      setReplyError(e.message);
+    }
+    setReplySending(false);
+  }, [selectedEmail, replyMode, activeAccountId, accounts]);
+
   // Keyboard navigation (v2.3.0: added Ctrl+A for select all)
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -1227,7 +1294,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
   // v2.6.0: Category counts for inbox subfolders (includes manual + auto categories)
   const categoryCounts = useMemo(() => {
-    const counts = { werbung: 0, spam: 0, schaedlich: 0, virus: 0 };
+    const counts = { whitelist: 0, werbung: 0, spam: 0, schaedlich: 0, virus: 0 };
     if (currentFolder !== 'INBOX') return counts;
     
     emails.forEach(email => {
@@ -1595,10 +1662,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 // v2.6.0: Merge manual category with spam analysis
                 const manualCat = manualCategories.get(email.uid);
                 const spamAnalysis = spamResults.get(email.uid);
-                const effectiveAnalysis = manualCat 
+                const effectiveAnalysis = manualCat
                   ? { ...spamAnalysis, category: manualCat, isManual: true }
                   : spamAnalysis;
-                
+                const folderLower = currentFolder.toLowerCase();
+                const isSentFolder = folderLower.includes('sent') || folderLower.includes('gesendet');
+
                 return (
                   <EmailListItem
                     key={email.uid}
@@ -1614,6 +1683,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     actionLoading={actionLoading}
                     spamAnalysis={effectiveAnalysis}
                     showCheckboxes={showCheckboxes}
+                    isSentFolder={isSentFolder}
                   />
                 );
               })}
@@ -1681,9 +1751,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
               );
             })()}
             <div className={`p-4 ${c.bgSecondary} ${c.border} border-b`}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className={`text-xl font-semibold ${c.text} mb-2`}>
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <h2 className={`text-xl font-semibold ${c.text} mb-2 truncate`}>
                     {selectedEmail.subject}
                   </h2>
                   <p className={`${c.textSecondary} text-sm`}>Von: {selectedEmail.from}</p>
@@ -1692,58 +1762,146 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     {new Date(selectedEmail.date).toLocaleString('de-DE')}
                   </p>
                 </div>
-                <button
-                  onClick={() => onFullView(selectedEmail, currentFolder)}
-                  className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors`}
-                >
-                  Vollansicht →
-                </button>
+                {/* v2.9.3: Reply buttons + full view */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => setReplyMode(replyMode === 'reply' ? null : 'reply')}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 text-sm ${
+                      replyMode === 'reply'
+                        ? `${c.accentBg} text-white`
+                        : `${c.hover} ${c.textSecondary}`
+                    }`}
+                    title="Antworten"
+                  >
+                    <Reply className="w-4 h-4" />
+                    <span className="hidden xl:inline">Antworten</span>
+                  </button>
+                  <button
+                    onClick={() => setReplyMode(replyMode === 'replyAll' ? null : 'replyAll')}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 text-sm ${
+                      replyMode === 'replyAll'
+                        ? `${c.accentBg} text-white`
+                        : `${c.hover} ${c.textSecondary}`
+                    }`}
+                    title="Allen antworten"
+                  >
+                    <ReplyAll className="w-4 h-4" />
+                    <span className="hidden xl:inline">Allen</span>
+                  </button>
+                  <div className={`w-px h-5 ${c.border} border-l mx-1`} />
+                  <button
+                    onClick={() => onFullView(selectedEmail, currentFolder)}
+                    className={`px-3 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors`}
+                  >
+                    Vollansicht →
+                  </button>
+                </div>
               </div>
             </div>
-            
+
             {/* v2.6.0: Manual Categorization Buttons */}
-            <CategoryButtons 
+            <CategoryButtons
               email={selectedEmail}
               currentCategory={manualCategories.get(selectedEmail?.uid)}
               onCategorize={handleCategorize}
               c={c}
             />
-            
-            <div className={`flex-1 overflow-auto p-6 ${c.bg}`}>
-              {/* v1.11.1: Apply selected font to email content */}
-              {(() => {
-                const fontId = getCurrentFont();
-                const fontFamily = GOOGLE_FONTS[fontId] || 'Inter';
-                const fontStyle = `"${fontFamily}", system-ui, -apple-system, sans-serif`;
-                
-                return selectedEmail.html ? (
+
+            <div className={`flex-1 overflow-auto ${c.bg} flex flex-col`}>
+              {/* Email content */}
+              <div className="p-6">
+                {(() => {
+                  const fontId = getCurrentFont();
+                  const fontFamily = GOOGLE_FONTS[fontId] || 'Inter';
+                  const fontStyle = `"${fontFamily}", system-ui, -apple-system, sans-serif`;
+
+                  return selectedEmail.html ? (
+                    <div
+                      className="email-content"
+                      dangerouslySetInnerHTML={{ __html: selectedEmail.html }}
+                      style={{
+                        backgroundColor: 'white',
+                        color: 'black',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        minHeight: '200px',
+                        fontFamily: fontStyle
+                      }}
+                    />
+                  ) : (
+                    <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: fontStyle }}>
+                      {selectedEmail.text}
+                    </pre>
+                  );
+                })()}
+                {selectedEmail.attachments?.length > 0 && (
+                  <div className={`mt-6 pt-4 ${c.border} border-t`}>
+                    <h4 className={`font-medium ${c.text} mb-2`}>Anhänge ({selectedEmail.attachments.length})</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedEmail.attachments.map((att, i) => (
+                        <div key={i} className={`px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
+                          📎 {att.filename}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* v2.9.3: Inline Reply Panel */}
+              {replyMode && (
+                <div className={`border-t ${c.border} ${c.bgSecondary} flex-shrink-0`}>
+                  {/* Reply header */}
+                  <div className={`px-4 py-2 border-b ${c.border} flex items-center justify-between`}>
+                    <div className={`text-sm font-medium ${c.text} flex items-center gap-2`}>
+                      {replyMode === 'replyAll' ? <ReplyAll className="w-4 h-4" /> : <Reply className="w-4 h-4" />}
+                      <span>{replyMode === 'replyAll' ? 'Allen antworten' : 'Antworten'}</span>
+                      <span className={`${c.textSecondary} font-normal`}>an {selectedEmail.from}</span>
+                    </div>
+                    <button
+                      onClick={() => { setReplyMode(null); setReplyError(null); if (replyEditorRef.current) replyEditorRef.current.innerHTML = ''; }}
+                      className={`p-1 ${c.hover} rounded ${c.textSecondary}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Reply editor */}
                   <div
-                    className="email-content"
-                    dangerouslySetInnerHTML={{ __html: selectedEmail.html }}
-                    style={{ 
-                      backgroundColor: 'white', 
-                      color: 'black', 
-                      padding: '16px', 
-                      borderRadius: '8px',
-                      minHeight: '200px',
-                      fontFamily: fontStyle
-                    }}
+                    ref={replyEditorRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    className={`min-h-[120px] max-h-[200px] overflow-y-auto p-4 focus:outline-none ${c.text}`}
+                    style={{ fontSize: '14px', lineHeight: '1.6' }}
+                    data-placeholder="Antwort schreiben..."
                   />
-                ) : (
-                  <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: fontStyle }}>
-                    {selectedEmail.text}
-                  </pre>
-                );
-              })()}
-              {selectedEmail.attachments?.length > 0 && (
-                <div className={`mt-6 pt-4 ${c.border} border-t`}>
-                  <h4 className={`font-medium ${c.text} mb-2`}>Anhänge ({selectedEmail.attachments.length})</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedEmail.attachments.map((att, i) => (
-                      <div key={i} className={`px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
-                        📎 {att.filename}
-                      </div>
-                    ))}
+
+                  {/* Quoted original email */}
+                  <div className={`mx-4 mb-3 pl-3 border-l-2 border-gray-500 text-xs ${c.textSecondary} max-h-24 overflow-hidden`}>
+                    <p className="font-medium mb-1">
+                      Am {new Date(selectedEmail.date).toLocaleString('de-DE')} schrieb {selectedEmail.from}:
+                    </p>
+                    <div className="truncate opacity-70">
+                      {selectedEmail.text?.slice(0, 200) || selectedEmail.html?.replace(/<[^>]*>/g, '').slice(0, 200)}...
+                    </div>
+                  </div>
+
+                  {/* Error + Send */}
+                  {replyError && (
+                    <p className="px-4 pb-2 text-xs text-red-400">{replyError}</p>
+                  )}
+                  <div className={`px-4 pb-3 flex justify-end`}>
+                    <button
+                      onClick={handleSendReply}
+                      disabled={replySending}
+                      className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors flex items-center gap-2 disabled:opacity-50`}
+                    >
+                      {replySending ? (
+                        <><span className="animate-spin">⏳</span> Sende...</>
+                      ) : (
+                        <><Send className="w-4 h-4" /> Senden</>
+                      )}
+                    </button>
                   </div>
                 </div>
               )}

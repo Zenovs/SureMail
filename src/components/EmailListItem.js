@@ -1,11 +1,11 @@
 import React from 'react';
 
-const EmailListItem = ({ email, isSelected, onClick }) => {
+const EmailListItem = ({ email, isSelected, onClick, isSentFolder }) => {
   const formatDate = (date) => {
     const d = new Date(date);
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
-    
+
     if (isToday) {
       return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     }
@@ -21,7 +21,7 @@ const EmailListItem = ({ email, isSelected, onClick }) => {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          {/* Absender */}
+          {/* Absender / Empfänger */}
           <div className="flex items-center gap-2 mb-1">
             {!email.seen && (
               <div className="w-2 h-2 bg-cyan-400 rounded-full flex-shrink-0"></div>
@@ -29,7 +29,7 @@ const EmailListItem = ({ email, isSelected, onClick }) => {
             <span className={`text-sm truncate ${
               !email.seen ? 'text-gray-100 font-semibold' : 'text-gray-400'
             }`}>
-              {email.from}
+              {isSentFolder ? `An: ${email.to || email.from}` : email.from}
             </span>
           </div>
           

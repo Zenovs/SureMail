@@ -35,6 +35,13 @@ body {
   box-shadow: 0 0 10px rgba(6, 182, 212, 0.3), 0 0 20px rgba(6, 182, 212, 0.1);
 }
 
+/* v2.9.3: Placeholder for contentEditable reply editor */
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #6b7280;
+  pointer-events: none;
+}
+
 /* E-Mail Content Styling */
 .email-content {
   @apply text-gray-300 leading-relaxed;
