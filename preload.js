@@ -59,7 +59,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // IMAP for specific account (v1.1)
   fetchEmailsForAccount: (accountId, options) => ipcRenderer.invoke('imap:fetchEmailsForAccount', accountId, options),
-  fetchEmailForAccount: (accountId, uid) => ipcRenderer.invoke('imap:fetchEmailForAccount', accountId, uid),
+  fetchEmailForAccount: (accountId, uid, folder) => ipcRenderer.invoke('imap:fetchEmailForAccount', accountId, uid, folder),
   
   // IMAP Operations v1.8.0
   deleteEmail: (accountId, uid, folder) => ipcRenderer.invoke('imap:deleteEmail', accountId, uid, folder),

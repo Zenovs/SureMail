@@ -1341,9 +1341,9 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
 
 // Fetch single email for specific account
 // v1.10.0: OAuth2 support for single email fetch
-ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid) => {
+ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder = 'INBOX') => {
   const account = getAccountById(accountId);
-  
+
   if (!account) {
     return { success: false, error: 'Konto nicht gefunden' };
   }
@@ -1353,7 +1353,7 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid) => {
     const config = getImapConfigForAccount(account);
 
     const connection = await imapSimple.connect(config);
-    await connection.openBox('INBOX');
+    await connection.openBox(folder);
 
     const searchCriteria = [['UID', uid]];
     const fetchOptions = {
@@ -1559,6 +1559,8 @@ ipcMain.handle('smtp:send', async (event, emailData) => {
     const mailOptions = {
       from: smtpSettings.fromEmail || smtpSettings.username,
       to: emailData.to,
+      cc: emailData.cc || undefined,
+      bcc: emailData.bcc || undefined,
       subject: emailData.subject,
       text: emailData.text,
       html: emailData.html,
@@ -1610,6 +1612,8 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
     const mailOptions = {
       from: fromEmail,
       to: emailData.to,
+      cc: emailData.cc || undefined,
+      bcc: emailData.bcc || undefined,
       subject: emailData.subject,
       text: finalText,
       html: finalHtml,
@@ -2268,11 +2272,13 @@ async function graphRequest(accountId, method, apiPath, body) {
 }
 
 function normalizeGraphEmail(msg) {
+  const fromName = msg.from?.emailAddress?.name || '';
+  const fromAddr = msg.from?.emailAddress?.address || '';
   return {
     uid: msg.id,
     subject: msg.subject || '(Kein Betreff)',
-    from: msg.from?.emailAddress?.address || '',
-    fromName: msg.from?.emailAddress?.name || '',
+    from: fromName ? `${fromName} <${fromAddr}>` : fromAddr,
+    fromName,
     to: (msg.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
     date: msg.receivedDateTime || new Date().toISOString(),
     seen: msg.isRead === true,
@@ -2421,7 +2427,8 @@ ipcMain.handle('graph:sendEmail', async (event, accountId, emailData) => {
         content: emailData.html || emailData.text || ''
       },
       toRecipients: parseAddrs(emailData.to),
-      ccRecipients: parseAddrs(emailData.cc)
+      ccRecipients: parseAddrs(emailData.cc),
+      bccRecipients: parseAddrs(emailData.bcc)
     };
 
     await graphRequest(accountId, 'POST', '/me/sendMail', { message, saveToSentItems: true });

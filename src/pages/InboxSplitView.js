@@ -836,7 +836,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       if (isGraphAccount()) {
         result = await window.electronAPI.fetchGraphEmail(activeAccountId, uid);
       } else {
-        result = await window.electronAPI.fetchEmailForAccount(activeAccountId, uid);
+        result = await window.electronAPI.fetchEmailForAccount(activeAccountId, uid, currentFolder);
       }
       if (result?.success) {
         setSelectedEmail(result.email);

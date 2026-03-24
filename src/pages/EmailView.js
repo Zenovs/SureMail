@@ -55,7 +55,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           return;
         }
 
-        const result = await window.electronAPI.fetchEmailForAccount(activeAccountId, email.uid);
+        const result = await window.electronAPI.fetchEmailForAccount(activeAccountId, email.uid, currentFolder);
         
         if (result.success) {
           setFullEmail(result.email);
