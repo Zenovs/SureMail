@@ -1808,49 +1808,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
             />
 
             <div className={`flex-1 overflow-auto ${c.bg} flex flex-col`}>
-              {/* Email content */}
-              <div className="p-6">
-                {(() => {
-                  const fontId = getCurrentFont();
-                  const fontFamily = GOOGLE_FONTS[fontId] || 'Inter';
-                  const fontStyle = `"${fontFamily}", system-ui, -apple-system, sans-serif`;
-
-                  return selectedEmail.html ? (
-                    <div
-                      className="email-content"
-                      dangerouslySetInnerHTML={{ __html: selectedEmail.html }}
-                      style={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        padding: '16px',
-                        borderRadius: '8px',
-                        minHeight: '200px',
-                        fontFamily: fontStyle
-                      }}
-                    />
-                  ) : (
-                    <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: fontStyle }}>
-                      {selectedEmail.text}
-                    </pre>
-                  );
-                })()}
-                {selectedEmail.attachments?.length > 0 && (
-                  <div className={`mt-6 pt-4 ${c.border} border-t`}>
-                    <h4 className={`font-medium ${c.text} mb-2`}>Anhänge ({selectedEmail.attachments.length})</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedEmail.attachments.map((att, i) => (
-                        <div key={i} className={`px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
-                          📎 {att.filename}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* v2.9.3: Inline Reply Panel */}
+              {/* v2.9.3: Inline Reply Panel — oberhalb des Mails */}
               {replyMode && (
-                <div className={`border-t ${c.border} ${c.bgSecondary} flex-shrink-0`}>
+                <div className={`border-b ${c.border} ${c.bgSecondary} flex-shrink-0`}>
                   {/* Reply header */}
                   <div className={`px-4 py-2 border-b ${c.border} flex items-center justify-between`}>
                     <div className={`text-sm font-medium ${c.text} flex items-center gap-2`}>
@@ -1905,6 +1865,46 @@ function InboxSplitView({ onFullView, onNavigate }) {
                   </div>
                 </div>
               )}
+
+              {/* Email content */}
+              <div className="p-6">
+                {(() => {
+                  const fontId = getCurrentFont();
+                  const fontFamily = GOOGLE_FONTS[fontId] || 'Inter';
+                  const fontStyle = `"${fontFamily}", system-ui, -apple-system, sans-serif`;
+
+                  return selectedEmail.html ? (
+                    <div
+                      className="email-content"
+                      dangerouslySetInnerHTML={{ __html: selectedEmail.html }}
+                      style={{
+                        backgroundColor: 'white',
+                        color: 'black',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        minHeight: '200px',
+                        fontFamily: fontStyle
+                      }}
+                    />
+                  ) : (
+                    <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: fontStyle }}>
+                      {selectedEmail.text}
+                    </pre>
+                  );
+                })()}
+                {selectedEmail.attachments?.length > 0 && (
+                  <div className={`mt-6 pt-4 ${c.border} border-t`}>
+                    <h4 className={`font-medium ${c.text} mb-2`}>Anhänge ({selectedEmail.attachments.length})</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedEmail.attachments.map((att, i) => (
+                        <div key={i} className={`px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
+                          📎 {att.filename}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         ) : (
