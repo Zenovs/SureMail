@@ -122,6 +122,85 @@ const getFileIcon = (contentType, filename) => {
   return '📄';
 };
 
+// ─── E-Mail-Tag-Eingabe ───────────────────────────────────────────────────────
+function EmailTagInput({ label, tags, onChange, placeholder, c, isLarge = false }) {
+  const [inputValue, setInputValue] = React.useState('');
+  const inputRef = React.useRef(null);
+
+  const isValidEmail = (val) => val.includes('@') && val.includes('.');
+
+  const addTag = (val) => {
+    // Support paste with multiple addresses (comma/semicolon separated)
+    const parts = val.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+    const newTags = parts.filter(p => isValidEmail(p) && !tags.includes(p));
+    if (newTags.length > 0) onChange([...tags, ...newTags]);
+    setInputValue('');
+  };
+
+  const removeTag = (index) => {
+    onChange(tags.filter((_, i) => i !== index));
+  };
+
+  const handleKeyDown = (e) => {
+    if ((e.key === 'Enter' || e.key === ',' || e.key === ';' || e.key === 'Tab') && inputValue.trim()) {
+      e.preventDefault();
+      addTag(inputValue.trim());
+    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
+      onChange(tags.slice(0, -1));
+    }
+  };
+
+  const handleBlur = () => {
+    if (inputValue.trim()) addTag(inputValue.trim());
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text');
+    addTag(pasted);
+  };
+
+  return (
+    <div className="flex items-start gap-3">
+      <label className={`${isLarge ? 'text-sm' : 'text-xs'} ${c.textSecondary} w-16 flex-shrink-0 pt-2`}>
+        {label}
+      </label>
+      <div
+        className={`flex-1 flex flex-wrap gap-1.5 px-3 py-2 rounded-lg ${c.input} focus-within:ring-2 focus-within:ring-cyan-500 cursor-text min-h-[36px]`}
+        onClick={() => inputRef.current?.focus()}
+      >
+        {tags.map((tag, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-md text-xs font-medium flex-shrink-0"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); removeTag(i); }}
+              className="hover:text-white hover:bg-cyan-500/40 rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+          onPaste={handlePaste}
+          placeholder={tags.length === 0 ? placeholder : ''}
+          className="flex-1 bg-transparent outline-none text-sm min-w-[140px]"
+          style={{ minWidth: tags.length > 0 ? '80px' : '140px' }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 function ComposeEmail({ onBack, replyTo = null }) {
   const { currentTheme } = useTheme();
@@ -130,10 +209,10 @@ function ComposeEmail({ onBack, replyTo = null }) {
   const c = currentTheme.colors;
 
   // --- Formularfelder ---
+  const [toTags,  setToTags]  = useState(replyTo?.from ? [replyTo.from] : []);
+  const [ccTags,  setCcTags]  = useState([]);
+  const [bccTags, setBccTags] = useState([]);
   const [form, setForm] = useState({
-    to:      replyTo?.from || '',
-    cc:      '',
-    bcc:     '',
     subject: replyTo ? `Re: ${replyTo.subject}` : '',
   });
   const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId);
@@ -359,7 +438,8 @@ function ComposeEmail({ onBack, replyTo = null }) {
 
   // ── Senden ───────────────────────────────────────────────────────────────────
   const handleSend = async () => {
-    if (!form.to || !form.subject) { setError('Bitte Empfänger und Betreff ausfüllen'); return; }
+    if (toTags.length === 0) { setError('Bitte mindestens einen Empfänger eingeben'); return; }
+    if (!form.subject) { setError('Bitte Betreff ausfüllen'); return; }
     if (attachments.some(a => !a.loaded)) { setError('Bitte warten, bis alle Anhänge geladen sind'); return; }
 
     setSending(true); setError(null);
@@ -373,9 +453,9 @@ function ComposeEmail({ onBack, replyTo = null }) {
 
       const emailData = {
         fromName: senderName,
-        to: form.to,
-        cc: form.cc || undefined,
-        bcc: form.bcc || undefined,
+        to: toTags.join(', '),
+        cc: ccTags.length > 0 ? ccTags.join(', ') : undefined,
+        bcc: bccTags.length > 0 ? bccTags.join(', ') : undefined,
         subject: form.subject,
         text: bodyText,
         html: bodyHtml,
@@ -506,38 +586,30 @@ function ComposeEmail({ onBack, replyTo = null }) {
               </div>
             </div>
 
-            {/* An / CC / BCC */}
+            {/* An / CC / BCC — Tag-Eingabe */}
             <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4 space-y-2`}>
-              <div className="flex items-center gap-3">
-                <label className={`text-sm ${c.textSecondary} w-16 flex-shrink-0`}>An:</label>
-                <input
-                  type="text"
-                  value={form.to}
-                  onChange={e => setForm(f => ({ ...f, to: e.target.value }))}
-                  placeholder="empfaenger@example.com, weitere@example.com"
-                  className={`flex-1 px-3 py-1.5 rounded-lg ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <label className={`text-xs ${c.textSecondary} w-16 flex-shrink-0`}>CC:</label>
-                <input
-                  type="text"
-                  value={form.cc}
-                  onChange={e => setForm(f => ({ ...f, cc: e.target.value }))}
-                  placeholder="cc@example.com"
-                  className={`flex-1 px-3 py-1 rounded ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <label className={`text-xs ${c.textSecondary} w-16 flex-shrink-0`}>BCC:</label>
-                <input
-                  type="text"
-                  value={form.bcc}
-                  onChange={e => setForm(f => ({ ...f, bcc: e.target.value }))}
-                  placeholder="bcc@example.com"
-                  className={`flex-1 px-3 py-1 rounded ${c.input} text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500`}
-                />
-              </div>
+              <EmailTagInput
+                label="An:"
+                tags={toTags}
+                onChange={setToTags}
+                placeholder="empfaenger@example.com — Enter oder Komma zum Hinzufügen"
+                c={c}
+                isLarge
+              />
+              <EmailTagInput
+                label="CC:"
+                tags={ccTags}
+                onChange={setCcTags}
+                placeholder="cc@example.com"
+                c={c}
+              />
+              <EmailTagInput
+                label="BCC:"
+                tags={bccTags}
+                onChange={setBccTags}
+                placeholder="bcc@example.com"
+                c={c}
+              />
             </div>
 
             {/* Betreff */}

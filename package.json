@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "2.9.9",
-  "description": "CoreMail Desktop v2.9.9 - Globaler Background-Sync für alle Konten",
+  "version": "3.0.0",
+  "description": "CoreMail Desktop v3.0.0 - Tag-Eingabe für Empfänger (An/CC/BCC)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
