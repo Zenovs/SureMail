@@ -764,7 +764,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLoadingMore(false);
   }, [activeAccountId, currentFolder, emails, hasMore, loadingMore, getCacheKey]);
 
-  // v2.8.3: Sync only — check for new emails at top, merge without replacing older ones
+  // v2.8.3: Sync — fetch latest emails from server, merge with current state
+  // v2.9.8: Also updates seen-status from server + persists to cache/IndexedDB
   const syncEmails = useCallback(async () => {
     if (!window.electronAPI || !activeAccountId) return;
     try {
@@ -777,16 +778,35 @@ function InboxSplitView({ onFullView, onNavigate }) {
         freshResult = await window.electronAPI.fetchEmailsFromFolder(activeAccountId, currentFolder, { limit: 50, offset: 0 });
       }
       if (freshResult?.success) {
+        const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
         setEmails(prev => {
-          const existingUids = new Set(prev.map(e => e.uid));
-          const newOnes = freshResult.emails.filter(e => !existingUids.has(e.uid));
-          return newOnes.length > 0 ? [...newOnes, ...prev] : prev;
+          const serverUids = new Set(freshResult.emails.map(e => e.uid));
+          const prevByUid = new Map(prev.map(e => [e.uid, e]));
+
+          // Update existing emails with fresh server data (e.g. seen-status from other device)
+          const updated = freshResult.emails.map(e => {
+            const local = prevByUid.get(e.uid);
+            // Keep local seen-status only if it's MORE read than server
+            // (local mark-as-read should not be overwritten by stale server state)
+            return local ? { ...e, seen: local.seen || e.seen } : e;
+          });
+
+          // Prepend truly new emails, keep older ones not in server page
+          const olderOnes = prev.filter(e => !serverUids.has(e.uid));
+          const merged = [...updated, ...olderOnes];
+
+          // Persist to cache + IndexedDB so account-switch doesn't lose sync results
+          const cacheKey = getCacheKey(activeAccountId, currentFolder);
+          emailCache.set(cacheKey, { data: merged, hasMore: freshResult.hasMore ?? false, timestamp: Date.now() });
+          if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, merged);
+
+          return merged;
         });
       }
     } catch (e) {
       console.error('[Sync] Error:', e);
     }
-  }, [activeAccountId, currentFolder, isGraphAccount]);
+  }, [activeAccountId, currentFolder, isGraphAccount, getCacheKey]);
 
   // Initial load
   useEffect(() => {
