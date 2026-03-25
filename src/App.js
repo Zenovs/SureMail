@@ -55,9 +55,37 @@ import { applySavedFont } from './pages/FontSettings';
 // v1.11.0: Apply saved font on app load
 applySavedFont();
 
+// v2.9.9: Shared IndexedDB save for background sync (same format as InboxSplitView)
+const bgSaveToIndexedDB = async (accountId, folder, emails) => {
+  try {
+    const request = indexedDB.open('CoreMailDB', 1);
+    await new Promise((resolve, reject) => {
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction('emails', 'readwrite');
+        const store = tx.objectStore('emails');
+        store.put({ id: `${accountId}:${folder}`, accountId, folder, emails, timestamp: Date.now() });
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+      };
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('emails')) {
+          db.createObjectStore('emails', { keyPath: 'id' });
+        }
+      };
+    });
+  } catch (e) {
+    console.error('[BGSync] IndexedDB write error:', e);
+  }
+};
+
+const REFRESH_INTERVALS_APP = { '1': 60000, '5': 300000, '10': 600000, '15': 900000, '30': 1800000, 'manual': 0 };
+
 function AppContent() {
   const { currentTheme } = useTheme();
-  const { setActiveAccountId } = useAccounts();
+  const { setActiveAccountId, accounts } = useAccounts();
   const { isAvailable, isChecking, checkOllama, setCurrentEmailContext } = useOllama();
   const { openSearch, toggleSearch } = useSearch();
   const [currentView, setCurrentView] = useState('dashboard');
@@ -83,6 +111,54 @@ function AppContent() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [toggleSearch, openSearch]);
+
+  // v2.9.9: Global background sync — runs for ALL accounts regardless of current view
+  useEffect(() => {
+    if (!accounts || accounts.length === 0) return;
+
+    const getInterval = () => {
+      const saved = localStorage.getItem('emailSettings.refreshInterval') || '5';
+      return REFRESH_INTERVALS_APP[saved] || 0;
+    };
+
+    const syncAllAccounts = async () => {
+      if (!window.electronAPI) return;
+      const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
+
+      for (const account of accounts) {
+        try {
+          let result;
+          if (account.type === 'microsoft') {
+            result = await window.electronAPI.fetchGraphEmails(account.id, { folder: 'INBOX', limit: 50, skip: 0 });
+          } else {
+            result = await window.electronAPI.fetchEmailsForAccount(account.id, { limit: 50, offset: 0 });
+          }
+          if (result?.success && result.emails?.length > 0) {
+            // Persist to IndexedDB so InboxSplitView picks up fresh data on mount
+            if (localStorageEnabled) {
+              await bgSaveToIndexedDB(account.id, 'INBOX', result.emails);
+            }
+            // Notify InboxSplitView if it's currently open for this account
+            window.dispatchEvent(new CustomEvent('coremail:bgSync', {
+              detail: { accountId: account.id, folder: 'INBOX', emails: result.emails }
+            }));
+          }
+        } catch (e) {
+          console.error('[BGSync] Error for account', account.id, e);
+        }
+      }
+    };
+
+    const interval = getInterval();
+    if (interval <= 0) return;
+
+    console.log(`[BGSync] Starting background sync every ${interval / 1000}s for ${accounts.length} account(s)`);
+    const id = setInterval(syncAllAccounts, interval);
+    return () => {
+      clearInterval(id);
+      console.log('[BGSync] Background sync stopped');
+    };
+  }, [accounts]);
 
   // Check if we should show the Ollama installer on first start
   useEffect(() => {

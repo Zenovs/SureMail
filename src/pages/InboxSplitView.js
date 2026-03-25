@@ -126,15 +126,6 @@ const emailCache = new Map();
 const folderCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-// v1.8.2: Refresh interval mapping
-const REFRESH_INTERVALS = {
-  '1': 60000,
-  '5': 300000,
-  '10': 600000,
-  '15': 900000,
-  '30': 1800000,
-  'manual': 0
-};
 
 // v1.8.2: IndexedDB for local email storage
 const DB_NAME = 'CoreMailDB';
@@ -824,40 +815,39 @@ function InboxSplitView({ onFullView, onNavigate }) {
     fetchEmails(true);
   }, [currentFolder, fetchEmails]);
 
-  // v1.8.2: Auto-refresh interval
+  // v2.9.9: Receive background sync results from App.js global timer
+  // The timer runs in App.js (always active), dispatches 'coremail:bgSync' events.
+  // InboxSplitView merges incoming data into state + memory cache when visible.
   useEffect(() => {
-    const getRefreshInterval = () => {
-      const saved = localStorage.getItem('emailSettings.refreshInterval') || '5';
-      return REFRESH_INTERVALS[saved] || 0;
+    const handleBgSync = (e) => {
+      const { accountId, folder, emails: serverEmails } = e.detail || {};
+      if (accountId !== activeAccountId || folder !== currentFolder) return;
+
+      const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
+      setEmails(prev => {
+        const serverUids = new Set(serverEmails.map(e => e.uid));
+        const prevByUid = new Map(prev.map(e => [e.uid, e]));
+
+        const merged = serverEmails.map(e => {
+          const local = prevByUid.get(e.uid);
+          return local ? { ...e, seen: local.seen || e.seen } : e;
+        });
+        const olderOnes = prev.filter(e => !serverUids.has(e.uid));
+        const result = [...merged, ...olderOnes];
+
+        // Keep memory cache in sync
+        emailCache.set(getCacheKey(activeAccountId, currentFolder), {
+          data: result, hasMore: false, timestamp: Date.now()
+        });
+        if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, result);
+
+        return result;
+      });
     };
 
-    let intervalId = null;
-    const setupInterval = () => {
-      const interval = getRefreshInterval();
-      if (interval > 0 && activeAccountId) {
-        intervalId = setInterval(() => {
-          console.log('[AutoRefresh] Syncing emails (new + background batch)...');
-          syncEmails();
-        }, interval);
-      }
-    };
-
-    setupInterval();
-
-    // Listen for settings changes
-    const handleSettingsChange = (e) => {
-      if (e.detail?.refreshInterval) {
-        if (intervalId) clearInterval(intervalId);
-        setupInterval();
-      }
-    };
-    window.addEventListener('emailSettingsChanged', handleSettingsChange);
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-      window.removeEventListener('emailSettingsChanged', handleSettingsChange);
-    };
-  }, [activeAccountId, syncEmails]);
+    window.addEventListener('coremail:bgSync', handleBgSync);
+    return () => window.removeEventListener('coremail:bgSync', handleBgSync);
+  }, [activeAccountId, currentFolder, getCacheKey]);
 
   const loadEmailPreview = async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
