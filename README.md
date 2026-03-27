@@ -1,15 +1,13 @@
-```
- ██████╗ ██████╗ ██████╗ ███████╗███╗   ███╗ █████╗ ██╗██╗
-██╔════╝██╔═══██╗██╔══██╗██╔════╝████╗ ████║██╔══██╗██║██║
-██║     ██║   ██║██████╔╝█████╗  ██╔████╔██║███████║██║██║
-██║     ██║   ██║██╔══██╗██╔══╝  ██║╚██╔╝██║██╔══██║██║██║
-╚██████╗╚██████╔╝██║  ██║███████╗██║ ╚═╝ ██║██║  ██║██║███████╗
- ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚══════╝
-```
-
 <p align="center">
-  <strong>Moderner, schlanker E-Mail-Client für Linux</strong><br>
-  Lokal. Schnell. Privat.
+<pre>
+  ██████╗ ██████╗ ██████╗ ███████╗███╗   ███╗ █████╗ ██╗██╗
+ ██╔════╝██╔═══██╗██╔══██╗██╔════╝████╗ ████║██╔══██╗██║██║
+ ██║     ██║   ██║██████╔╝█████╗  ██╔████╔██║███████║██║██║
+ ██║     ██║   ██║██╔══██╗██╔══╝  ██║╚██╔╝██║██╔══██║██║██║
+ ╚██████╗╚██████╔╝██║  ██║███████╗██║ ╚═╝ ██║██║  ██║██║███████╗
+  ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝╚══════╝
+                  D e s k t o p   E - M a i l   C l i e n t
+</pre>
 </p>
 
 <p align="center">
@@ -48,11 +46,11 @@ Das Script erledigt automatisch:
 
 ### Direkter Download
 
-**[⬇️ CoreMail Desktop v2.9.5 herunterladen](https://github.com/Zenovs/coremail/releases/download/v2.9.5/CoreMail-Desktop-2.9.5.AppImage)** (~150 MB)
+**[⬇️ CoreMail Desktop v3.0.2 herunterladen](https://github.com/Zenovs/coremail/releases/latest)** (~150 MB)
 
 ```bash
-chmod +x CoreMail-Desktop-2.9.5.AppImage
-./CoreMail-Desktop-2.9.5.AppImage --no-sandbox
+chmod +x "CoreMail Desktop-3.0.2.AppImage"
+./"CoreMail Desktop-3.0.2.AppImage" --no-sandbox
 ```
 
 ---
@@ -93,6 +91,13 @@ echo "✅ CoreMail wurde komplett entfernt!"
 - **Allen antworten & Weiterleiten** — inkl. CC/BCC-Unterstützung
 - **Gesendete Mails** — zeigt Empfängeradresse statt eigener Adresse
 - **Ordner-Navigation** — alle IMAP-Ordner durchsuchen und wechseln
+- **Tag-Eingabe für Empfänger** — An/CC/BCC als einzelne Chips, einfach entfernbar
+
+### 📎 Anhänge
+- **Speichern** — Anhang direkt in den Download-Ordner speichern
+- **Öffnen** — Anhang speichern und sofort mit der Standard-Anwendung öffnen
+- **Alle herunterladen** — alle Anhänge einer Mail auf einmal speichern
+- **Vorschau** — Bilder und PDFs direkt in der App anzeigen
 
 ### 🔍 Suche & Filter
 - **Globale Suche** über alle Konten — `Ctrl+K`
@@ -124,6 +129,7 @@ echo "✅ CoreMail wurde komplett entfernt!"
 - **Dynamische App-Icons** — passen sich automatisch ans Theme an
 - **Schriftart-Auswahl** — Google Fonts direkt in den Einstellungen
 - **Anpassbare Spaltenbreiten** — per Drag
+- **CSS-Isolation** — E-Mail-CSS beeinflusst niemals die App-Oberfläche
 
 ### 📊 Dashboard
 - Anpassbare Widgets: Statistiken, Schnellaktionen, Kontoübersicht, Kategorien

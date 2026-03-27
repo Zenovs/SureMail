@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "3.0.0",
-  "description": "CoreMail Desktop v3.0.0 - Tag-Eingabe für Empfänger (An/CC/BCC)",
+  "version": "3.0.2",
+  "description": "CoreMail Desktop v3.0.2 - Anhänge speichern und öffnen, CSS-Isolation",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

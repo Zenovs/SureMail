@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import { useOllama } from '../context/OllamaContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import EmailHtmlFrame from '../components/EmailHtmlFrame';
 
 const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolder = 'INBOX' }) => {
   const { currentTheme } = useTheme();
@@ -150,19 +151,20 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
     });
   };
 
-  const downloadAttachment = async (attachment, index) => {
+  const downloadAttachment = async (attachment, index, andOpen = false) => {
     setDownloadProgress(prev => ({ ...prev, [index]: 'downloading' }));
-    
     try {
-      const link = document.createElement('a');
-      link.href = `data:${attachment.contentType};base64,${attachment.content}`;
-      link.download = attachment.filename;
-      link.click();
-      
-      setDownloadProgress(prev => ({ ...prev, [index]: 'done' }));
-      setTimeout(() => {
-        setDownloadProgress(prev => ({ ...prev, [index]: null }));
-      }, 2000);
+      const result = await window.electronAPI.saveAllAttachments([attachment]);
+      const saved = result?.results?.[0];
+      if (saved?.success) {
+        setDownloadProgress(prev => ({ ...prev, [index]: 'done' }));
+        if (andOpen && saved.path) {
+          await window.electronAPI.openFile(saved.path);
+        }
+        setTimeout(() => setDownloadProgress(prev => ({ ...prev, [index]: null })), 2000);
+      } else {
+        setDownloadProgress(prev => ({ ...prev, [index]: 'error' }));
+      }
     } catch (e) {
       setDownloadProgress(prev => ({ ...prev, [index]: 'error' }));
     }
@@ -420,10 +422,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
       <div className={`flex-1 overflow-y-auto p-6 ${c.bg}`}>
         <div className="max-w-4xl mx-auto">
           {fullEmail.html ? (
-            <div 
-              className="email-content bg-white text-gray-800 p-6 rounded-lg"
-              dangerouslySetInnerHTML={{ __html: fullEmail.html }}
-            />
+            <EmailHtmlFrame html={fullEmail.html} />
           ) : (
             <pre className={`whitespace-pre-wrap font-mono text-sm ${c.text} ${c.bgSecondary} p-6 rounded-lg`}>
               {fullEmail.text}
@@ -505,10 +504,16 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
                               </button>
                             )}
                             <button
-                              onClick={() => downloadAttachment(att, index)}
+                              onClick={() => downloadAttachment(att, index, false)}
                               className={`px-3 py-1 ${c.bgTertiary} ${c.hover} ${c.accent} rounded text-sm transition-colors`}
                             >
-                              ⬇️ Download
+                              ⬇️ Speichern
+                            </button>
+                            <button
+                              onClick={() => downloadAttachment(att, index, true)}
+                              className={`px-3 py-1 ${c.bgTertiary} ${c.hover} text-green-400 rounded text-sm transition-colors`}
+                            >
+                              📂 Öffnen
                             </button>
                           </>
                         )}

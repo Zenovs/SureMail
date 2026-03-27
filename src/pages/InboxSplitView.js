@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import EmailHtmlFrame from '../components/EmailHtmlFrame';
 import { getCurrentFont } from './FontSettings';
 import { analyzeEmails, getSpamFilterSettings, TAG_STYLES } from '../utils/SpamFilter';
 import SenderCategoryManager from '../services/SenderCategoryManager';
@@ -415,6 +416,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [replySending, setReplySending] = useState(false);
   const [replyError, setReplyError] = useState(null);
   const replyEditorRef = useRef(null);
+
+  // v3.0.2: Attachment download/open state for split-view
+  const [attachProgress, setAttachProgress] = useState({});
 
   // v1.14.0: Spam filter analysis results (moved up to avoid TDZ in filteredEmails)
   const [spamResults, setSpamResults] = useState(new Map());
@@ -1133,10 +1137,11 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return analysis?.category || null;
   }, [manualCategories, spamResults]);
 
-  // v2.9.3: Reset reply panel when selected email changes
+  // v2.9.3: Reset reply panel + attachment progress when selected email changes
   useEffect(() => {
     setReplyMode(null);
     setReplyError(null);
+    setAttachProgress({});
     if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
   }, [selectedEmail?.uid]);
 
@@ -1188,6 +1193,27 @@ function InboxSplitView({ onFullView, onNavigate }) {
     }
     setReplySending(false);
   }, [selectedEmail, replyMode, activeAccountId, accounts]);
+
+  // v3.0.2: Save single attachment via Electron API, then open if requested
+  const saveAttachment = useCallback(async (att, index, andOpen = false) => {
+    if (!att.content) return;
+    setAttachProgress(prev => ({ ...prev, [index]: 'saving' }));
+    try {
+      const result = await window.electronAPI.saveAllAttachments([att]);
+      const saved = result?.results?.[0];
+      if (saved?.success) {
+        setAttachProgress(prev => ({ ...prev, [index]: 'done' }));
+        if (andOpen && saved.path) {
+          await window.electronAPI.openFile(saved.path);
+        }
+        setTimeout(() => setAttachProgress(prev => ({ ...prev, [index]: null })), 2000);
+      } else {
+        setAttachProgress(prev => ({ ...prev, [index]: 'error' }));
+      }
+    } catch {
+      setAttachProgress(prev => ({ ...prev, [index]: 'error' }));
+    }
+  }, []);
 
   // Keyboard navigation (v2.3.0: added Ctrl+A for select all)
   useEffect(() => {
@@ -1938,18 +1964,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                   const fontStyle = `"${fontFamily}", system-ui, -apple-system, sans-serif`;
 
                   return selectedEmail.html ? (
-                    <div
-                      className="email-content"
-                      dangerouslySetInnerHTML={{ __html: selectedEmail.html }}
-                      style={{
-                        backgroundColor: 'white',
-                        color: 'black',
-                        padding: '16px',
-                        borderRadius: '8px',
-                        minHeight: '200px',
-                        fontFamily: fontStyle
-                      }}
-                    />
+                    <EmailHtmlFrame html={selectedEmail.html} fontFamily={fontStyle} />
                   ) : (
                     <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: fontStyle }}>
                       {selectedEmail.text}
@@ -1960,11 +1975,37 @@ function InboxSplitView({ onFullView, onNavigate }) {
                   <div className={`mt-6 pt-4 ${c.border} border-t`}>
                     <h4 className={`font-medium ${c.text} mb-2`}>Anhänge ({selectedEmail.attachments.length})</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedEmail.attachments.map((att, i) => (
-                        <div key={i} className={`px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
-                          📎 {att.filename}
-                        </div>
-                      ))}
+                      {selectedEmail.attachments.map((att, i) => {
+                        const prog = attachProgress[i];
+                        const hasContent = !!att.content;
+                        return (
+                          <div key={i} className={`flex items-center gap-2 px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
+                            <span>📎 {att.filename}</span>
+                            {att.size && <span className={`text-xs ${c.textSecondary}`}>({(att.size / 1024).toFixed(1)} KB)</span>}
+                            {hasContent && (
+                              <>
+                                <button
+                                  onClick={() => saveAttachment(att, i, false)}
+                                  disabled={prog === 'saving'}
+                                  title="Speichern"
+                                  className={`p-1 rounded hover:bg-blue-500/20 text-blue-400 transition-colors disabled:opacity-50`}
+                                >
+                                  {prog === 'saving' ? <span className="text-xs">⏳</span> : prog === 'done' ? <span className="text-xs text-green-400">✓</span> : <Download className="w-3.5 h-3.5" />}
+                                </button>
+                                <button
+                                  onClick={() => saveAttachment(att, i, true)}
+                                  disabled={prog === 'saving'}
+                                  title="Öffnen"
+                                  className={`p-1 rounded hover:bg-green-500/20 text-green-400 transition-colors disabled:opacity-50`}
+                                >
+                                  <FolderOpen className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                            {prog === 'error' && <span className="text-xs text-red-400">Fehler</span>}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

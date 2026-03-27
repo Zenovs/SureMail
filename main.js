@@ -2403,7 +2403,7 @@ ipcMain.handle('graph:fetchEmail', async (event, accountId, messageId) => {
         filename: att.name,
         size: att.size,
         contentType: att.contentType,
-        content: att.contentBytes ? Buffer.from(att.contentBytes, 'base64') : null,
+        content: att.contentBytes || null, // keep as base64 string for saveAllAttachments
         id: att.id
       }))
     };
