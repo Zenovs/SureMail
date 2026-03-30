@@ -171,7 +171,61 @@ app.whenReady().then(async () => {
   createWindow();
   // Auto-start Ollama in background (non-blocking)
   setTimeout(() => autoStartOllama(), 2000);
+  // Sync system launcher icons in background (non-blocking)
+  setTimeout(() => syncSystemIcons(), 3000);
 });
+
+// v3.0.3: Refresh Linux system launcher icons from GitHub so the correct icon
+// appears in the app drawer after an in-app update (no re-install needed).
+function syncSystemIcons() {
+  if (process.platform !== 'linux') return;
+  try {
+    const { execFile } = require('child_process');
+    const os = require('os');
+    const home = os.homedir();
+    const ICON_BASE = 'https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons';
+    const SIZES = [16, 32, 64, 128, 256, 512];
+    const APP_VERSION = app.getVersion();
+    const versionKey = `iconsVersion`;
+    const storedVersion = store.get(versionKey, '0');
+
+    // Only update if app version changed (avoids unnecessary network requests)
+    if (storedVersion === APP_VERSION) return;
+
+    const downloadFile = (url, dest) => new Promise((resolve) => {
+      const file = fs.createWriteStream(dest);
+      https.get(url, (res) => {
+        res.pipe(file);
+        file.on('finish', () => { file.close(); resolve(); });
+      }).on('error', () => { file.close(); resolve(); });
+    });
+
+    (async () => {
+      try {
+        for (const sz of SIZES) {
+          const dir = path.join(home, `.local/share/icons/hicolor/${sz}x${sz}/apps`);
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+          await downloadFile(`${ICON_BASE}/icon-${sz}.png`, path.join(dir, 'coremail.png'));
+        }
+        // pixmaps fallback
+        const pixDir = path.join(home, '.local/share/pixmaps');
+        if (!fs.existsSync(pixDir)) fs.mkdirSync(pixDir, { recursive: true });
+        await downloadFile(`${ICON_BASE}/icon-512.png`, path.join(pixDir, 'coremail.png'));
+
+        // Refresh caches
+        execFile('gtk-update-icon-cache', ['-f', path.join(home, '.local/share/icons/hicolor')], () => {});
+        execFile('update-desktop-database', [path.join(home, '.local/share/applications')], () => {});
+
+        store.set(versionKey, APP_VERSION);
+        console.log('[Icons] System launcher icons updated to v' + APP_VERSION);
+      } catch (e) {
+        console.warn('[Icons] Could not update system icons:', e.message);
+      }
+    })();
+  } catch (e) {
+    console.warn('[Icons] syncSystemIcons error:', e.message);
+  }
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

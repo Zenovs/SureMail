@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "3.0.3",
-  "description": "CoreMail Desktop v3.0.3 - Neues App-Icon überall",
+  "version": "3.0.4",
+  "description": "CoreMail Desktop v3.0.4 - Launcher-Icon automatisch aktualisieren",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
