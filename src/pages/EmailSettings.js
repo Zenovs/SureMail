@@ -21,7 +21,7 @@ const REFRESH_INTERVAL_OPTIONS = [
 function EmailSettings() {
   const { currentTheme } = useTheme();
   const c = currentTheme.colors;
-  const [markAsReadMode, setMarkAsReadMode] = useState('onClick');
+  const [markAsReadMode, setMarkAsReadMode] = useState('never');
   const [refreshInterval, setRefreshInterval] = useState('5');
   const [localStorageEnabled, setLocalStorageEnabled] = useState(true);
   const [cacheSize, setCacheSize] = useState(0);

@@ -879,8 +879,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
     if (filteredEmails[index]) {
       loadEmailPreview(filteredEmails[index].uid);
       
-      // Auto-mark as read based on settings (v1.8.1)
-      const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
+      // Auto-mark as read based on settings (v1.8.1) — default: never
+      const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
       if (markMode === 'onClick' && !filteredEmails[index].seen) {
         handleToggleRead(filteredEmails[index].uid, false);
       }

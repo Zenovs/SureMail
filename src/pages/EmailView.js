@@ -33,7 +33,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
         setLoading(false);
         
         // Mark as read on open if setting is "onOpen" (v1.8.1)
-        const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
+        const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
         if (markMode === 'onOpen' && !email.seen && window.electronAPI && activeAccountId) {
           window.electronAPI.markAsRead(activeAccountId, email.uid, true, currentFolder);
           setIsRead(true);
@@ -62,7 +62,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           setFullEmail(result.email);
           
           // Mark as read on open if setting is "onOpen" (v1.8.1)
-          const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
+          const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
           if (markMode === 'onOpen' && !email.seen) {
             window.electronAPI.markAsRead(activeAccountId, email.uid, true, currentFolder);
           }
