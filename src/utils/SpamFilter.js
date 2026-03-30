@@ -424,6 +424,13 @@ export const TAG_STYLES = {
     textColor: 'text-green-400',
     borderColor: 'border-green-500/40',
     description: 'Keine Bedrohung erkannt'
+  },
+  'whitelist': {
+    label: '✅ Vertrauenswürdig',
+    bgColor: 'bg-green-500/20',
+    textColor: 'text-green-400',
+    borderColor: 'border-green-500/40',
+    description: 'Manuell als vertrauenswürdig markiert'
   }
 };
 

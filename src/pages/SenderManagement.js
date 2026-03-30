@@ -6,12 +6,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Trash2, Search, Download, Upload, RefreshCw, AlertTriangle, Megaphone, Ban, ShieldAlert, Bug, Users, X, Filter } from 'lucide-react';
+import { Trash2, Search, Download, Upload, RefreshCw, AlertTriangle, Megaphone, Ban, ShieldAlert, Bug, Users, X, Filter, CheckCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import SenderCategoryManager from '../services/SenderCategoryManager';
 
 // Category definitions matching InboxSplitView
 const CATEGORIES = [
+  { id: 'whitelist', name: 'Vertrauenswürdig', icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-500/20', emoji: '✅' },
   { id: 'werbung', name: 'Werbung', icon: Megaphone, color: 'text-orange-400', bgColor: 'bg-orange-500/20', emoji: '📢' },
   { id: 'spam', name: 'Spam', icon: Ban, color: 'text-red-400', bgColor: 'bg-red-500/20', emoji: '🚫' },
   { id: 'schaedlich', name: 'Schädlich', icon: ShieldAlert, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', emoji: '⚠️' },
@@ -120,7 +121,7 @@ function SenderManagement() {
       </div>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         {/* Total */}
         <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-4`}>
           <div className={`text-2xl font-bold ${c.text}`}>{stats.total || 0}</div>

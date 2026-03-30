@@ -108,6 +108,7 @@ class SenderCategoryManager {
    */
   getStats() {
     const stats = {
+      whitelist: 0,
       werbung: 0,
       spam: 0,
       schaedlich: 0,
