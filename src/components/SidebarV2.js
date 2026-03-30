@@ -97,13 +97,48 @@ function SidebarV2({ currentView, onNavigate }) {
       <div className={`p-4 ${c.border} border-b`}>
         {isIconsOnly || settings.collapsed ? (
           <div className="flex justify-center">
-            <span className="text-2xl">📧</span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="36" height="36">
+              <defs>
+                <linearGradient id="sbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#0A0A0F" />
+                  <stop offset="100%" stopColor="#1A1A24" />
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="200" height="200" rx="24" fill="url(#sbGrad)"/>
+              <g transform="translate(100,100)">
+                <path d="M 40 -55 A 65 65 0 1 0 40 55" fill="none" stroke="#06B6D4" strokeWidth="4" strokeLinecap="round"/>
+                <path d="M 32 -45 A 53 53 0 1 0 32 45" fill="none" stroke="#22D3EE" strokeWidth="2.5" strokeLinecap="round" opacity="0.6"/>
+                <path d="M -50 -8 L -25 0 L -50 8 Z" fill="#06B6D4"/>
+                <circle cx="-35" cy="0" r="2.5" fill="#22D3EE"/>
+                <circle cx="-20" cy="0" r="2.5" fill="#22D3EE"/>
+                <circle cx="-5" cy="0" r="2.5" fill="#22D3EE"/>
+              </g>
+            </svg>
           </div>
         ) : (
-          <>
-            <h1 className={`text-xl font-bold ${c.accent}`}>CoreMail</h1>
-            <span className={`text-xs ${c.textSecondary}`}>v{appVersion}</span>
-          </>
+          <div className="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="36" height="36" style={{flexShrink: 0}}>
+              <defs>
+                <linearGradient id="sbGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#0A0A0F" />
+                  <stop offset="100%" stopColor="#1A1A24" />
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="200" height="200" rx="24" fill="url(#sbGrad2)"/>
+              <g transform="translate(100,100)">
+                <path d="M 40 -55 A 65 65 0 1 0 40 55" fill="none" stroke="#06B6D4" strokeWidth="4" strokeLinecap="round"/>
+                <path d="M 32 -45 A 53 53 0 1 0 32 45" fill="none" stroke="#22D3EE" strokeWidth="2.5" strokeLinecap="round" opacity="0.6"/>
+                <path d="M -50 -8 L -25 0 L -50 8 Z" fill="#06B6D4"/>
+                <circle cx="-35" cy="0" r="2.5" fill="#22D3EE"/>
+                <circle cx="-20" cy="0" r="2.5" fill="#22D3EE"/>
+                <circle cx="-5" cy="0" r="2.5" fill="#22D3EE"/>
+              </g>
+            </svg>
+            <div>
+              <h1 className={`text-xl font-bold ${c.accent}`}>CoreMail</h1>
+              <span className={`text-xs ${c.textSecondary}`}>v{appVersion}</span>
+            </div>
+          </div>
         )}
       </div>
 
