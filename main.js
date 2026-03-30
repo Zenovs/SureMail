@@ -213,13 +213,27 @@ function syncSystemIcons() {
         const pixIconPath = path.join(pixDir, 'coremail.png');
         await downloadFile(`${ICON_BASE}/icon-256.png`, pixIconPath);
 
-        // Update .desktop file with absolute icon path so taskbar always shows correct icon
+        // Rewrite .desktop file with correct Exec (no --no-sandbox) and absolute Icon path
         const desktopDir = path.join(home, '.local/share/applications');
         const desktopFile = path.join(desktopDir, 'coremail.desktop');
-        if (fs.existsSync(desktopFile)) {
-          let content = fs.readFileSync(desktopFile, 'utf8');
-          content = content.replace(/^Icon=.*$/m, `Icon=${pixIconPath}`);
-          fs.writeFileSync(desktopFile, content);
+        const execPath = path.join(home, '.local/bin/coremail-desktop');
+        if (fs.existsSync(desktopFile) && fs.existsSync(execPath)) {
+          const desktopContent = [
+            '[Desktop Entry]',
+            'Version=1.0',
+            'Type=Application',
+            'Name=CoreMail Desktop',
+            'Comment=E-Mail Client für Linux',
+            `Exec=${execPath}`,
+            `Icon=${pixIconPath}`,
+            'Terminal=false',
+            'Categories=Network;Email;Office;',
+            'StartupNotify=true',
+            'StartupWMClass=coremail-desktop',
+            'Keywords=email;mail;imap;smtp;',
+            ''
+          ].join('\n');
+          fs.writeFileSync(desktopFile, desktopContent);
         }
 
         // Refresh caches

@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Variablen
-VERSION="3.0.7"
+VERSION="3.0.8"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 
@@ -114,7 +114,7 @@ Version=1.0
 Type=Application
 Name=CoreMail Desktop
 Comment=E-Mail Client für Linux
-Exec=$HOME/.local/bin/coremail-desktop --no-sandbox
+Exec=$HOME/.local/bin/coremail-desktop
 Icon=$HOME/.local/share/pixmaps/coremail.png
 Terminal=false
 Categories=Network;Email;Office;
@@ -140,7 +140,7 @@ echo "2. Suche nach 'CoreMail'"
 echo "3. Klicke auf das Icon zum Starten"
 echo ""
 echo "Oder starte direkt mit:"
-echo "  ~/.local/bin/coremail-desktop --no-sandbox"
+echo "  ~/.local/bin/coremail-desktop"
 echo ""
 
 # Optional: App direkt starten
@@ -148,5 +148,5 @@ read -p "Möchtest du CoreMail jetzt starten? (j/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
     echo "🚀 Starte CoreMail Desktop..."
-    ~/.local/bin/coremail-desktop --no-sandbox &
+    ~/.local/bin/coremail-desktop &
 fi

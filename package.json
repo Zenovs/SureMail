@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "3.0.7",
-  "description": "CoreMail Desktop v3.0.7 - Mails nicht mehr automatisch als gelesen markieren",
+  "version": "3.0.8",
+  "description": "CoreMail Desktop v3.0.8 - Launcher-Button repariert",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
