@@ -207,10 +207,20 @@ function syncSystemIcons() {
           if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
           await downloadFile(`${ICON_BASE}/icon-${sz}.png`, path.join(dir, 'coremail.png'));
         }
-        // pixmaps fallback
+        // pixmaps (used as absolute icon path in .desktop file)
         const pixDir = path.join(home, '.local/share/pixmaps');
         if (!fs.existsSync(pixDir)) fs.mkdirSync(pixDir, { recursive: true });
-        await downloadFile(`${ICON_BASE}/icon-512.png`, path.join(pixDir, 'coremail.png'));
+        const pixIconPath = path.join(pixDir, 'coremail.png');
+        await downloadFile(`${ICON_BASE}/icon-256.png`, pixIconPath);
+
+        // Update .desktop file with absolute icon path so taskbar always shows correct icon
+        const desktopDir = path.join(home, '.local/share/applications');
+        const desktopFile = path.join(desktopDir, 'coremail.desktop');
+        if (fs.existsSync(desktopFile)) {
+          let content = fs.readFileSync(desktopFile, 'utf8');
+          content = content.replace(/^Icon=.*$/m, `Icon=${pixIconPath}`);
+          fs.writeFileSync(desktopFile, content);
+        }
 
         // Refresh caches
         execFile('gtk-update-icon-cache', ['-f', path.join(home, '.local/share/icons/hicolor')], () => {});

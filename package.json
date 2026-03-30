@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "3.0.5",
-  "description": "CoreMail Desktop v3.0.5 - Neues Icon in der Seitenleiste",
+  "version": "3.0.6",
+  "description": "CoreMail Desktop v3.0.6 - Startleisten-Icon Fix",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

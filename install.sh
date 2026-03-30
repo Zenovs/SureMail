@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Variablen
-VERSION="3.0.5"
+VERSION="3.0.6"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 
@@ -115,7 +115,7 @@ Type=Application
 Name=CoreMail Desktop
 Comment=E-Mail Client für Linux
 Exec=$HOME/.local/bin/coremail-desktop --no-sandbox
-Icon=coremail
+Icon=$HOME/.local/share/pixmaps/coremail.png
 Terminal=false
 Categories=Network;Email;Office;
 StartupNotify=true
