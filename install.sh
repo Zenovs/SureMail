@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # CoreMail Desktop Installation Script
-# Version: 3.0.9
+# Version: 3.0.10
 
 set -e
 
-echo "🚀 CoreMail Desktop Installation"
-echo "================================="
+echo "🚀 CoreMail Desktop Installation / Update"
+echo "=========================================="
 echo ""
 
 # Farben
@@ -19,6 +19,20 @@ NC='\033[0m' # No Color
 VERSION="3.0.10"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
+CONFIG_DIR="$HOME/.config/coremail-desktop"
+
+# Laufende Instanz beenden
+echo "🛑 Beende laufende CoreMail-Instanzen..."
+pkill -f "coremail-desktop" 2>/dev/null || true
+sleep 1
+echo -e "${GREEN}✅ Erledigt${NC}"
+
+# Alte Installation entfernen (ohne Einstellungen)
+echo "🧹 Entferne alte Installation..."
+rm -f ~/.local/bin/coremail-desktop
+rm -f ~/.local/bin/coremail
+rm -f ~/.local/share/applications/coremail.desktop
+echo -e "${GREEN}✅ Alte Dateien entfernt (Einstellungen bleiben erhalten)${NC}"
 
 # Verzeichnisse erstellen
 echo "📁 Erstelle Verzeichnisse..."
@@ -131,6 +145,7 @@ Icon=$HOME/.local/share/pixmaps/coremail.png
 Terminal=false
 Categories=Network;Email;Office;
 StartupNotify=true
+StartupWMClass=coremail-desktop
 Keywords=email;mail;imap;smtp;
 EOF
 
@@ -145,6 +160,10 @@ echo -e "${GREEN}✅ Caches aktualisiert${NC}"
 
 echo ""
 echo -e "${GREEN}✅ Installation abgeschlossen!${NC}"
+echo ""
+if [ -d "$CONFIG_DIR" ]; then
+    echo -e "${GREEN}✅ Einstellungen wurden beibehalten${NC}"
+fi
 echo ""
 echo "📋 Nächste Schritte:"
 echo "1. Drücke die Super-Taste (Windows-Taste)"
