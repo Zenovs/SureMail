@@ -218,11 +218,12 @@ function syncSystemIcons() {
         const pixIconPath = path.join(pixDir, 'coremail.png');
         await downloadFile(`${ICON_BASE}/icon-256.png`, pixIconPath);
 
-        // Rewrite .desktop file with correct Exec (no --no-sandbox) and absolute Icon path
+        // Rewrite .desktop file — Exec zeigt auf Wrapper (APPIMAGE_EXTRACT_AND_RUN=1) statt direkt auf AppImage
         const desktopDir = path.join(home, '.local/share/applications');
         const desktopFile = path.join(desktopDir, 'coremail.desktop');
-        const execPath = path.join(home, '.local/bin/coremail-desktop');
-        if (fs.existsSync(desktopFile) && fs.existsSync(execPath)) {
+        const wrapperPath = path.join(home, '.local/bin/coremail');
+        const execPath = fs.existsSync(wrapperPath) ? wrapperPath : path.join(home, '.local/bin/coremail-desktop');
+        if (fs.existsSync(desktopFile)) {
           const desktopContent = [
             '[Desktop Entry]',
             'Version=1.0',

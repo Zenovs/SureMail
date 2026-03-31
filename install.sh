@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Variablen
-VERSION="3.0.9"
+VERSION="3.0.10"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 
