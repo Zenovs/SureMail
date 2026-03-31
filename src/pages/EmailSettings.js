@@ -58,11 +58,15 @@ function EmailSettings() {
   const handleReadModeChange = (mode) => {
     setMarkAsReadMode(mode);
     localStorage.setItem('emailSettings.markAsReadMode', mode);
+    const label = MARK_AS_READ_OPTIONS.find(o => o.id === mode)?.name || mode;
+    window.electronAPI?.logAdd('settings', `Als-gelesen-Markierung geändert: ${label}`, '').catch?.(() => {});
   };
 
   const handleRefreshIntervalChange = (intervalId) => {
     setRefreshInterval(intervalId);
     localStorage.setItem('emailSettings.refreshInterval', intervalId);
+    const label = REFRESH_INTERVAL_OPTIONS.find(o => o.id === intervalId)?.name || intervalId;
+    window.electronAPI?.logAdd('settings', `Aktualisierungsintervall geändert: ${label}`, '').catch?.(() => {});
     
     // Dispatch event so InboxSplitView can pick up the change
     window.dispatchEvent(new CustomEvent('emailSettingsChanged', { 

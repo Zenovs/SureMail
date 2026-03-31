@@ -48,6 +48,7 @@ import Dashboard from './pages/Dashboard';
 import InboxSplitView from './pages/InboxSplitView';
 import ComposeEmail from './pages/ComposeEmail';
 import SettingsV2 from './pages/SettingsV2';
+import Logbuch from './pages/Logbuch';
 import AccountManager from './pages/AccountManager';
 import EmailView from './pages/EmailView';
 import { applySavedFont } from './pages/FontSettings';
@@ -254,6 +255,8 @@ function AppContent() {
         return <SettingsV2 />;
       case 'accounts':
         return <AccountManager />;
+      case 'logbuch':
+        return <Logbuch />;
       case 'emailView':
         return (
           <EmailView 

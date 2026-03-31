@@ -96,5 +96,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteGraphEmail: (accountId, messageId) => ipcRenderer.invoke('graph:deleteEmail', accountId, messageId),
   markGraphAsRead: (accountId, messageId, isRead) => ipcRenderer.invoke('graph:markAsRead', accountId, messageId, isRead),
   moveGraphEmail: (accountId, messageId, destFolderId) => ipcRenderer.invoke('graph:moveEmail', accountId, messageId, destFolderId),
-  listGraphFolders: (accountId) => ipcRenderer.invoke('graph:listFolders', accountId)
+  listGraphFolders: (accountId) => ipcRenderer.invoke('graph:listFolders', accountId),
+
+  // Logbuch (v3.0.12)
+  logAdd: (type, title, detail) => ipcRenderer.invoke('log:add', { type, title, detail }),
+  logGetAll: () => ipcRenderer.invoke('log:getAll'),
+  logClear: () => ipcRenderer.invoke('log:clear'),
 });

@@ -832,6 +832,17 @@ function InboxSplitView({ onFullView, onNavigate }) {
         const serverUids = new Set(serverEmails.map(e => e.uid));
         const prevByUid = new Map(prev.map(e => [e.uid, e]));
 
+        // Logbuch: wirklich neue E-Mails protokollieren
+        const trulyNew = serverEmails.filter(e => !prevByUid.has(e.uid));
+        if (trulyNew.length > 0 && window.electronAPI?.logAdd) {
+          trulyNew.forEach(e => {
+            window.electronAPI.logAdd('email_received',
+              `E-Mail empfangen: ${e.subject || '(kein Betreff)'}`,
+              `Von: ${e.from || ''} | Konto: ${accountId}`
+            ).catch(() => {});
+          });
+        }
+
         const merged = serverEmails.map(e => {
           const local = prevByUid.get(e.uid);
           return local ? { ...e, seen: local.seen || e.seen } : e;

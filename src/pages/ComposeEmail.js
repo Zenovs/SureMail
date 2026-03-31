@@ -473,8 +473,14 @@ function ComposeEmail({ onBack, replyTo = null }) {
         result = await window.electronAPI.sendEmail(emailData);
       }
 
-      if (result.success) { setSuccess(true); setTimeout(() => onBack(), 2000); }
-      else setError(result.error);
+      if (result.success) {
+        setSuccess(true);
+        window.electronAPI.logAdd('email_sent',
+          `E-Mail gesendet: ${form.subject || '(kein Betreff)'}`,
+          `An: ${toTags.join(', ')}${ccTags.length ? ' | CC: ' + ccTags.join(', ') : ''}${attachments.length ? ' | ' + attachments.length + ' Anhang/Anhänge' : ''}`
+        ).catch(() => {});
+        setTimeout(() => onBack(), 2000);
+      } else setError(result.error);
     } catch (e) { setError(e.message); }
     setSending(false);
   };

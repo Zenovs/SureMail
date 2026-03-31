@@ -243,7 +243,11 @@ class UpdateManagerClass {
           
           this.status = UpdateStatus.UPDATE_AVAILABLE;
           this.updateInfo = result;
-          
+          window.electronAPI?.logAdd?.('update',
+            `Update verfügbar: v${result.latestVersion}`,
+            `Aktuelle Version: v${result.currentVersion}`
+          ).catch?.(() => {});
+
           // Auto-Download wenn aktiviert
           if (settings.autoDownload) {
             this.downloadUpdate();
@@ -328,6 +332,10 @@ class UpdateManagerClass {
 
     this.status = UpdateStatus.INSTALLING;
     this.notify();
+    window.electronAPI?.logAdd?.('update',
+      `Update wird installiert: v${this.updateInfo?.latestVersion || '?'}`,
+      ''
+    ).catch?.(() => {});
 
     try {
       const result = await window.electronAPI.installUpdate(this.downloadedPath);

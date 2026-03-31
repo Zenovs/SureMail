@@ -76,6 +76,7 @@ function SidebarV2({ currentView, onNavigate }) {
   const bottomItems = [
     { id: 'accounts', label: 'Konten', icon: '👤' },
     { id: 'settings', label: 'Einstellungen', icon: '⚙️' },
+    { id: 'logbuch', label: 'Logbuch', icon: '📋' },
   ];
 
   // Icons-Only Mode

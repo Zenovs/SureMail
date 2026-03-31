@@ -178,6 +178,8 @@ app.whenReady().then(async () => {
   setTimeout(() => autoStartOllama(), 2000);
   // Sync system launcher icons in background (non-blocking)
   setTimeout(() => syncSystemIcons(), 3000);
+  // Logbuch: App-Start protokollieren
+  addLogEntry('app_start', `CoreMail v${APP_VERSION} gestartet`, `Plattform: ${process.platform}`);
 });
 
 // v3.0.3: Refresh Linux system launcher icons from GitHub so the correct icon
@@ -2588,4 +2590,43 @@ ipcMain.handle('graph:listFolders', async (event, accountId) => {
     console.error('[Graph] listFolders:', error.message);
     return { success: false, error: error.message };
   }
+});
+
+// ============================================================
+// LOGBUCH (v3.0.12)
+// ============================================================
+
+const LOG_KEY = 'appLog';
+const LOG_MAX = 2000;
+
+function addLogEntry(type, title, detail = '') {
+  try {
+    const entries = store.get(LOG_KEY, []);
+    const entry = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      timestamp: new Date().toISOString(),
+      type,
+      title,
+      detail
+    };
+    entries.unshift(entry);
+    if (entries.length > LOG_MAX) entries.splice(LOG_MAX);
+    store.set(LOG_KEY, entries);
+  } catch (e) {
+    console.error('[Log] addLogEntry error:', e.message);
+  }
+}
+
+ipcMain.handle('log:add', async (event, { type, title, detail }) => {
+  addLogEntry(type, title, detail || '');
+  return { success: true };
+});
+
+ipcMain.handle('log:getAll', async () => {
+  return { success: true, entries: store.get(LOG_KEY, []) };
+});
+
+ipcMain.handle('log:clear', async () => {
+  store.set(LOG_KEY, []);
+  return { success: true };
 });
