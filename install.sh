@@ -164,7 +164,7 @@ echo "  ~/.local/bin/coremail-desktop"
 echo ""
 
 # Optional: App direkt starten
-read -p "Möchtest du CoreMail jetzt starten? (j/n) " -n 1 -r
+read -p "Möchtest du CoreMail jetzt starten? (j/n) " -n 1 -r < /dev/tty
 echo
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
     echo "🚀 Starte CoreMail Desktop..."
