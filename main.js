@@ -218,11 +218,10 @@ function syncSystemIcons() {
         const pixIconPath = path.join(pixDir, 'coremail.png');
         await downloadFile(`${ICON_BASE}/icon-256.png`, pixIconPath);
 
-        // Rewrite .desktop file — Exec zeigt auf Wrapper (APPIMAGE_EXTRACT_AND_RUN=1) statt direkt auf AppImage
+        // Rewrite .desktop file — env-Prefix setzt APPIMAGE_EXTRACT_AND_RUN=1 für GNOME-Kompatibilität
         const desktopDir = path.join(home, '.local/share/applications');
         const desktopFile = path.join(desktopDir, 'coremail.desktop');
-        const wrapperPath = path.join(home, '.local/bin/coremail');
-        const execPath = fs.existsSync(wrapperPath) ? wrapperPath : path.join(home, '.local/bin/coremail-desktop');
+        const appImagePath = path.join(home, '.local/bin/coremail-desktop');
         if (fs.existsSync(desktopFile)) {
           const desktopContent = [
             '[Desktop Entry]',
@@ -230,7 +229,7 @@ function syncSystemIcons() {
             'Type=Application',
             'Name=CoreMail Desktop',
             'Comment=E-Mail Client für Linux',
-            `Exec=${execPath}`,
+            `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ELECTRON_NO_SANDBOX=1 ${appImagePath}`,
             `Icon=${pixIconPath}`,
             'Terminal=false',
             'Categories=Network;Email;Office;',

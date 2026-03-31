@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Variablen
-VERSION="3.0.10"
+VERSION="3.0.11"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 CONFIG_DIR="$HOME/.config/coremail-desktop"
@@ -54,18 +54,6 @@ fi
 
 chmod +x ~/.local/bin/coremail-desktop
 echo -e "${GREEN}✅ AppImage heruntergeladen${NC}"
-
-# Wrapper-Script erstellen (löst FUSE/GNOME Launcher Problem)
-echo "📝 Erstelle Starter-Script..."
-cat > ~/.local/bin/coremail << 'WRAPPER'
-#!/bin/bash
-# CoreMail Starter: Umgeht FUSE-Beschränkungen im GNOME-Kontext
-export APPIMAGE_EXTRACT_AND_RUN=1
-export ELECTRON_NO_SANDBOX=1
-exec "$HOME/.local/bin/coremail-desktop" "$@"
-WRAPPER
-chmod +x ~/.local/bin/coremail
-echo -e "${GREEN}✅ Starter-Script erstellt${NC}"
 
 # Icons herunterladen
 echo "🎨 Lade Icons herunter..."
@@ -140,7 +128,7 @@ Version=1.0
 Type=Application
 Name=CoreMail Desktop
 Comment=E-Mail Client für Linux
-Exec=$HOME/.local/bin/coremail
+Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ELECTRON_NO_SANDBOX=1 $HOME/.local/bin/coremail-desktop
 Icon=$HOME/.local/share/pixmaps/coremail.png
 Terminal=false
 Categories=Network;Email;Office;
@@ -150,6 +138,7 @@ Keywords=email;mail;imap;smtp;
 EOF
 
 chmod +x ~/.local/share/applications/coremail.desktop
+gio set ~/.local/share/applications/coremail.desktop "metadata::trusted" true 2>/dev/null || true
 echo -e "${GREEN}✅ Desktop-Eintrag erstellt${NC}"
 
 # Cache aktualisieren
@@ -171,7 +160,7 @@ echo "2. Suche nach 'CoreMail'"
 echo "3. Klicke auf das Icon zum Starten"
 echo ""
 echo "Oder starte direkt mit:"
-echo "  ~/.local/bin/coremail"
+echo "  ~/.local/bin/coremail-desktop"
 echo ""
 
 # Optional: App direkt starten
@@ -179,5 +168,5 @@ read -p "Möchtest du CoreMail jetzt starten? (j/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
     echo "🚀 Starte CoreMail Desktop..."
-    ~/.local/bin/coremail &
+    APPIMAGE_EXTRACT_AND_RUN=1 ELECTRON_NO_SANDBOX=1 ~/.local/bin/coremail-desktop &
 fi
