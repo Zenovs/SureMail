@@ -13,6 +13,11 @@ const nodemailer = require('nodemailer');
 
 
 
+// ============ SANDBOX FIX (v3.0.9) ============
+// Required for AppImage on Ubuntu/GNOME where FUSE sandbox is not available
+// Must be called before app.whenReady()
+app.commandLine.appendSwitch('no-sandbox');
+
 // ============ GPU/OPENGL FIX (v1.5.2) ============
 // Completely disable GPU/OpenGL to prevent "GetVSyncParametersIfAvailable() failed" errors
 // This MUST be called before app.whenReady() - it's the most reliable fix

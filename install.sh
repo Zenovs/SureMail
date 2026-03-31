@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # CoreMail Desktop Installation Script
-# Version: 2.4.0
+# Version: 3.0.9
 
 set -e
 
@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Variablen
-VERSION="3.0.8"
+VERSION="3.0.9"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 
@@ -40,6 +40,18 @@ fi
 
 chmod +x ~/.local/bin/coremail-desktop
 echo -e "${GREEN}✅ AppImage heruntergeladen${NC}"
+
+# Wrapper-Script erstellen (löst FUSE/GNOME Launcher Problem)
+echo "📝 Erstelle Starter-Script..."
+cat > ~/.local/bin/coremail << 'WRAPPER'
+#!/bin/bash
+# CoreMail Starter: Umgeht FUSE-Beschränkungen im GNOME-Kontext
+export APPIMAGE_EXTRACT_AND_RUN=1
+export ELECTRON_NO_SANDBOX=1
+exec "$HOME/.local/bin/coremail-desktop" "$@"
+WRAPPER
+chmod +x ~/.local/bin/coremail
+echo -e "${GREEN}✅ Starter-Script erstellt${NC}"
 
 # Icons herunterladen
 echo "🎨 Lade Icons herunter..."
@@ -114,7 +126,7 @@ Version=1.0
 Type=Application
 Name=CoreMail Desktop
 Comment=E-Mail Client für Linux
-Exec=$HOME/.local/bin/coremail-desktop
+Exec=$HOME/.local/bin/coremail
 Icon=$HOME/.local/share/pixmaps/coremail.png
 Terminal=false
 Categories=Network;Email;Office;
@@ -140,7 +152,7 @@ echo "2. Suche nach 'CoreMail'"
 echo "3. Klicke auf das Icon zum Starten"
 echo ""
 echo "Oder starte direkt mit:"
-echo "  ~/.local/bin/coremail-desktop"
+echo "  ~/.local/bin/coremail"
 echo ""
 
 # Optional: App direkt starten
@@ -148,5 +160,5 @@ read -p "Möchtest du CoreMail jetzt starten? (j/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
     echo "🚀 Starte CoreMail Desktop..."
-    ~/.local/bin/coremail-desktop &
+    ~/.local/bin/coremail &
 fi

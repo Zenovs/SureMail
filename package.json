@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "3.0.8",
-  "description": "CoreMail Desktop v3.0.8 - Launcher-Button repariert",
+  "version": "3.0.9",
+  "description": "CoreMail Desktop v3.0.9 - App startet via GNOME Launcher",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
