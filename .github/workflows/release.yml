@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
@@ -16,11 +16,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libarchive-tools libopenjp2-tools rpm fakeroot
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libarchive-tools \
+            squashfs-tools \
+            fakeroot \
+            rpm \
+            dpkg
 
       - name: Install dependencies
         run: npm ci
@@ -28,14 +35,15 @@ jobs:
       - name: Build React
         run: npm run react-build
         env:
-          NODE_OPTIONS: --openssl-legacy-provider
           CI: false
 
       - name: Build Electron AppImage
-        run: npx electron-builder --linux AppImage --x64
+        run: ./node_modules/.bin/electron-builder --linux appimage --x64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder
+
+      - name: List dist folder
+        run: ls -la dist/
 
       - name: Get version from tag
         id: version
@@ -58,8 +66,7 @@ jobs:
             - Fix: M365/Exchange-Konten werden jetzt mit korrekter Tenant-Authentifizierung verbunden
             - Fix: Graph API Fehler `MailboxNotEnabledForRESTAPI` behoben
             - Fix: Azure AD Setup-Anleitung mit korrekten Berechtigungen (`Mail.ReadWrite`, `Mail.Send`, `User.Read`)
-          files: |
-            dist/*.AppImage
+          files: dist/*.AppImage
           draft: false
           prerelease: false
         env:
