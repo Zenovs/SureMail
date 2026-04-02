@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # CoreMail Desktop Installation Script
-# Version: 3.0.10
+# Version: 3.0.14
 
 set -e
 
@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Variablen
-VERSION="3.0.13"
+VERSION="3.0.14"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 CONFIG_DIR="$HOME/.config/coremail-desktop"

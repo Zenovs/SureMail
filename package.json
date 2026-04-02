@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "3.0.13",
-  "description": "CoreMail Desktop v3.0.13 - App startet via GNOME Launcher",
+  "version": "3.0.14",
+  "description": "CoreMail Desktop v3.0.14 - Fix: M365 Graph API Tenant-Authentifizierung",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

@@ -170,7 +170,8 @@ function AccountManager() {
       microsoft: {
         email: msLoginResult.email,
         clientId: msClientId.trim(),
-        tempId: msLoginResult.tempId
+        tempId: msLoginResult.tempId,
+        tenantId: msLoginResult.tenantId || null
       }
     };
     const saved = await addAccount(newAccount);

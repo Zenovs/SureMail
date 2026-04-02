@@ -2283,14 +2283,15 @@ const GRAPH_FOLDER_MAP = {
   'Archive': 'archive'
 };
 
-function getMsalApp(clientId) {
-  if (!msalInstances[clientId]) {
+function getMsalApp(clientId, tenantId) {
+  const instanceKey = tenantId ? `${clientId}_${tenantId}` : clientId;
+  if (!msalInstances[instanceKey]) {
     const msal = require('@azure/msal-node');
-    msalInstances[clientId] = new msal.PublicClientApplication({
-      auth: {
-        clientId,
-        authority: 'https://login.microsoftonline.com/common'
-      },
+    const authority = tenantId
+      ? `https://login.microsoftonline.com/${tenantId}`
+      : 'https://login.microsoftonline.com/common';
+    msalInstances[instanceKey] = new msal.PublicClientApplication({
+      auth: { clientId, authority },
       system: {
         loggerOptions: {
           loggerCallback: () => {},
@@ -2300,7 +2301,7 @@ function getMsalApp(clientId) {
       }
     });
   }
-  return msalInstances[clientId];
+  return msalInstances[instanceKey];
 }
 
 async function getGraphAccessToken(accountId) {
@@ -2308,7 +2309,8 @@ async function getGraphAccessToken(accountId) {
   if (!account || account.type !== 'microsoft') throw new Error('Kein Microsoft-Konto');
 
   const clientId = account.microsoft.clientId;
-  const pca = getMsalApp(clientId);
+  const tenantId = account.microsoft.tenantId || null;
+  const pca = getMsalApp(clientId, tenantId);
 
   // Restore token cache from store
   const cacheKey = `msalCache_${accountId}`;
@@ -2407,7 +2409,8 @@ ipcMain.handle('msauth:startLogin', async (event, { clientId }) => {
     const tempId = `ms_${Date.now()}`;
     store.set(`msalCache_${tempId}`, pca.getTokenCache().serialize());
 
-    return { success: true, email, displayName, tempId, clientId };
+    const tenantId = result.account?.tenantId || result.idTokenClaims?.tid || null;
+    return { success: true, email, displayName, tempId, clientId, tenantId };
   } catch (error) {
     console.error('[MSAuth] Login error:', error.message);
     return { success: false, error: error.message };
@@ -2421,8 +2424,12 @@ ipcMain.handle('msauth:relogin', async (event, accountId) => {
     if (!account?.microsoft?.clientId) return { success: false, error: 'Kein Microsoft-Konto' };
 
     const msal = require('@azure/msal-node');
+    const reloginTenantId = account.microsoft.tenantId || null;
+    const reloginAuthority = reloginTenantId
+      ? `https://login.microsoftonline.com/${reloginTenantId}`
+      : 'https://login.microsoftonline.com/common';
     const pca = new msal.PublicClientApplication({
-      auth: { clientId: account.microsoft.clientId, authority: 'https://login.microsoftonline.com/common' }
+      auth: { clientId: account.microsoft.clientId, authority: reloginAuthority }
     });
 
     const result = await pca.acquireTokenInteractive({
@@ -2433,7 +2440,8 @@ ipcMain.handle('msauth:relogin', async (event, accountId) => {
     });
 
     store.set(`msalCache_${accountId}`, pca.getTokenCache().serialize());
-    msalInstances[account.microsoft.clientId] = pca; // update cached instance
+    const reloginInstanceKey = reloginTenantId ? `${account.microsoft.clientId}_${reloginTenantId}` : account.microsoft.clientId;
+    msalInstances[reloginInstanceKey] = pca; // update cached instance
     return { success: true };
   } catch (error) {
     console.error('[MSAuth] Relogin error:', error.message);

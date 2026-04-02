@@ -1,0 +1,56 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build React + Electron AppImage
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: CoreMail Desktop v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## CoreMail Desktop v${{ steps.version.outputs.VERSION }}
+
+            ### Installation / Update
+
+            ```bash
+            bash <(curl -s https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh)
+            ```
+
+            ### Änderungen
+            - Fix: M365/Exchange-Konten werden jetzt mit korrekter Tenant-Authentifizierung verbunden
+            - Fix: Graph API Fehler `MailboxNotEnabledForRESTAPI` behoben
+            - Fix: Azure AD Setup-Anleitung mit korrekten Berechtigungen (`Mail.ReadWrite`, `Mail.Send`, `User.Read`)
+          files: |
+            dist/*.AppImage
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

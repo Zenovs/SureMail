@@ -56,31 +56,17 @@ Mit einer **eigenen App-Registrierung** kann dein IT-Admin die App gezielt geneh
 ### Schritt 4: API-Berechtigungen hinzufügen
 
 1. Gehe zu **API-Berechtigungen** (im linken Menü)
-2. Klicke auf **"+ Berechtigung hinzufügen"**
-3. Wähle **"APIs, die meine Organisation verwendet"**
-4. Suche nach **"Office 365 Exchange Online"**
-5. Wähle **"Delegierte Berechtigungen"**
-6. Aktiviere folgende Berechtigungen:
+2. Klicke auf **"+ Berechtigung hinzufügen"** → **"Microsoft Graph"** → **"Delegierte Berechtigungen"**
+3. Aktiviere folgende Berechtigungen:
 
    | Berechtigung | Beschreibung |
    |-------------|-------------|
-   | `IMAP.AccessAsUser.All` | E-Mails lesen über IMAP |
-   | `SMTP.Send` | E-Mails senden über SMTP |
-
-7. Klicke auf **"Berechtigungen hinzufügen"**
-
-8. Füge zusätzlich **Microsoft Graph** Berechtigungen hinzu:
-   - Klicke auf **"+ Berechtigung hinzufügen"** → **"Microsoft Graph"** → **"Delegierte Berechtigungen"**
-   - Aktiviere:
-
-   | Berechtigung | Beschreibung |
-   |-------------|-------------|
-   | `openid` | Benutzer-Identifikation |
-   | `email` | E-Mail-Adresse lesen |
-   | `profile` | Profilinformationen lesen |
+   | `Mail.ReadWrite` | E-Mails lesen und schreiben |
+   | `Mail.Send` | E-Mails senden |
+   | `User.Read` | Profil und E-Mail-Adresse lesen |
    | `offline_access` | Refresh-Token für Dauerzugriff |
 
-9. Klicke auf **"Berechtigungen hinzufügen"**
+4. Klicke auf **"Berechtigungen hinzufügen"**
 
 ---
 
