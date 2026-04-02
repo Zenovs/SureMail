@@ -66,9 +66,10 @@ jobs:
             ```
 
             ### Änderungen
-            - Fix: M365/Exchange-Konten werden jetzt mit korrekter Tenant-Authentifizierung verbunden
-            - Fix: Graph API Fehler `MailboxNotEnabledForRESTAPI` behoben
-            - Fix: Azure AD Setup-Anleitung mit korrekten Berechtigungen (`Mail.ReadWrite`, `Mail.Send`, `User.Read`)
+            - Fix: M365-Ordner (Posteingang, Gesendet, Entwürfe, etc.) werden korrekt angezeigt
+            - Fix: M365 lädt jetzt alle E-Mails (nicht mehr auf 50 begrenzt)
+            - Fix: M365 Tenant-Authentifizierung (MailboxNotEnabledForRESTAPI)
+            - Fix: Azure AD Berechtigungen in Setup-Anleitung korrigiert
           files: dist/*.AppImage
           draft: false
           prerelease: false

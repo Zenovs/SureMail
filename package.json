@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "3.0.14",
-  "description": "CoreMail Desktop v3.0.14 - Fix: M365 Graph API Tenant-Authentifizierung",
+  "version": "3.0.15",
+  "description": "CoreMail Desktop v3.0.15 - Fix: M365 Ordner und unbegrenzte E-Mail-Ladung",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

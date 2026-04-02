@@ -521,10 +521,15 @@ function InboxSplitView({ onFullView, onNavigate }) {
         // v2.9.0: Microsoft Graph folders
         result = await window.electronAPI.listGraphFolders(activeAccountId);
         if (result.success) {
-          // Normalize Graph folders to the same shape as IMAP folders
+          // Map well-known Graph folder names to the same path keys GRAPH_FOLDER_MAP uses,
+          // so folder clicks and all path===INBOX checks work identically to IMAP.
+          const WELLKNOWN_PATH = {
+            inbox: 'INBOX', sentitems: 'Sent', drafts: 'Drafts',
+            deleteditems: 'Deleted', junkemail: 'Junk', archive: 'Archive'
+          };
           const normalized = result.folders.map(f => ({
             name: f.name,
-            path: f.path,        // Graph folder ID used as path
+            path: WELLKNOWN_PATH[f.type] || f.path,
             type: f.type,
             children: [],
             unread: f.unread || 0
@@ -549,14 +554,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // until all are loaded or aborted (account/folder change).
   // Tracks full running list locally so cache + IndexedDB stay up-to-date,
   // meaning a later account switch restores all emails instantly.
-  const startBackgroundLoading = useCallback(async (startOffset, accountId, folder, initialEmails) => {
+  const startBackgroundLoading = useCallback(async (startOffset, accountId, folder, initialEmails, isGraph = false) => {
     let offset = startOffset;
     let runningList = [...initialEmails]; // full list so far (for cache/DB saves)
 
     while (true) {
       if (bgLoadAbortRef.current) break;
 
-      // Small pause between batches to avoid hammering the IMAP server
+      // Small pause between batches to avoid hammering the server
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       if (bgLoadAbortRef.current) break;
@@ -564,7 +569,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
       try {
         let result;
-        if (folder === 'INBOX') {
+        if (isGraph) {
+          result = await window.electronAPI.fetchGraphEmails(accountId, { folder, limit: 50, skip: offset });
+        } else if (folder === 'INBOX') {
           result = await window.electronAPI.fetchEmailsForAccount(accountId, { limit: 50, offset });
         } else {
           result = await window.electronAPI.fetchEmailsFromFolder(accountId, folder, { limit: 50, offset });
@@ -690,7 +697,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
         // Start background loading if server has more than we have locally
         if (result.hasMore) {
           bgLoadAbortRef.current = false;
-          startBackgroundLoading(finalEmails.length, activeAccountId, currentFolder, finalEmails);
+          startBackgroundLoading(finalEmails.length, activeAccountId, currentFolder, finalEmails, isGraphAccount());
         }
 
         // Update memory cache
