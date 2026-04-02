@@ -25,54 +25,40 @@
 
 ## ⚡ Installation
 
-### Architektur wählen
+### Installieren
 
-| | x64 | arm64 |
-|---|---|---|
-| **Geräte** | Standard-PC, Laptop | Raspberry Pi 4/5 (64-bit OS), Apple Silicon (Rosetta) |
-| **Erkennung** | `uname -m` → `x86_64` | `uname -m` → `aarch64` |
+Wähle deine Architektur und füge den Befehl ins Terminal ein — das Script lädt CoreMail herunter, installiert Icons und erstellt einen Desktop-Eintrag.
 
-> Das Installations-Script erkennt die Architektur **automatisch**.
-
----
-
-### Ein-Befehl-Installation (empfohlen)
+#### 🖥️ x64 — Standard-PC / Laptop
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --x64
 ```
-
-Oder mit `wget`:
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --x64
 ```
 
-Das Script erledigt automatisch:
-- Architektur erkennen (x64 / arm64)
-- Passendes AppImage herunterladen
-- Icons installieren
-- Desktop-Eintrag erstellen
-- Icon-Cache aktualisieren
+#### 🍓 arm64 — Raspberry Pi 4/5 (64-bit OS)
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --arm64
+```
+
+```bash
+wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --arm64
+```
+
+> Nicht sicher welche Architektur? `uname -m` im Terminal eingeben: `x86_64` → x64, `aarch64` → arm64.
 
 ---
 
 ### Direkter Download
 
-| Architektur | Download | Grösse |
-|---|---|---|
-| **x64** (Standard-PC) | [CoreMail-Desktop-4.1.0-x64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.1.0/CoreMail-Desktop-4.1.0-x64.AppImage) | ~150 MB |
-| **arm64** (Raspberry Pi 4/5) | [CoreMail-Desktop-4.1.0-arm64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.1.0/CoreMail-Desktop-4.1.0-arm64.AppImage) | ~150 MB |
-
-```bash
-# x64
-chmod +x CoreMail-Desktop-4.1.0-x64.AppImage
-./CoreMail-Desktop-4.1.0-x64.AppImage
-
-# arm64
-chmod +x CoreMail-Desktop-4.1.0-arm64.AppImage
-./CoreMail-Desktop-4.1.0-arm64.AppImage
-```
+| Architektur | Download |
+|---|---|
+| **x64** (Standard-PC) | [⬇️ CoreMail-Desktop-4.1.0-x64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.1.0/CoreMail-Desktop-4.1.0-x64.AppImage) |
+| **arm64** (Raspberry Pi 4/5) | [⬇️ CoreMail-Desktop-4.1.0-arm64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.1.0/CoreMail-Desktop-4.1.0-arm64.AppImage) |
 
 ---
 

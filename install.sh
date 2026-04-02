@@ -15,18 +15,27 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Architektur erkennen
-RAW_ARCH="$(uname -m)"
-case "$RAW_ARCH" in
-    x86_64)           ARCH="x64" ;;
-    aarch64|arm64)    ARCH="arm64" ;;
-    *)
-        echo -e "${RED}❌ Nicht unterstützte Architektur: ${RAW_ARCH}${NC}"
-        echo "   Unterstützt: x86_64, aarch64/arm64"
-        exit 1
-        ;;
-esac
-echo -e "${YELLOW}🖥️  Erkannte Architektur: ${RAW_ARCH} → ${ARCH}${NC}"
+# Architektur: aus Argument oder automatisch erkennen
+if [ "$1" = "--x64" ]; then
+    ARCH="x64"
+    echo -e "${YELLOW}🖥️  Architektur: x64 (manuell gewählt)${NC}"
+elif [ "$1" = "--arm64" ]; then
+    ARCH="arm64"
+    echo -e "${YELLOW}🖥️  Architektur: arm64 (manuell gewählt)${NC}"
+else
+    RAW_ARCH="$(uname -m)"
+    case "$RAW_ARCH" in
+        x86_64)           ARCH="x64" ;;
+        aarch64|arm64)    ARCH="arm64" ;;
+        *)
+            echo -e "${RED}❌ Nicht unterstützte Architektur: ${RAW_ARCH}${NC}"
+            echo "   Unterstützt: x86_64, aarch64/arm64"
+            echo "   Oder manuell angeben: bash install.sh --x64 / --arm64"
+            exit 1
+            ;;
+    esac
+    echo -e "${YELLOW}🖥️  Erkannte Architektur: ${RAW_ARCH} → ${ARCH}${NC}"
+fi
 
 # Variablen
 VERSION="4.1.0"
