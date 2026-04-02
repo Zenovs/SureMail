@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # CoreMail Desktop Installation Script
-# Version: 3.0.14
+# Version: 4.0.1
 
 set -e
 
@@ -15,9 +15,22 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Architektur erkennen
+RAW_ARCH="$(uname -m)"
+case "$RAW_ARCH" in
+    x86_64)           ARCH="x64" ;;
+    aarch64|arm64)    ARCH="arm64" ;;
+    *)
+        echo -e "${RED}❌ Nicht unterstützte Architektur: ${RAW_ARCH}${NC}"
+        echo "   Unterstützt: x86_64, aarch64/arm64"
+        exit 1
+        ;;
+esac
+echo -e "${YELLOW}🖥️  Erkannte Architektur: ${RAW_ARCH} → ${ARCH}${NC}"
+
 # Variablen
-VERSION="4.0.1"
-APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail.Desktop-${VERSION}.AppImage"
+VERSION="4.1.0"
+APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail-Desktop-${VERSION}-${ARCH}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 CONFIG_DIR="$HOME/.config/coremail-desktop"
 

@@ -18,13 +18,23 @@
   <a href="https://github.com/Zenovs/coremail/releases/latest">
     <img src="https://img.shields.io/github/v/release/Zenovs/coremail?label=Version&color=06b6d4" alt="Version">
   </a>
-  <img src="https://img.shields.io/badge/Platform-Linux%20x64-informational?color=6366f1" alt="Platform">
-  <img src="https://img.shields.io/badge/Lizenz-MIT-green" alt="MIT">
+  <img src="https://img.shields.io/badge/Platform-Linux%20x64%20%7C%20arm64-informational?color=6366f1" alt="Platform">
 </p>
 
 ---
 
 ## ⚡ Installation
+
+### Architektur wählen
+
+| | x64 | arm64 |
+|---|---|---|
+| **Geräte** | Standard-PC, Laptop | Raspberry Pi 4/5 (64-bit OS), Apple Silicon (Rosetta) |
+| **Erkennung** | `uname -m` → `x86_64` | `uname -m` → `aarch64` |
+
+> Das Installations-Script erkennt die Architektur **automatisch**.
+
+---
 
 ### Ein-Befehl-Installation (empfohlen)
 
@@ -39,18 +49,29 @@ wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install
 ```
 
 Das Script erledigt automatisch:
-- AppImage herunterladen
+- Architektur erkennen (x64 / arm64)
+- Passendes AppImage herunterladen
 - Icons installieren
 - Desktop-Eintrag erstellen
 - Icon-Cache aktualisieren
 
+---
+
 ### Direkter Download
 
-**[⬇️ CoreMail Desktop v3.0.2 herunterladen](https://github.com/Zenovs/coremail/releases/latest)** (~150 MB)
+| Architektur | Download | Grösse |
+|---|---|---|
+| **x64** (Standard-PC) | [CoreMail-Desktop-4.1.0-x64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.1.0/CoreMail-Desktop-4.1.0-x64.AppImage) | ~150 MB |
+| **arm64** (Raspberry Pi 4/5) | [CoreMail-Desktop-4.1.0-arm64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.1.0/CoreMail-Desktop-4.1.0-arm64.AppImage) | ~150 MB |
 
 ```bash
-chmod +x "CoreMail Desktop-3.0.2.AppImage"
-./"CoreMail Desktop-3.0.2.AppImage" --no-sandbox
+# x64
+chmod +x CoreMail-Desktop-4.1.0-x64.AppImage
+./CoreMail-Desktop-4.1.0-x64.AppImage
+
+# arm64
+chmod +x CoreMail-Desktop-4.1.0-arm64.AppImage
+./CoreMail-Desktop-4.1.0-arm64.AppImage
 ```
 
 ---
@@ -125,7 +146,7 @@ echo "✅ CoreMail wurde komplett entfernt!"
 - Text verbessern, kürzen, förmlicher/freundlicher formulieren
 
 ### 🎨 Design & Darstellung
-- **7 Themes**: Dark, Light, Minimal, Morphismus, Glas, Retro, Foundations
+- **11 Themes**: Dark, Light, Minimal, Morphismus, Glas, Retro, Foundations, Lollipop, Nerd, Colorful, Indie
 - **Dynamische App-Icons** — passen sich automatisch ans Theme an
 - **Schriftart-Auswahl** — Google Fonts direkt in den Einstellungen
 - **Anpassbare Spaltenbreiten** — per Drag
@@ -134,6 +155,10 @@ echo "✅ CoreMail wurde komplett entfernt!"
 ### 📊 Dashboard
 - Anpassbare Widgets: Statistiken, Schnellaktionen, Kontoübersicht, Kategorien
 - Drag & Drop zum Anordnen
+
+### 📋 Logbuch
+- **Vollständiges Ereignisprotokoll** — alle App-Aktionen nachvollziehbar
+- Hilft bei der Diagnose von Verbindungs- und Synchronisierungsproblemen
 
 ### 🔄 Updates
 - Automatische Update-Prüfung beim Start
@@ -171,7 +196,7 @@ echo "✅ CoreMail wurde komplett entfernt!"
 
 | | |
 |---|---|
-| **Betriebssystem** | Linux x64 |
+| **Betriebssystem** | Linux x64 / arm64 |
 | **Speicher** | ~200 MB |
 | **KI-Features** | Ollama + mind. 4 GB RAM (optional) |
 
@@ -184,15 +209,20 @@ git clone https://github.com/Zenovs/coremail.git
 cd coremail
 npm install
 npm run dev      # Entwicklungsmodus
-npm run build    # AppImage erstellen
+npm run build    # AppImage erstellen (x64 + arm64)
+```
+
+Einzelne Architektur bauen:
+
+```bash
+# Nur x64
+./node_modules/.bin/electron-builder --linux appimage --x64
+
+# Nur arm64 (Cross-Kompilierung, läuft auch auf x64)
+./node_modules/.bin/electron-builder --linux appimage --arm64
 ```
 
 ---
 
-## 📜 Lizenz
-
-MIT License
-
----
 
 <p align="center"><strong>CoreMail Desktop</strong> — Dein E-Mail-Client für Linux 📧</p>

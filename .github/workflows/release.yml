@@ -40,8 +40,8 @@ jobs:
         env:
           CI: false
 
-      - name: Build Electron AppImage
-        run: ./node_modules/.bin/electron-builder --linux appimage --x64 --publish never
+      - name: Build Electron AppImage (x64 + arm64)
+        run: ./node_modules/.bin/electron-builder --linux appimage --x64 --arm64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -61,16 +61,21 @@ jobs:
 
             ### Installation / Update
 
+            Das Script erkennt die Architektur automatisch (x64 / arm64):
+
             ```bash
             bash <(curl -s https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh)
             ```
 
+            ### Downloads
+
+            | Architektur | Datei |
+            |---|---|
+            | x64 (Standard-PC) | `CoreMail-Desktop-${{ steps.version.outputs.VERSION }}-x64.AppImage` |
+            | arm64 (Raspberry Pi 4/5) | `CoreMail-Desktop-${{ steps.version.outputs.VERSION }}-arm64.AppImage` |
+
             ### Änderungen
-            - Major Release v4.0.0
-            - Fix: M365-Ordner (Posteingang, Gesendet, Entwürfe, etc.) werden korrekt angezeigt
-            - Fix: M365 lädt jetzt alle E-Mails (nicht mehr auf 50 begrenzt)
-            - Fix: M365 Tenant-Authentifizierung (MailboxNotEnabledForRESTAPI)
-            - Fix: Azure AD Berechtigungen in Setup-Anleitung korrigiert
+            Siehe [Commit-History](https://github.com/Zenovs/coremail/commits/initial-code)
           files: dist/*.AppImage
           draft: false
           prerelease: false

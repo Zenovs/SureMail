@@ -52,6 +52,35 @@ module.exports = {
           text: '#2D1B3D',
           'text-secondary': '#7B5A8A'
         },
+        // Nerd Theme Farben
+        nerd: {
+          950: '#000a00',
+          900: '#001200',
+          800: '#001f00',
+          700: '#002d00',
+          600: '#003d00',
+          500: '#005200',
+          green: '#00ff41',
+          'green-dim': '#00cc33',
+          'green-bright': '#39ff14',
+          'green-dark': '#008f20'
+        },
+        // Indie Theme Farben
+        indie: {
+          950: '#1a1210',
+          900: '#2a1f1a',
+          800: '#3a2d26',
+          700: '#4a3d34',
+          600: '#5c4d42',
+          rose: '#c4837a',
+          'rose-light': '#d9a09a',
+          'rose-dark': '#a35f56',
+          amber: '#c4953a',
+          'amber-light': '#d4a84d',
+          sage: '#7a9e7e',
+          cream: '#f0e6d8',
+          'cream-dark': '#d4c4b0'
+        },
         // Foundations Design-System Farben
         foundations: {
           // Hintergrundfarben (dunkel)

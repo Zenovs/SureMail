@@ -799,7 +799,10 @@ const THEME_ICONS = {
   morphismus: 'morphismus.png',
   glas: 'glas.png',
   retro: 'retro.png',
-  foundations: 'foundations.png'
+  foundations: 'foundations.png',
+  nerd: 'dark.png',
+  colorful: 'dark.png',
+  indie: 'dark.png'
 };
 
 // v2.3.0: Fixed icon path resolution for packaged apps

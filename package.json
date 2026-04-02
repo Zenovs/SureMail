@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "4.0.1",
-  "description": "CoreMail Desktop v4.0.1 - Fix: M365 Ordner immer sichtbar",
+  "version": "4.1.0",
+  "description": "CoreMail Desktop - Schlanker IMAP/SMTP E-Mail-Client für Linux mit Microsoft 365 OAuth2 und KI-Assistent",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -25,7 +25,8 @@
         {
           "target": "AppImage",
           "arch": [
-            "x64"
+            "x64",
+            "arm64"
           ]
         }
       ],
@@ -36,7 +37,7 @@
       "maintainer": "CoreMail Team"
     },
     "appImage": {
-      "artifactName": "${productName}-${version}.AppImage"
+      "artifactName": "CoreMail-Desktop-${version}-${arch}.AppImage"
     },
     "files": [
       "build/**/*",

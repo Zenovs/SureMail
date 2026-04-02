@@ -73,6 +73,9 @@ function SettingsV2() {
     { id: 'retro', name: 'Retro', desc: '80er/90er Neon-Stil', preview: 'bg-gray-950', previewBorder: 'border-pink-500/50' },
     { id: 'foundations', name: 'Foundations', desc: 'Professionelles Design-System mit Orange & Grün', preview: 'bg-foundations-950', previewBorder: 'border-orange-500/50' },
     { id: 'lollipop', name: 'Lollipop', desc: 'Farbenfrohes Candy-Design mit bunten Akzenten', preview: 'bg-lollipop-bg', previewBorder: 'border-lollipop-pink/50' },
+    { id: 'nerd', name: 'Nerd', desc: 'Terminal-Stil mit Matrix-Grün', preview: 'bg-nerd-950', previewBorder: 'border-nerd-green/50' },
+    { id: 'colorful', name: 'Colorful', desc: 'Leuchtende Rainbow-Farben', preview: 'bg-gray-950', previewBorder: 'border-purple-500/50' },
+    { id: 'indie', name: 'Indie', desc: 'Warme Erdtöne im Vintage-Stil', preview: 'bg-indie-950', previewBorder: 'border-indie-rose/50' },
   ];
 
   const getThemePreviewContent = (themeId) => {
@@ -110,6 +113,30 @@ function SettingsV2() {
             <div className="w-3 h-3 rounded-full bg-lollipop-yellow" />
             <div className="w-3 h-3 rounded-full bg-lollipop-green" />
             <div className="w-3 h-3 rounded-full bg-lollipop-orange" />
+          </div>
+        );
+      case 'nerd':
+        return (
+          <div className="w-full h-full flex items-center justify-center relative">
+            <span className="text-xs font-bold font-mono" style={{ color: '#00ff41', textShadow: '0 0 8px #00ff41' }}>{'> _'}</span>
+          </div>
+        );
+      case 'colorful':
+        return (
+          <div className="w-full h-full flex items-center justify-center gap-1">
+            <div className="w-2 h-2 rounded-full bg-pink-500" />
+            <div className="w-2 h-2 rounded-full bg-yellow-400" />
+            <div className="w-2 h-2 rounded-full bg-green-400" />
+            <div className="w-2 h-2 rounded-full bg-cyan-400" />
+            <div className="w-2 h-2 rounded-full bg-violet-500" />
+          </div>
+        );
+      case 'indie':
+        return (
+          <div className="w-full h-full flex items-center justify-center gap-1">
+            <div className="w-4 h-4 rounded-full bg-indie-rose" />
+            <div className="w-4 h-4 rounded-full bg-indie-amber" />
+            <div className="w-4 h-4 rounded-full bg-indie-sage" />
           </div>
         );
       default:

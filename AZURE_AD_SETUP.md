@@ -149,4 +149,4 @@ http://localhost:8847/oauth/callback
 
 ---
 
-*Erstellt für CoreMail Desktop v1.13.2*
+*Zuletzt aktualisiert für CoreMail Desktop v4.0.1*

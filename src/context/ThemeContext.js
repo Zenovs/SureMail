@@ -159,6 +159,75 @@ export const themes = {
       glowPurple: 'shadow-lollipop-purple'
     }
   },
+  nerd: {
+    name: 'Nerd',
+    description: 'Terminal-Stil mit Matrix-Grün',
+    colors: {
+      bg: 'bg-nerd-950',
+      bgSecondary: 'bg-nerd-900',
+      bgTertiary: 'bg-nerd-800',
+      border: 'border-nerd-green/30',
+      text: 'text-nerd-green',
+      textSecondary: 'text-nerd-green-dim',
+      accent: 'text-nerd-green-bright',
+      accentBg: 'bg-nerd-green-dark',
+      accentHover: 'hover:bg-nerd-green/80',
+      sidebar: 'bg-nerd-900 border-r border-nerd-green/20',
+      card: 'bg-nerd-900 border border-nerd-green/20',
+      input: 'bg-nerd-800 border-nerd-green/30 text-nerd-green placeholder-nerd-green-dim',
+      hover: 'hover:bg-nerd-800'
+    },
+    customStyles: {
+      terminalGlow: 'shadow-lg shadow-nerd-green/20',
+      scanlineEffect: 'bg-scanlines'
+    }
+  },
+  colorful: {
+    name: 'Colorful',
+    description: 'Leuchtende Farben & Rainbow-Effekte',
+    colors: {
+      bg: 'bg-gray-950',
+      bgSecondary: 'bg-gray-900',
+      bgTertiary: 'bg-gray-800',
+      border: 'border-purple-500/40',
+      text: 'text-white',
+      textSecondary: 'text-gray-300',
+      accent: 'text-yellow-400',
+      accentBg: 'bg-gradient-to-r from-pink-500 via-yellow-400 to-cyan-500',
+      accentHover: 'hover:from-pink-400 hover:via-yellow-300 hover:to-cyan-400',
+      sidebar: 'bg-gray-900 border-r border-purple-500/30',
+      card: 'bg-gray-900 border border-purple-500/30',
+      input: 'bg-gray-800 border-purple-500/40 text-white placeholder-gray-400',
+      hover: 'hover:bg-gray-800'
+    },
+    customStyles: {
+      rainbowGradient: 'bg-gradient-to-r from-pink-500 via-yellow-400 via-green-400 to-cyan-500',
+      colorfulAccent: 'bg-gradient-to-r from-violet-500 via-pink-500 to-orange-400'
+    }
+  },
+  indie: {
+    name: 'Indie',
+    description: 'Warme Erdtöne im Vintage-Stil',
+    colors: {
+      bg: 'bg-indie-950',
+      bgSecondary: 'bg-indie-900',
+      bgTertiary: 'bg-indie-800',
+      border: 'border-indie-600',
+      text: 'text-indie-cream',
+      textSecondary: 'text-indie-cream-dark',
+      accent: 'text-indie-rose',
+      accentBg: 'bg-indie-rose-dark',
+      accentHover: 'hover:bg-indie-rose',
+      sidebar: 'bg-indie-900 border-r border-indie-600',
+      card: 'bg-indie-900 border border-indie-600',
+      input: 'bg-indie-800 border-indie-600 text-indie-cream placeholder-indie-cream-dark',
+      hover: 'hover:bg-indie-800'
+    },
+    customStyles: {
+      warmGlow: 'shadow-lg shadow-indie-rose/20',
+      vintageAccent: 'text-indie-amber'
+    }
+  },
   foundations: {
     name: 'Foundations',
     description: 'Professionelles Design-System mit Orange & Grün',
@@ -213,7 +282,10 @@ const THEME_ICON_MAP = {
   glass: 'glas',
   retro: 'retro',
   foundations: 'foundations',
-  lollipop: 'light'
+  lollipop: 'light',
+  nerd: 'dark',
+  colorful: 'dark',
+  indie: 'dark'
 };
 
 // Update window icon based on theme (v2.2.0)
