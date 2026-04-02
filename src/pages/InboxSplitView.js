@@ -518,11 +518,19 @@ function InboxSplitView({ onFullView, onNavigate }) {
     try {
       let result;
       if (isGraphAccount()) {
-        // v2.9.0: Microsoft Graph folders
+        // Fallback folders shown immediately so sidebar is never empty
+        const GRAPH_DEFAULT_FOLDERS = [
+          { name: 'Posteingang', path: 'INBOX',   type: 'inbox',        children: [], unread: 0 },
+          { name: 'Gesendet',    path: 'Sent',    type: 'sentitems',    children: [], unread: 0 },
+          { name: 'Entwürfe',    path: 'Drafts',  type: 'drafts',       children: [], unread: 0 },
+          { name: 'Gelöscht',    path: 'Deleted', type: 'deleteditems', children: [], unread: 0 },
+          { name: 'Junk',        path: 'Junk',    type: 'junkemail',    children: [], unread: 0 },
+        ];
+        setFolders(GRAPH_DEFAULT_FOLDERS);
+
+        // Try to load real folders from Graph API (includes custom folders + unread counts)
         result = await window.electronAPI.listGraphFolders(activeAccountId);
-        if (result.success) {
-          // Map well-known Graph folder names to the same path keys GRAPH_FOLDER_MAP uses,
-          // so folder clicks and all path===INBOX checks work identically to IMAP.
+        if (result.success && result.folders && result.folders.length > 0) {
           const WELLKNOWN_PATH = {
             inbox: 'INBOX', sentitems: 'Sent', drafts: 'Drafts',
             deleteditems: 'Deleted', junkemail: 'Junk', archive: 'Archive'

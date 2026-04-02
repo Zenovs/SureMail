@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "4.0.0",
-  "description": "CoreMail Desktop v4.0.0",
+  "version": "4.0.1",
+  "description": "CoreMail Desktop v4.0.1 - Fix: M365 Ordner immer sichtbar",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
