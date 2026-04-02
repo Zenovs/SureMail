@@ -66,6 +66,7 @@ jobs:
             ```
 
             ### Änderungen
+            - Major Release v4.0.0
             - Fix: M365-Ordner (Posteingang, Gesendet, Entwürfe, etc.) werden korrekt angezeigt
             - Fix: M365 lädt jetzt alle E-Mails (nicht mehr auf 50 begrenzt)
             - Fix: M365 Tenant-Authentifizierung (MailboxNotEnabledForRESTAPI)
