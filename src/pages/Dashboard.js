@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import GridLayout from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import { useTheme } from '../context/ThemeContext';
@@ -50,7 +50,7 @@ function Dashboard({ onNavigate, onSelectAccount }) {
     onSelectAccount?.(accountId);
   };
 
-  const renderWidget = (widget) => {
+  const renderWidget = useCallback((widget) => {
     switch (widget.type) {
       case WIDGET_TYPES.STATS:
         return <StatsWidget widget={widget} />;
@@ -75,7 +75,7 @@ function Dashboard({ onNavigate, onSelectAccount }) {
       default:
         return <div className={c.text}>Unbekannter Widget-Typ</div>;
     }
-  };
+  }, [onNavigate, handleSelectAccount, c.text]);
 
   if (loading) {
     return (

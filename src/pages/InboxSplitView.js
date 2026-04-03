@@ -2009,7 +2009,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                         const prog = attachProgress[i];
                         const hasContent = !!att.content;
                         return (
-                          <div key={i} className={`flex items-center gap-2 px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
+                          <div key={`${selectedEmail.uid}-${att.filename}-${i}`} className={`flex items-center gap-2 px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
                             <span>📎 {att.filename}</span>
                             {att.size && <span className={`text-xs ${c.textSecondary}`}>({(att.size / 1024).toFixed(1)} KB)</span>}
                             {hasContent && (

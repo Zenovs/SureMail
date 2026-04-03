@@ -448,7 +448,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               <div className="grid gap-3">
                 {fullEmail.attachments.map((att, index) => (
                   <div
-                    key={index}
+                    key={`${fullEmail.uid}-${att.filename}-${index}`}
                     className={`${c.bgSecondary} rounded-lg ${c.border} border overflow-hidden`}
                   >
                     {att.contentType.startsWith('image/') && (

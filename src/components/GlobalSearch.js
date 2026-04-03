@@ -233,9 +233,9 @@ export default function GlobalSearch({ onSelectEmail }) {
         {suggestions.length > 0 && !isSearching && searchResults.length === 0 && (
           <div className="p-2 border-b border-gray-700">
             <div className={`px-2 py-1 text-xs ${c.textSecondary}`}>Vorschläge</div>
-            {suggestions.map((suggestion, idx) => (
+            {suggestions.map((suggestion) => (
               <button
-                key={`${suggestion.uid}-${idx}`}
+                key={suggestion.uid}
                 onClick={() => handleSuggestionClick(suggestion)}
                 className={`w-full px-3 py-2 text-left rounded-lg hover:bg-gray-700/50 transition-colors flex items-center gap-3`}
               >

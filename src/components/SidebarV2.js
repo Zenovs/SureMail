@@ -6,6 +6,12 @@ import { useSidebar } from '../context/SidebarContext';
 import { useSearch } from '../context/SearchContext';
 import { getCategoryIcon } from '../pages/CategorySettings';
 
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+  { id: 'inbox', label: 'Posteingang', icon: '📥' },
+  { id: 'compose', label: 'Verfassen', icon: '✏️' },
+];
+
 function SidebarV2({ currentView, onNavigate }) {
   const { currentTheme } = useTheme();
   const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId, accountStats } = useAccounts();
@@ -67,11 +73,7 @@ function SidebarV2({ currentView, onNavigate }) {
     );
   };
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'inbox', label: 'Posteingang', icon: '📥' },
-    { id: 'compose', label: 'Verfassen', icon: '✏️' },
-  ];
+  const handleNavItemClick = useCallback((id) => onNavigate(id), [onNavigate]);
 
   const bottomItems = [
     { id: 'accounts', label: 'Konten', icon: '👤' },
@@ -162,10 +164,10 @@ function SidebarV2({ currentView, onNavigate }) {
 
       {/* Main Navigation */}
       <nav className="p-3 space-y-1">
-        {navItems.map(item => (
+        {NAV_ITEMS.map(item => (
           <button
             key={item.id}
-            onClick={() => onNavigate(item.id)}
+            onClick={() => handleNavItemClick(item.id)}
             title={isIconsOnly || settings.collapsed ? item.label : ''}
             className={`w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-colors ${
               currentView === item.id

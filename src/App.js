@@ -232,7 +232,7 @@ function AppContent() {
     setCurrentFolder(email.folder || 'INBOX');
     setCurrentEmailContext(email);
     setCurrentView('emailView');
-  }, [setActiveAccountId, setCurrentEmailContext]);
+  }, [setActiveAccountId, setCurrentEmailContext, setCurrentView, setCurrentFolder, setFullViewEmail]);
 
   const renderContent = () => {
     switch (currentView) {

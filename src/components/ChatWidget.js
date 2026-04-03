@@ -147,9 +147,9 @@ const ChatWidget = () => {
           </div>
         )}
 
-        {chatHistory.map((msg, index) => (
+        {chatHistory.map((msg) => (
           <div
-            key={index}
+            key={msg.timestamp}
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
