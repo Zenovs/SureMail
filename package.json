@@ -1,6 +1,6 @@
 {
   "name": "coremail-desktop",
-  "version": "4.1.3",
+  "version": "4.1.4",
   "description": "CoreMail Desktop - Schlanker IMAP/SMTP E-Mail-Client für Linux mit Microsoft 365 OAuth2 und KI-Assistent",
   "main": "main.js",
   "scripts": {

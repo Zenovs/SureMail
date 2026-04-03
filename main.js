@@ -1395,19 +1395,30 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
     // Check for new unread emails and notify
     const settings = store.get('appSettings', {});
     if (settings.notificationsEnabled !== false && unreadCount > previousUnread) {
-      const newEmails = emails.filter(e => !e.seen).slice(0, unreadCount - previousUnread);
-      for (const email of newEmails) {
+      const newCount = unreadCount - previousUnread;
+      const newEmails = emails.filter(e => !e.seen).slice(0, newCount);
+      const focusApp = () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } };
+
+      if (newCount > 5) {
+        // Gebündelte Benachrichtigung
         showNotification(
-          `Neue E-Mail von ${email.fromName}`,
-          email.subject,
-          () => {
-            if (mainWindow) {
-              mainWindow.show();
-              mainWindow.focus();
+          `${newCount} neue E-Mails`,
+          newEmails.slice(0, 3).map(e => `• ${e.fromName}: ${e.subject}`).join('\n') +
+            (newCount > 3 ? `\n• … und ${newCount - 3} weitere` : ''),
+          focusApp
+        );
+      } else {
+        // Einzelne Benachrichtigung pro Mail
+        for (const email of newEmails) {
+          showNotification(
+            `Neue E-Mail von ${email.fromName}`,
+            email.subject,
+            () => {
+              focusApp();
               mainWindow.webContents.send('email:open', { accountId, uid: email.uid });
             }
-          }
-        );
+          );
+        }
       }
     }
 
