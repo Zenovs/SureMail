@@ -161,25 +161,27 @@ export const themes = {
   },
   nerd: {
     name: 'Nerd',
-    description: 'Terminal-Stil mit Matrix-Grün',
+    description: 'VS Code Dark+ Stil',
     colors: {
-      bg: 'bg-nerd-950',
-      bgSecondary: 'bg-nerd-900',
-      bgTertiary: 'bg-nerd-800',
-      border: 'border-nerd-green/30',
-      text: 'text-nerd-green',
-      textSecondary: 'text-nerd-green-dim',
-      accent: 'text-nerd-green-bright',
-      accentBg: 'bg-nerd-green-dark',
-      accentHover: 'hover:bg-nerd-green/80',
-      sidebar: 'bg-nerd-900 border-r border-nerd-green/20',
-      card: 'bg-nerd-900 border border-nerd-green/20',
-      input: 'bg-nerd-800 border-nerd-green/30 text-nerd-green placeholder-nerd-green-dim',
-      hover: 'hover:bg-nerd-800'
+      bg: 'bg-nerd-900',
+      bgSecondary: 'bg-nerd-800',
+      bgTertiary: 'bg-nerd-700',
+      border: 'border-nerd-600',
+      text: 'text-nerd-text',
+      textSecondary: 'text-nerd-text-dim',
+      accent: 'text-nerd-blue',
+      accentBg: 'bg-nerd-blue-accent',
+      accentHover: 'hover:bg-nerd-blue/80',
+      sidebar: 'bg-nerd-800 border-r border-nerd-600',
+      card: 'bg-nerd-800 border border-nerd-600',
+      input: 'bg-nerd-700 border-nerd-600 text-nerd-text placeholder-nerd-text-dim',
+      hover: 'hover:bg-nerd-700'
     },
     customStyles: {
-      terminalGlow: 'shadow-lg shadow-nerd-green/20',
-      scanlineEffect: 'bg-scanlines'
+      keyword: 'text-nerd-blue',
+      variable: 'text-nerd-blue-light',
+      type: 'text-nerd-teal',
+      symbol: 'text-nerd-yellow'
     }
   },
   colorful: {

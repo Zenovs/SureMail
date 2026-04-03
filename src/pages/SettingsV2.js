@@ -73,7 +73,7 @@ function SettingsV2() {
     { id: 'retro', name: 'Retro', desc: '80er/90er Neon-Stil', preview: 'bg-gray-950', previewBorder: 'border-pink-500/50' },
     { id: 'foundations', name: 'Foundations', desc: 'Professionelles Design-System mit Orange & Grün', preview: 'bg-foundations-950', previewBorder: 'border-orange-500/50' },
     { id: 'lollipop', name: 'Lollipop', desc: 'Farbenfrohes Candy-Design mit bunten Akzenten', preview: 'bg-lollipop-bg', previewBorder: 'border-lollipop-pink/50' },
-    { id: 'nerd', name: 'Nerd', desc: 'Terminal-Stil mit Matrix-Grün', preview: 'bg-nerd-950', previewBorder: 'border-nerd-green/50' },
+    { id: 'nerd', name: 'Nerd', desc: 'VS Code Dark+ Stil', preview: 'bg-nerd-900', previewBorder: 'border-nerd-blue/50' },
     { id: 'colorful', name: 'Colorful', desc: 'Leuchtende Rainbow-Farben', preview: 'bg-gray-950', previewBorder: 'border-purple-500/50' },
     { id: 'indie', name: 'Indie', desc: 'Warme Erdtöne im Vintage-Stil', preview: 'bg-indie-950', previewBorder: 'border-indie-rose/50' },
   ];
@@ -117,8 +117,11 @@ function SettingsV2() {
         );
       case 'nerd':
         return (
-          <div className="w-full h-full flex items-center justify-center relative">
-            <span className="text-xs font-bold font-mono" style={{ color: '#00ff41', textShadow: '0 0 8px #00ff41' }}>{'> _'}</span>
+          <div className="w-full h-full flex items-center justify-center gap-1 px-2">
+            <span className="text-xs font-mono font-bold" style={{ color: '#569cd6' }}>const</span>
+            <span className="text-xs font-mono" style={{ color: '#9cdcfe' }}>x</span>
+            <span className="text-xs font-mono" style={{ color: '#d4d4d4' }}>=</span>
+            <span className="text-xs font-mono" style={{ color: '#dcdcaa' }}>1</span>
           </div>
         );
       case 'colorful':

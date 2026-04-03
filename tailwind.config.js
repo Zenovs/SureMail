@@ -52,18 +52,21 @@ module.exports = {
           text: '#2D1B3D',
           'text-secondary': '#7B5A8A'
         },
-        // Nerd Theme Farben
+        // Nerd Theme Farben (VS Code Dark+)
         nerd: {
-          950: '#000a00',
-          900: '#001200',
-          800: '#001f00',
-          700: '#002d00',
-          600: '#003d00',
-          500: '#005200',
-          green: '#00ff41',
-          'green-dim': '#00cc33',
-          'green-bright': '#39ff14',
-          'green-dark': '#008f20'
+          950: '#141414',
+          900: '#1e1e1e',
+          800: '#252526',
+          700: '#2d2d2d',
+          600: '#3c3c3c',
+          500: '#454545',
+          blue: '#569cd6',
+          'blue-light': '#9cdcfe',
+          'blue-accent': '#007acc',
+          yellow: '#dcdcaa',
+          teal: '#4ec9b0',
+          text: '#d4d4d4',
+          'text-dim': '#858585'
         },
         // Indie Theme Farben
         indie: {

@@ -2376,7 +2376,7 @@ function normalizeGraphEmail(msg) {
     date: msg.receivedDateTime || new Date().toISOString(),
     seen: msg.isRead === true,
     hasAttachments: msg.hasAttachments === true,
-    preview: msg.bodyPreview || '',
+    preview: msg.bodyPreview ? msg.bodyPreview.substring(0, 80).trim() : '',
     flags: msg.isRead ? ['\\Seen'] : []
   };
 }
