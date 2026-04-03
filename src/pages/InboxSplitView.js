@@ -1355,20 +1355,19 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return flat;
   }, [sortedFolders]);
 
-  // v1.14.0: Run spam analysis when emails change
+  // Perf: debounce spam analysis — skips intermediate updates during rapid email loads
+  const spamDebounceRef = useRef(null);
   useEffect(() => {
     const settings = getSpamFilterSettings();
     if (!settings.enabled || emails.length === 0) {
       setSpamResults(new Map());
       return;
     }
-    
-    // Run analysis asynchronously to avoid blocking
-    const runAnalysis = async () => {
-      const results = analyzeEmails(emails, settings);
-      setSpamResults(results);
-    };
-    runAnalysis();
+    if (spamDebounceRef.current) clearTimeout(spamDebounceRef.current);
+    spamDebounceRef.current = setTimeout(() => {
+      setSpamResults(analyzeEmails(emails, settings));
+    }, 300);
+    return () => clearTimeout(spamDebounceRef.current);
   }, [emails]);
 
   // v1.11.0: Count unread emails

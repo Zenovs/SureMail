@@ -1491,10 +1491,10 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder
 });
 
 // Legacy fetch emails (for backward compatibility)
-// v2.3.1: Fixed to load ALL emails by default
-ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 0 }) => {
+// Perf: header-only fetch, limit defaults to 100 most recent
+ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 100 }) => {
   const imapSettings = store.get('imapSettings');
-  
+
   if (!imapSettings) {
     return { success: false, error: 'Keine IMAP-Einstellungen konfiguriert' };
   }
@@ -1515,40 +1515,48 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 0 }
     await connection.openBox(folder);
 
     const searchCriteria = ['ALL'];
+    // Perf: header-only — no body/text loaded during listing
     const fetchOptions = {
-      bodies: ['HEADER', 'TEXT', ''],
+      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
       markSeen: false,
       struct: true
     };
 
     const messages = await connection.search(searchCriteria, fetchOptions);
-    const emails = [];
-    
-    // v2.3.1: Process ALL messages if limit is 0
-    const messagesToProcess = limit > 0 ? messages.slice(-limit).reverse() : messages.reverse();
-    
-    for (const message of messagesToProcess) {
+    messages.sort((a, b) => b.attributes.uid - a.attributes.uid);
+
+    const messagesToProcess = limit > 0 ? messages.slice(0, limit) : messages;
+
+    const emails = messagesToProcess.map(message => {
       try {
-        const all = message.parts.find(p => p.which === '');
-        const parsed = await simpleParser(all.body);
-        
-        emails.push({
+        const header = message.parts.find(p => p.which.includes('HEADER'));
+        const h = header?.body || {};
+        const fromRaw = (h.from || ['Unbekannt'])[0];
+        const fromMatch = fromRaw.match(/^(.*?)\s*<(.+?)>$/);
+        const fromName = fromMatch
+          ? fromMatch[1].replace(/^["']+|["']+$/g, '').trim() || fromMatch[2]
+          : fromRaw.split('@')[0].trim();
+        return {
           uid: message.attributes.uid,
-          subject: parsed.subject || '(Kein Betreff)',
-          from: parsed.from?.text || 'Unbekannt',
-          to: parsed.to?.text || '',
-          date: parsed.date || new Date(),
+          subject: (h.subject || ['(Kein Betreff)'])[0],
+          from: fromName,
+          fromEmail: fromMatch ? fromMatch[2] : fromRaw,
+          to: (h.to || [''])[0],
+          date: h.date ? new Date(h.date[0]) : new Date(),
           seen: message.attributes.flags.includes('\\Seen'),
-          hasAttachments: parsed.attachments && parsed.attachments.length > 0,
-          preview: parsed.text ? parsed.text.substring(0, 100) + '...' : ''
-        });
+          hasAttachments: (message.attributes.struct || []).some(
+            p => p.disposition?.type?.toLowerCase() === 'attachment'
+          ),
+          preview: ''
+        };
       } catch (e) {
         console.error('Fehler beim Parsen einer E-Mail:', e);
+        return null;
       }
-    }
+    }).filter(Boolean);
 
     await connection.end();
-    return { success: true, emails };
+    return { success: true, emails, hasMore: messages.length > limit };
   } catch (error) {
     console.error('IMAP Fehler:', error);
     return { success: false, error: error.message };
