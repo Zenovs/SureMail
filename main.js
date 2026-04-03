@@ -2013,19 +2013,16 @@ ipcMain.handle('search:globalSearch', async (event, searchParams) => {
     return { success: false, error: 'Keine Konten zum Durchsuchen gefunden' };
   }
 
-  const results = [];
-  const errors = [];
   const searchTerm = query.toLowerCase().trim();
 
-  for (const account of searchableAccounts) {
+  // Perf: search all accounts in parallel (one IMAP connection per account)
+  const accountResults = await Promise.all(searchableAccounts.map(async (account) => {
+    const accountEmails = [];
     try {
       const config = getImapConfigForAccount(account);
       const connection = await imapSimple.connect(config);
-      
-      // Get folders to search
+
       let foldersToSearch = folders.length > 0 ? folders : ['INBOX'];
-      
-      // If searching all folders, get folder list
       if (folders.length === 0 || folders.includes('*')) {
         try {
           const boxes = await connection.getBoxes();
@@ -2038,66 +2035,64 @@ ipcMain.handle('search:globalSearch', async (event, searchParams) => {
       for (const folder of foldersToSearch) {
         try {
           await connection.openBox(folder);
-          
-          // Build IMAP search criteria
           const searchCriteria = buildSearchCriteria(searchTerm, filters);
-          
           const fetchOptions = {
             bodies: ['HEADER', 'TEXT', ''],
             markSeen: false,
             struct: true
           };
-
           const messages = await connection.search(searchCriteria, fetchOptions);
-          
-          // Filter and process results
-          for (const message of messages.slice(-100)) { // Limit per folder
-            try {
-              const all = message.parts.find(p => p.which === '');
-              const parsed = await simpleParser(all.body);
-              
-              // Apply additional filters in memory
-              if (matchesFilters(parsed, message, filters, searchTerm)) {
-                const isUnread = !message.attributes.flags.includes('\\Seen');
-                const isFlagged = message.attributes.flags.includes('\\Flagged');
-                
-                results.push({
-                  uid: message.attributes.uid,
-                  accountId: account.id,
-                  accountName: account.name,
-                  folder: folder,
-                  subject: parsed.subject || '(Kein Betreff)',
-                  from: parsed.from?.text || 'Unbekannt',
-                  fromName: parsed.from?.value?.[0]?.name || parsed.from?.text?.split('<')[0]?.trim() || 'Unbekannt',
-                  fromEmail: parsed.from?.value?.[0]?.address || '',
-                  to: parsed.to?.text || '',
-                  date: parsed.date || new Date(),
-                  seen: !isUnread,
-                  flagged: isFlagged,
-                  hasAttachments: parsed.attachments && parsed.attachments.length > 0,
-                  preview: parsed.text ? parsed.text.substring(0, 200).replace(/\n/g, ' ') + '...' : '',
-                  matchedIn: getMatchedFields(parsed, searchTerm)
-                });
+
+          // Perf: parse matching messages in parallel (limit 100 per folder)
+          const parsed = await Promise.all(
+            messages.slice(-100).map(async (message) => {
+              try {
+                const all = message.parts.find(p => p.which === '');
+                return { message, parsed: await simpleParser(all.body) };
+              } catch (e) {
+                return null;
               }
-            } catch (e) {
-              // Skip unparseable emails
+            })
+          );
+
+          for (const entry of parsed) {
+            if (!entry) continue;
+            const { message, parsed: p } = entry;
+            if (matchesFilters(p, message, filters, searchTerm)) {
+              const isUnread = !message.attributes.flags.includes('\\Seen');
+              accountEmails.push({
+                uid: message.attributes.uid,
+                accountId: account.id,
+                accountName: account.name,
+                folder,
+                subject: p.subject || '(Kein Betreff)',
+                from: p.from?.text || 'Unbekannt',
+                fromName: p.from?.value?.[0]?.name || p.from?.text?.split('<')[0]?.trim() || 'Unbekannt',
+                fromEmail: p.from?.value?.[0]?.address || '',
+                to: p.to?.text || '',
+                date: p.date || new Date(),
+                seen: !isUnread,
+                flagged: message.attributes.flags.includes('\\Flagged'),
+                hasAttachments: p.attachments && p.attachments.length > 0,
+                preview: p.text ? p.text.substring(0, 200).replace(/\n/g, ' ') + '...' : '',
+                matchedIn: getMatchedFields(p, searchTerm)
+              });
             }
           }
         } catch (folderErr) {
-          // Some folders may not be accessible
           console.log(`Could not search folder ${folder}:`, folderErr.message);
         }
       }
-      
+
       await connection.end();
     } catch (accountErr) {
-      errors.push({
-        accountId: account.id,
-        accountName: account.name,
-        error: accountErr.message
-      });
+      console.error(`Search error for account ${account.name}:`, accountErr.message);
     }
-  }
+    return accountEmails;
+  }));
+
+  const results = accountResults.flat();
+  const errors = [];
 
   // Sort results by date (newest first)
   results.sort((a, b) => new Date(b.date) - new Date(a.date));

@@ -596,11 +596,10 @@ function InboxSplitView({ onFullView, onNavigate }) {
             offset += olderOnes.length;
             setBgLoadOffset(offset);
 
-            // Keep memory cache and IndexedDB up-to-date so account switches restore correctly
+            // Perf: memory cache update on every batch (fast, needed for account switch)
+            // IndexedDB write only at end — avoid writing growing lists on every batch
             const cacheKey = `${accountId}:${folder}`;
             emailCache.set(cacheKey, { data: runningList, hasMore: result.hasMore, timestamp: Date.now() });
-            const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
-            if (localStorageEnabled) saveEmailsToIndexedDB(accountId, folder, runningList);
           }
         }
 
@@ -610,6 +609,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
         console.error('[BgLoad] Error:', e);
         break;
       }
+    }
+
+    // Perf: single IndexedDB write after all batches are done (not per batch)
+    const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
+    if (localStorageEnabled && runningList.length > 0) {
+      saveEmailsToIndexedDB(accountId, folder, runningList);
     }
   }, []); // no deps — uses ref for abort, params passed explicitly
 
@@ -1064,14 +1069,17 @@ function InboxSplitView({ onFullView, onNavigate }) {
     let deletedCount = 0;
     
     try {
-      for (const uid of uidsToDelete) {
-        const result = await window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder);
-        if (result.success) {
-          deletedCount++;
-          // Remove from IndexedDB
-          await removeEmailFromIndexedDB(activeAccountId, currentFolder, uid);
-        }
-      }
+      // Perf: delete all emails in parallel instead of sequentially
+      const deleteResults = await Promise.all(
+        uidsToDelete.map(uid => window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder))
+      );
+      const successUids = uidsToDelete.filter((_, i) => deleteResults[i]?.success);
+      deletedCount = successUids.length;
+
+      // Remove successfully deleted emails from IndexedDB in parallel
+      await Promise.all(
+        successUids.map(uid => removeEmailFromIndexedDB(activeAccountId, currentFolder, uid))
+      );
       
       // Update local state
       const newEmails = emails.filter(e => !selectedUids.has(e.uid));
