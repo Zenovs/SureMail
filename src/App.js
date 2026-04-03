@@ -124,6 +124,9 @@ function AppContent() {
 
     const syncAllAccounts = async () => {
       if (!window.electronAPI) return;
+      // Perf: skip sync when tab/window is hidden — saves CPU + IMAP connections
+      if (document.hidden) return;
+
       const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
 
       for (const account of accounts) {
@@ -135,11 +138,9 @@ function AppContent() {
             result = await window.electronAPI.fetchEmailsForAccount(account.id, { limit: 50, offset: 0 });
           }
           if (result?.success && result.emails?.length > 0) {
-            // Persist to IndexedDB so InboxSplitView picks up fresh data on mount
             if (localStorageEnabled) {
               await bgSaveToIndexedDB(account.id, 'INBOX', result.emails);
             }
-            // Notify InboxSplitView if it's currently open for this account
             window.dispatchEvent(new CustomEvent('coremail:bgSync', {
               detail: { accountId: account.id, folder: 'INBOX', emails: result.emails }
             }));

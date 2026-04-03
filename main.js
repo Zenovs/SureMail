@@ -1339,11 +1339,10 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
   // v2.3.1: Changed default limit from 50 to 0 (0 = no limit, fetch all emails)
   const { folder = 'INBOX', limit = 0, offset = 0 } = options;
 
+  let connection;
   try {
-    // v1.10.0: Use OAuth2-aware config helper
     const config = getImapConfigForAccount(account);
-
-    const connection = await imapSimple.connect(config);
+    connection = await imapSimple.connect(config);
     await connection.openBox(folder);
 
     const searchCriteria = ['ALL'];
@@ -1424,7 +1423,6 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
 
     store.set(`unreadCount_${accountId}`, unreadCount);
 
-    await connection.end();
     return {
       success: true,
       emails,
@@ -1435,6 +1433,8 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
   } catch (error) {
     console.error('IMAP Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
   }
 });
 
@@ -1442,49 +1442,24 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
 // v1.10.0: OAuth2 support for single email fetch
 ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder = 'INBOX') => {
   const account = getAccountById(accountId);
+  if (!account) return { success: false, error: 'Konto nicht gefunden' };
 
-  if (!account) {
-    return { success: false, error: 'Konto nicht gefunden' };
-  }
-
+  let connection;
   try {
-    // v1.10.0: Use OAuth2-aware config helper
     const config = getImapConfigForAccount(account);
-
-    const connection = await imapSimple.connect(config);
+    connection = await imapSimple.connect(config);
     await connection.openBox(folder);
 
-    const searchCriteria = [['UID', uid]];
-    const fetchOptions = {
-      bodies: [''],
-      markSeen: true,
-      struct: true
-    };
+    const messages = await connection.search([['UID', uid]], { bodies: [''], markSeen: true, struct: true });
+    if (messages.length === 0) return { success: false, error: 'E-Mail nicht gefunden' };
 
-    const messages = await connection.search(searchCriteria, fetchOptions);
-    
-    if (messages.length === 0) {
-      await connection.end();
-      return { success: false, error: 'E-Mail nicht gefunden' };
-    }
-
-    const message = messages[0];
-    const all = message.parts.find(p => p.which === '');
+    const all = messages[0].parts.find(p => p.which === '');
     const parsed = await simpleParser(all.body);
 
-    const attachments = parsed.attachments.map(att => ({
-      filename: att.filename,
-      contentType: att.contentType,
-      size: att.size,
-      content: att.content.toString('base64')
-    }));
-
-    await connection.end();
-    
     return {
       success: true,
       email: {
-        uid: uid,
+        uid,
         subject: parsed.subject || '(Kein Betreff)',
         from: parsed.from?.text || 'Unbekannt',
         to: parsed.to?.text || '',
@@ -1492,12 +1467,19 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder
         date: parsed.date || new Date(),
         html: parsed.html || null,
         text: parsed.text || '',
-        attachments
+        attachments: parsed.attachments.map(att => ({
+          filename: att.filename,
+          contentType: att.contentType,
+          size: att.size,
+          content: att.content.toString('base64')
+        }))
       }
     };
   } catch (error) {
     console.error('IMAP Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
   }
 });
 
@@ -1505,11 +1487,9 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder
 // Perf: header-only fetch, limit defaults to 100 most recent
 ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 100 }) => {
   const imapSettings = store.get('imapSettings');
+  if (!imapSettings) return { success: false, error: 'Keine IMAP-Einstellungen konfiguriert' };
 
-  if (!imapSettings) {
-    return { success: false, error: 'Keine IMAP-Einstellungen konfiguriert' };
-  }
-
+  let connection;
   try {
     const config = {
       imap: {
@@ -1521,8 +1501,7 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 100
         authTimeout: 15000
       }
     };
-
-    const connection = await imapSimple.connect(config);
+    connection = await imapSimple.connect(config);
     await connection.openBox(folder);
 
     const searchCriteria = ['ALL'];
@@ -1566,21 +1545,20 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 100
       }
     }).filter(Boolean);
 
-    await connection.end();
     return { success: true, emails, hasMore: messages.length > limit };
   } catch (error) {
     console.error('IMAP Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
   }
 });
 
 ipcMain.handle('imap:fetchEmail', async (event, uid) => {
   const imapSettings = store.get('imapSettings');
-  
-  if (!imapSettings) {
-    return { success: false, error: 'Keine IMAP-Einstellungen konfiguriert' };
-  }
+  if (!imapSettings) return { success: false, error: 'Keine IMAP-Einstellungen konfiguriert' };
 
+  let connection;
   try {
     const config = {
       imap: {
@@ -1592,41 +1570,19 @@ ipcMain.handle('imap:fetchEmail', async (event, uid) => {
         authTimeout: 15000
       }
     };
-
-    const connection = await imapSimple.connect(config);
+    connection = await imapSimple.connect(config);
     await connection.openBox('INBOX');
 
-    const searchCriteria = [['UID', uid]];
-    const fetchOptions = {
-      bodies: [''],
-      markSeen: true,
-      struct: true
-    };
+    const messages = await connection.search([['UID', uid]], { bodies: [''], markSeen: true, struct: true });
+    if (messages.length === 0) return { success: false, error: 'E-Mail nicht gefunden' };
 
-    const messages = await connection.search(searchCriteria, fetchOptions);
-    
-    if (messages.length === 0) {
-      await connection.end();
-      return { success: false, error: 'E-Mail nicht gefunden' };
-    }
-
-    const message = messages[0];
-    const all = message.parts.find(p => p.which === '');
+    const all = messages[0].parts.find(p => p.which === '');
     const parsed = await simpleParser(all.body);
 
-    const attachments = parsed.attachments.map(att => ({
-      filename: att.filename,
-      contentType: att.contentType,
-      size: att.size,
-      content: att.content.toString('base64')
-    }));
-
-    await connection.end();
-    
     return {
       success: true,
       email: {
-        uid: uid,
+        uid,
         subject: parsed.subject || '(Kein Betreff)',
         from: parsed.from?.text || 'Unbekannt',
         to: parsed.to?.text || '',
@@ -1634,12 +1590,19 @@ ipcMain.handle('imap:fetchEmail', async (event, uid) => {
         date: parsed.date || new Date(),
         html: parsed.html || null,
         text: parsed.text || '',
-        attachments
+        attachments: parsed.attachments.map(att => ({
+          filename: att.filename,
+          contentType: att.contentType,
+          size: att.size,
+          content: att.content.toString('base64')
+        }))
       }
     };
   } catch (error) {
     console.error('IMAP Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
   }
 });
 

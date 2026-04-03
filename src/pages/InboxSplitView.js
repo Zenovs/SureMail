@@ -149,21 +149,16 @@ const openEmailDB = () => {
   });
 };
 
+const MAX_EMAILS_INDEXED_DB = 500;
+
 const saveEmailsToIndexedDB = async (accountId, folder, emails) => {
   try {
     const db = await openEmailDB();
     const tx = db.transaction('emails', 'readwrite');
     const store = tx.objectStore('emails');
-    
-    const id = `${accountId}:${folder}`;
-    await store.put({
-      id,
-      accountId,
-      folder,
-      emails,
-      timestamp: Date.now()
-    });
-    
+    // Perf: cap at 500 most recent — prevents IndexedDB from growing unboundedly
+    const trimmed = emails.length > MAX_EMAILS_INDEXED_DB ? emails.slice(0, MAX_EMAILS_INDEXED_DB) : emails;
+    await store.put({ id: `${accountId}:${folder}`, accountId, folder, emails: trimmed, timestamp: Date.now() });
     db.close();
   } catch (e) {
     console.error('Failed to save to IndexedDB:', e);
@@ -444,49 +439,44 @@ function InboxSplitView({ onFullView, onNavigate }) {
   });
   const [isResizingPreview, setIsResizingPreview] = useState(false);
   
-  // Handle column resize (v1.12.2: added email list resizing)
+  // Handle column resize — rAF-throttled to avoid 60 setState/sec
   useEffect(() => {
+    if (!isResizingFolder && !isResizingEmailList && !isResizingPreview) return;
+
+    let frameId = null;
+    let lastClientX = 0;
+
     const handleMouseMove = (e) => {
-      if (isResizingFolder) {
-        const newWidth = Math.max(FOLDER_MIN_WIDTH, Math.min(FOLDER_MAX_WIDTH, e.clientX - 60));
-        setFolderWidth(newWidth);
-      }
-      if (isResizingEmailList) {
-        // Calculate email list width from left edge of email list column
-        const emailListStart = 60 + folderWidth; // sidebar + folder column
-        const newWidth = Math.max(EMAIL_LIST_MIN_WIDTH, Math.min(EMAIL_LIST_MAX_WIDTH, e.clientX - emailListStart));
-        setEmailListWidth(newWidth);
-      }
-      if (isResizingPreview) {
-        // Calculate from right side
-        const newWidth = Math.max(PREVIEW_MIN_WIDTH, Math.min(PREVIEW_MAX_WIDTH, window.innerWidth - e.clientX));
-        setPreviewWidth(newWidth);
-      }
+      lastClientX = e.clientX;
+      if (frameId) return;
+      frameId = requestAnimationFrame(() => {
+        frameId = null;
+        if (isResizingFolder) {
+          setFolderWidth(Math.max(FOLDER_MIN_WIDTH, Math.min(FOLDER_MAX_WIDTH, lastClientX - 60)));
+        }
+        if (isResizingEmailList) {
+          setEmailListWidth(Math.max(EMAIL_LIST_MIN_WIDTH, Math.min(EMAIL_LIST_MAX_WIDTH, lastClientX - 60 - folderWidth)));
+        }
+        if (isResizingPreview) {
+          setPreviewWidth(Math.max(PREVIEW_MIN_WIDTH, Math.min(PREVIEW_MAX_WIDTH, window.innerWidth - lastClientX)));
+        }
+      });
     };
-    
+
     const handleMouseUp = () => {
-      if (isResizingFolder) {
-        setIsResizingFolder(false);
-        localStorage.setItem('inbox.folderColumnWidth', folderWidth.toString());
-      }
-      if (isResizingEmailList) {
-        setIsResizingEmailList(false);
-        localStorage.setItem('inbox.emailListColumnWidth', emailListWidth.toString());
-      }
-      if (isResizingPreview) {
-        setIsResizingPreview(false);
-        localStorage.setItem('inbox.previewColumnWidth', previewWidth.toString());
-      }
+      if (frameId) { cancelAnimationFrame(frameId); frameId = null; }
+      if (isResizingFolder) { setIsResizingFolder(false); localStorage.setItem('inbox.folderColumnWidth', folderWidth.toString()); }
+      if (isResizingEmailList) { setIsResizingEmailList(false); localStorage.setItem('inbox.emailListColumnWidth', emailListWidth.toString()); }
+      if (isResizingPreview) { setIsResizingPreview(false); localStorage.setItem('inbox.previewColumnWidth', previewWidth.toString()); }
     };
-    
-    if (isResizingFolder || isResizingEmailList || isResizingPreview) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    }
-    
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
     return () => {
+      if (frameId) cancelAnimationFrame(frameId);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';
@@ -882,7 +872,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
     window.addEventListener('coremail:bgSync', handleBgSync);
     return () => window.removeEventListener('coremail:bgSync', handleBgSync);
-  }, [activeAccountId, currentFolder, getCacheKey]);
+  // Perf: only re-attach when account/folder changes, not on every getCacheKey recreation
+  }, [activeAccountId, currentFolder]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadEmailPreview = async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
@@ -1363,7 +1354,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return flat;
   }, [sortedFolders]);
 
-  // Perf: debounce spam analysis — skips intermediate updates during rapid email loads
+  // Perf: debounce spam analysis + limit Map to current emails only
   const spamDebounceRef = useRef(null);
   useEffect(() => {
     const settings = getSpamFilterSettings();
@@ -1373,7 +1364,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
     }
     if (spamDebounceRef.current) clearTimeout(spamDebounceRef.current);
     spamDebounceRef.current = setTimeout(() => {
-      setSpamResults(analyzeEmails(emails, settings));
+      const results = analyzeEmails(emails, settings);
+      // Perf: drop entries for emails no longer in view — prevents unbounded growth
+      const currentUids = new Set(emails.map(e => e.uid));
+      const cleaned = new Map();
+      results.forEach((v, k) => { if (currentUids.has(k)) cleaned.set(k, v); });
+      setSpamResults(cleaned);
     }, 300);
     return () => clearTimeout(spamDebounceRef.current);
   }, [emails]);
@@ -1750,7 +1746,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
           ) : (
             <>
               {filteredEmails.map((email, index) => {
-                // v2.6.0: Merge manual category with spam analysis
                 const manualCat = manualCategories.get(email.uid);
                 const spamAnalysis = spamResults.get(email.uid);
                 const effectiveAnalysis = manualCat
@@ -1760,22 +1755,24 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 const isSentFolder = folderLower.includes('sent') || folderLower.includes('gesendet');
 
                 return (
-                  <EmailListItem
-                    key={email.uid}
-                    email={email}
-                    index={index}
-                    isSelected={index === selectedIndex}
-                    isChecked={selectedUids.has(email.uid)}
-                    onSelect={handleSelectEmail}
-                    onCheckboxChange={handleCheckboxChange}
-                    onDelete={handleDelete}
-                    onToggleRead={handleToggleRead}
-                    c={c}
-                    actionLoading={actionLoading}
-                    spamAnalysis={effectiveAnalysis}
-                    showCheckboxes={showCheckboxes}
-                    isSentFolder={isSentFolder}
-                  />
+                  // Perf: content-visibility skips rendering off-screen items in Chromium/Electron
+                  <div key={email.uid} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 72px' }}>
+                    <EmailListItem
+                      email={email}
+                      index={index}
+                      isSelected={index === selectedIndex}
+                      isChecked={selectedUids.has(email.uid)}
+                      onSelect={handleSelectEmail}
+                      onCheckboxChange={handleCheckboxChange}
+                      onDelete={handleDelete}
+                      onToggleRead={handleToggleRead}
+                      c={c}
+                      actionLoading={actionLoading}
+                      spamAnalysis={effectiveAnalysis}
+                      showCheckboxes={showCheckboxes}
+                      isSentFolder={isSentFolder}
+                    />
+                  </div>
                 );
               })}
               {loadingMore && (

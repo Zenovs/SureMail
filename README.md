@@ -57,8 +57,8 @@ wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install
 
 | Architektur | Download |
 |---|---|
-| **x64** (Standard-PC) | [⬇️ CoreMail-Desktop-4.1.4-x64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.1.4/CoreMail-Desktop-4.1.4-x64.AppImage) |
-| **arm64** (Raspberry Pi 4/5) | [⬇️ CoreMail-Desktop-4.1.4-arm64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.1.4/CoreMail-Desktop-4.1.4-arm64.AppImage) |
+| **x64** (Standard-PC) | [⬇️ CoreMail-Desktop-4.2.0-x64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.2.0/CoreMail-Desktop-4.2.0-x64.AppImage) |
+| **arm64** (Raspberry Pi 4/5) | [⬇️ CoreMail-Desktop-4.2.0-arm64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.2.0/CoreMail-Desktop-4.2.0-arm64.AppImage) |
 
 ---
 
