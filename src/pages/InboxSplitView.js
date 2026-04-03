@@ -872,8 +872,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
     window.addEventListener('coremail:bgSync', handleBgSync);
     return () => window.removeEventListener('coremail:bgSync', handleBgSync);
-  // Perf: only re-attach when account/folder changes, not on every getCacheKey recreation
-  }, [activeAccountId, currentFolder]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeAccountId, currentFolder]); // eslint-disable-line
 
   const loadEmailPreview = async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
