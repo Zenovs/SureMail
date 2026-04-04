@@ -639,7 +639,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
         // Try to load real folders from Graph API (includes custom folders + unread counts)
         result = await window.electronAPI.listGraphFolders(activeAccountId);
         if (result?.error === 'TOKEN_EXPIRED') {
-          setError('TOKEN_EXPIRED');
+          setError('Microsoft-Token abgelaufen. Bitte Konto erneut verbinden (Einstellungen → Kontenverwaltung).');
           setLoadingFolders(false);
           return;
         }
@@ -660,9 +660,20 @@ function InboxSplitView({ onFullView, onNavigate }) {
         }
       } else {
         result = await window.electronAPI.listFolders(activeAccountId);
-        if (result.success) {
+        if (result.success && result.folders?.length > 0) {
           setFolders(result.folders);
           folderCache.set(cacheKey, { data: result.folders, timestamp: Date.now() });
+        } else {
+          // Fallback: Standardordner anzeigen wenn IMAP-Ordner nicht geladen werden konnten
+          const IMAP_DEFAULT_FOLDERS = [
+            { name: 'Posteingang', path: 'INBOX',        type: 'inbox',  children: [], unread: 0 },
+            { name: 'Gesendet',    path: 'Sent',         type: 'sent',   children: [], unread: 0 },
+            { name: 'Entwürfe',    path: 'Drafts',       type: 'drafts', children: [], unread: 0 },
+            { name: 'Gelöscht',    path: 'Trash',        type: 'trash',  children: [], unread: 0 },
+            { name: 'Junk',        path: 'Junk',         type: 'spam',   children: [], unread: 0 },
+          ];
+          setFolders(IMAP_DEFAULT_FOLDERS);
+          console.warn('[Folders] IMAP Ordner konnten nicht geladen werden, Fallback aktiv:', result.error);
         }
       }
     } catch (err) {

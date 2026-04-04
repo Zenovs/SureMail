@@ -1836,52 +1836,46 @@ ipcMain.handle('imap:moveEmail', async (event, accountId, uid, sourceFolder, des
 // v1.10.0: OAuth2 support
 ipcMain.handle('imap:listFolders', async (event, accountId) => {
   const account = getAccountById(accountId);
-  
-  if (!account) {
-    return { success: false, error: 'Konto nicht gefunden' };
-  }
+  if (!account) return { success: false, error: 'Konto nicht gefunden' };
 
+  let connection;
   try {
     const config = getImapConfigForAccount(account);
-
-    const connection = await imapSimple.connect(config);
+    connection = await imapSimple.connect(config);
     const boxes = await connection.getBoxes();
-    
-    // Convert boxes to flat array with folder info
-    const parseFolders = (boxes, prefix = '') => {
-      let folders = [];
-      for (const name in boxes) {
-        const box = boxes[name];
-        const fullPath = prefix ? `${prefix}${box.delimiter || '/'}${name}` : name;
-        
-        // Determine folder type
-        let type = 'folder';
+
+    const parseFolders = (boxMap, prefix = '') => {
+      const folders = [];
+      for (const name in boxMap) {
+        const box = boxMap[name];
+        const sep = box.delimiter || '/';
+        const fullPath = prefix ? `${prefix}${sep}${name}` : name;
         const nameLower = name.toLowerCase();
+        let type = 'folder';
         if (nameLower === 'inbox') type = 'inbox';
-        else if (nameLower.includes('sent') || nameLower.includes('gesendet')) type = 'sent';
+        else if (nameLower.includes('sent') || nameLower.includes('gesendet') || nameLower.includes('sent items')) type = 'sent';
         else if (nameLower.includes('draft') || nameLower.includes('entwu')) type = 'drafts';
-        else if (nameLower.includes('trash') || nameLower.includes('papierkorb') || nameLower.includes('deleted')) type = 'trash';
+        else if (nameLower.includes('trash') || nameLower.includes('papierkorb') || nameLower.includes('deleted') || nameLower.includes('gelöscht')) type = 'trash';
         else if (nameLower.includes('spam') || nameLower.includes('junk')) type = 'spam';
         else if (nameLower.includes('archive') || nameLower.includes('archiv')) type = 'archive';
-        
         folders.push({
           name,
           path: fullPath,
           type,
-          delimiter: box.delimiter || '/',
+          delimiter: sep,
           children: box.children ? parseFolders(box.children, fullPath) : []
         });
       }
       return folders;
     };
-    
+
     const folders = parseFolders(boxes);
-    await connection.end();
-    
     return { success: true, folders };
   } catch (error) {
     console.error('IMAP Folders Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { connection.end(); } catch (_) {}
   }
 });
 
