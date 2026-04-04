@@ -349,7 +349,7 @@ const SpamTagBadge = memo(({ category }) => {
 
 // v2.3.0: Improved Email List Item with multi-select checkbox
 // v1.14.0: Added spam filter tags
-const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes, isSentFolder }) => {
+const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes, isSentFolder, onDragStart }) => {
   const isUnread = !email.seen;
   const spamCategory = spamAnalysis?.category;
   const spamTags = spamAnalysis?.tags || [];
@@ -375,6 +375,8 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
   return (
     <div
       onClick={() => onSelect(index)}
+      draggable
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart?.(email); }}
       className={`p-3 cursor-pointer transition-colors ${c.border} border-b relative group
         ${isSelected ? c.bgTertiary : isChecked ? 'bg-cyan-500/10' : isUnread ? 'bg-blue-500/5 hover:bg-blue-500/10' : c.hover}
         ${getBorderColor()}
@@ -523,6 +525,30 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // v2.6.0: Manual sender-based categorization state
   const [manualCategories, setManualCategories] = useState(new Map()); // uid -> category
   const [senderCategoryVersion, setSenderCategoryVersion] = useState(0); // Force re-render on sender category changes
+
+  // Drag & Drop state
+  const [draggedEmail, setDraggedEmail] = useState(null);
+  const [dragOverFolder, setDragOverFolder] = useState(null);
+
+  const handleDropOnFolder = useCallback(async (targetFolder) => {
+    setDragOverFolder(null);
+    if (!draggedEmail || targetFolder === currentFolder) return;
+    const email = draggedEmail;
+    setDraggedEmail(null);
+    // Optimistic UI: remove from list
+    setEmails(prev => prev.filter(e => e.uid !== email.uid));
+    try {
+      let result;
+      if (isGraphAccount()) {
+        result = await window.electronAPI.moveGraphEmail(activeAccountId, email.uid, targetFolder);
+      } else {
+        result = await window.electronAPI.moveEmail(activeAccountId, email.uid, currentFolder, targetFolder);
+      }
+      if (!result?.success) setEmails(prev => [email, ...prev]); // rollback
+    } catch {
+      setEmails(prev => [email, ...prev]); // rollback
+    }
+  }, [draggedEmail, currentFolder, activeAccountId, isGraphAccount]);
 
   // v2.9.3: Inline reply state
   const [replyMode, setReplyMode] = useState(null); // null | 'reply' | 'replyAll'
@@ -1652,9 +1678,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     setCategoryFilter(null);
                   }
                 }}
+                onDragOver={(e) => { e.preventDefault(); setDragOverFolder(folder.path); }}
+                onDragLeave={() => setDragOverFolder(null)}
+                onDrop={() => handleDropOnFolder(folder.path)}
                 className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm transition-colors ${
                   currentFolder === folder.path && !categoryFilter
                     ? `${c.accentBg} text-white`
+                    : dragOverFolder === folder.path
+                    ? 'bg-cyan-500/30 scale-[1.02]'
                     : `${c.textSecondary} ${c.hover}`
                 }`}
                 style={{ paddingLeft: `${(folder.depth * 12) + 12}px` }}
@@ -1914,6 +1945,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                       spamAnalysis={effectiveAnalysis}
                       showCheckboxes={showCheckboxes}
                       isSentFolder={isSentFolder}
+                      onDragStart={setDraggedEmail}
                     />
                   </div>
                 );

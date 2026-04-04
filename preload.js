@@ -107,4 +107,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   translationGetSettings: () => ipcRenderer.invoke('translation:getSettings'),
   translationSaveSettings: (settings) => ipcRenderer.invoke('translation:saveSettings', settings),
   translationTranslate: ({ text, targetLang }) => ipcRenderer.invoke('translation:translate', { text, targetLang }),
+
+  // Zeitversetztes Senden
+  scheduledAdd: (emailData) => ipcRenderer.invoke('scheduled:add', emailData),
+  scheduledList: () => ipcRenderer.invoke('scheduled:list'),
+  scheduledCancel: (id) => ipcRenderer.invoke('scheduled:cancel', id),
+
+  // Kalender (v4.4.0)
+  calendarGetEvents: (accountId, options) => ipcRenderer.invoke('calendar:getEvents', accountId, options),
+  calendarCreateEvent: (accountId, eventData) => ipcRenderer.invoke('calendar:createEvent', accountId, eventData),
+  calendarUpdateEvent: (accountId, eventId, eventData) => ipcRenderer.invoke('calendar:updateEvent', accountId, eventId, eventData),
+  calendarDeleteEvent: (accountId, eventId) => ipcRenderer.invoke('calendar:deleteEvent', accountId, eventId),
 });

@@ -180,6 +180,8 @@ app.whenReady().then(async () => {
   setTimeout(() => syncSystemIcons(), 3000);
   // Logbuch: App-Start protokollieren
   addLogEntry('app_start', `CoreMail v${APP_VERSION} gestartet`, `Plattform: ${process.platform}`);
+  // Zeitversetzt senden: alle 30s prüfen
+  setInterval(() => processScheduledEmails(), 30000);
 });
 
 // v3.0.3: Refresh Linux system launcher icons from GitHub so the correct icon
@@ -2734,5 +2736,151 @@ ipcMain.handle('translation:translate', async (event, { text, targetLang }) => {
   } catch (e) {
     console.error('[Translation] error:', e.message);
     return { success: false, error: e.message };
+  }
+});
+
+// ============================================================
+// ZEITVERSETZTES SENDEN
+// ============================================================
+
+const SCHEDULED_KEY = 'scheduledEmails';
+
+async function processScheduledEmails() {
+  const scheduled = store.get(SCHEDULED_KEY, []);
+  if (scheduled.length === 0) return;
+  const now = Date.now();
+  const due = scheduled.filter(e => e.sendAt <= now);
+  if (due.length === 0) return;
+
+  for (const email of due) {
+    try {
+      const emailData = {
+        fromName: email.fromName,
+        to: email.to, cc: email.cc, bcc: email.bcc,
+        subject: email.subject, text: email.text, html: email.html,
+        attachments: email.attachments || [],
+      };
+      let result;
+      if (email.accountType === 'microsoft') {
+        result = await graphRequest(email.accountId, 'POST', '/me/sendMail', {
+          message: {
+            subject: emailData.subject || '(Kein Betreff)',
+            body: { contentType: emailData.html ? 'html' : 'text', content: emailData.html || emailData.text || '' },
+            toRecipients: (emailData.to || '').split(/[,;]/).map(s => s.trim()).filter(Boolean).map(addr => {
+              const m = addr.match(/^(.*?)\s*<([^>]+)>\s*$/);
+              return m ? { emailAddress: { name: m[1].trim(), address: m[2].trim() } } : { emailAddress: { address: addr } };
+            }),
+          },
+          saveToSentItems: true,
+        });
+        result = { success: true };
+      } else {
+        const account = getAccountById(email.accountId);
+        if (account) {
+          const nodemailer = require('nodemailer');
+          const transporter = nodemailer.createTransport({
+            host: account.smtp?.host, port: account.smtp?.port || 587,
+            secure: account.smtp?.port === 465,
+            auth: { user: account.smtp?.username, pass: account.smtp?.password },
+          });
+          await transporter.sendMail({ from: `"${emailData.fromName || ''}" <${account.smtp?.username}>`, to: emailData.to, cc: emailData.cc, bcc: emailData.bcc, subject: emailData.subject, text: emailData.text, html: emailData.html });
+          result = { success: true };
+        }
+      }
+      if (result?.success) {
+        addLogEntry('email_sent', `Geplant gesendet: ${email.subject || '(kein Betreff)'}`, `An: ${email.to}`);
+      }
+    } catch (e) {
+      console.error('[Scheduled] send error:', e.message);
+    }
+  }
+  // Remove all due (sent or failed) from queue
+  store.set(SCHEDULED_KEY, scheduled.filter(e => e.sendAt > now));
+}
+
+ipcMain.handle('scheduled:add', async (event, emailData) => {
+  const scheduled = store.get(SCHEDULED_KEY, []);
+  scheduled.push({ ...emailData, id: `sch_${Date.now()}` });
+  store.set(SCHEDULED_KEY, scheduled);
+  return { success: true };
+});
+
+ipcMain.handle('scheduled:list', async () => {
+  return { success: true, items: store.get(SCHEDULED_KEY, []) };
+});
+
+ipcMain.handle('scheduled:cancel', async (event, id) => {
+  const scheduled = store.get(SCHEDULED_KEY, []).filter(e => e.id !== id);
+  store.set(SCHEDULED_KEY, scheduled);
+  return { success: true };
+});
+
+// --- IPC: Kalender (v4.4.0) ---
+
+ipcMain.handle('calendar:getEvents', async (event, accountId, { startDate, endDate } = {}) => {
+  try {
+    const start = startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const end = endDate || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString();
+    const data = await graphRequest(accountId, 'GET',
+      `/me/calendarView?startDateTime=${encodeURIComponent(start)}&endDateTime=${encodeURIComponent(end)}&$select=id,subject,start,end,location,isAllDay,organizer,bodyPreview,showAs&$top=100&$orderby=start/dateTime`
+    );
+    const events = (data?.value || []).map(e => ({
+      id: e.id,
+      title: e.subject || '(Kein Titel)',
+      start: e.start?.dateTime || e.start?.date,
+      startTimeZone: e.start?.timeZone,
+      end: e.end?.dateTime || e.end?.date,
+      endTimeZone: e.end?.timeZone,
+      isAllDay: e.isAllDay || false,
+      location: e.location?.displayName || '',
+      organizer: e.organizer?.emailAddress?.name || e.organizer?.emailAddress?.address || '',
+      preview: e.bodyPreview || '',
+      showAs: e.showAs || 'busy',
+    }));
+    return { success: true, events };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('calendar:createEvent', async (event, accountId, eventData) => {
+  try {
+    const body = {
+      subject: eventData.title,
+      start: { dateTime: eventData.start, timeZone: eventData.timeZone || 'UTC' },
+      end: { dateTime: eventData.end, timeZone: eventData.timeZone || 'UTC' },
+      isAllDay: eventData.isAllDay || false,
+      location: eventData.location ? { displayName: eventData.location } : undefined,
+      body: eventData.notes ? { contentType: 'text', content: eventData.notes } : undefined,
+    };
+    const result = await graphRequest(accountId, 'POST', '/me/events', body);
+    return { success: true, eventId: result?.id };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('calendar:updateEvent', async (event, accountId, eventId, eventData) => {
+  try {
+    const body = {
+      subject: eventData.title,
+      start: { dateTime: eventData.start, timeZone: eventData.timeZone || 'UTC' },
+      end: { dateTime: eventData.end, timeZone: eventData.timeZone || 'UTC' },
+      isAllDay: eventData.isAllDay || false,
+      location: eventData.location ? { displayName: eventData.location } : undefined,
+    };
+    await graphRequest(accountId, 'PATCH', `/me/events/${eventId}`, body);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('calendar:deleteEvent', async (event, accountId, eventId) => {
+  try {
+    await graphRequest(accountId, 'DELETE', `/me/events/${eventId}`);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 });

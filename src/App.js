@@ -51,6 +51,7 @@ import SettingsV2 from './pages/SettingsV2';
 import Logbuch from './pages/Logbuch';
 import AccountManager from './pages/AccountManager';
 import EmailView from './pages/EmailView';
+import CalendarView from './pages/CalendarView';
 import { applySavedFont } from './pages/FontSettings';
 
 // v1.11.0: Apply saved font on app load
@@ -258,6 +259,8 @@ function AppContent() {
         return <AccountManager />;
       case 'logbuch':
         return <Logbuch />;
+      case 'calendar':
+        return <CalendarView />;
       case 'emailView':
         return (
           <EmailView 

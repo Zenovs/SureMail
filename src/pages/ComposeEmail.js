@@ -230,6 +230,8 @@ function ComposeEmail({ onBack, replyTo = null }) {
 
   // --- Senden ---
   const [sending, setSending] = useState(false);
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
+  const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [error,   setError]   = useState(null);
   const [success, setSuccess] = useState(false);
 
@@ -436,34 +438,73 @@ function ComposeEmail({ onBack, replyTo = null }) {
     setAiSuggestion(''); setShowAiPanel(false);
   };
 
+  // ── Undo Send ────────────────────────────────────────────────────────────────
+  const [undoCountdown, setUndoCountdown] = useState(null); // null | 5..0
+  const undoTimerRef = useRef(null);
+  const undoCancelledRef = useRef(false);
+
+  const cancelSend = () => {
+    undoCancelledRef.current = true;
+    clearInterval(undoTimerRef.current);
+    setUndoCountdown(null);
+  };
+
   // ── Senden ───────────────────────────────────────────────────────────────────
-  const handleSend = async () => {
+  const handleSend = async (scheduledAt = null) => {
     if (toTags.length === 0) { setError('Bitte mindestens einen Empfänger eingeben'); return; }
     if (!form.subject) { setError('Bitte Betreff ausfüllen'); return; }
     if (attachments.some(a => !a.loaded)) { setError('Bitte warten, bis alle Anhänge geladen sind'); return; }
 
+    let bodyHtml = getEditorHtml();
+    let bodyText = getEditorText();
+    if (useSignature && hasSignature) {
+      bodyHtml += `<br><br>${currentSignature.html}`;
+      bodyText += `\n\n${currentSignature.text || ''}`;
+    }
+    const emailData = {
+      fromName: senderName,
+      to: toTags.join(', '),
+      cc: ccTags.length > 0 ? ccTags.join(', ') : undefined,
+      bcc: bccTags.length > 0 ? bccTags.join(', ') : undefined,
+      subject: form.subject,
+      text: bodyText,
+      html: bodyHtml,
+      attachments: attachments.map(a => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
+    };
+    const activeAcc = accounts.find(a => a.id === selectedAccountId);
+
+    // Zeitversetzt senden
+    if (scheduledAt) {
+      const result = await window.electronAPI.scheduledAdd({
+        ...emailData,
+        sendAt: scheduledAt,
+        accountId: selectedAccountId,
+        accountType: activeAcc?.type || 'imap',
+      });
+      if (result?.success) { setSuccess(true); setTimeout(() => onBack(), 2000); }
+      else setError(result?.error || 'Planung fehlgeschlagen');
+      return;
+    }
+
+    // Undo-Send: 5-Sekunden-Fenster
+    setError(null);
+    undoCancelledRef.current = false;
+    setUndoCountdown(5);
+    let remaining = 5;
+    undoTimerRef.current = setInterval(() => {
+      remaining -= 1;
+      setUndoCountdown(remaining);
+      if (remaining <= 0) {
+        clearInterval(undoTimerRef.current);
+        setUndoCountdown(null);
+        if (!undoCancelledRef.current) executeSend(emailData, activeAcc);
+      }
+    }, 1000);
+  };
+
+  const executeSend = async (emailData, activeAcc) => {
     setSending(true); setError(null);
     try {
-      let bodyHtml = getEditorHtml();
-      let bodyText = getEditorText();
-      if (useSignature && hasSignature) {
-        bodyHtml += `<br><br>${currentSignature.html}`;
-        bodyText += `\n\n${currentSignature.text || ''}`;
-      }
-
-      const emailData = {
-        fromName: senderName,
-        to: toTags.join(', '),
-        cc: ccTags.length > 0 ? ccTags.join(', ') : undefined,
-        bcc: bccTags.length > 0 ? bccTags.join(', ') : undefined,
-        subject: form.subject,
-        text: bodyText,
-        html: bodyHtml,
-        attachments: attachments.map(a => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
-      };
-
-      // v2.9.0: Route to Graph API for Microsoft accounts
-      const activeAcc = accounts.find(a => a.id === selectedAccountId);
       let result;
       if (activeAcc?.type === 'microsoft') {
         result = await window.electronAPI.sendGraphEmail(selectedAccountId, emailData);
@@ -533,9 +574,45 @@ function ComposeEmail({ onBack, replyTo = null }) {
                 <MessageCircle className="w-3.5 h-3.5" /> KI
               </button>
             )}
+            {/* Zeitversetzt senden */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSchedulePicker(p => !p)}
+                disabled={sending || success || undoCountdown !== null}
+                title="Zeitversetzt senden"
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${c.bgSecondary} ${c.border} border ${c.text} ${c.hover} disabled:opacity-40`}
+              >
+                🕐
+              </button>
+              {showSchedulePicker && (
+                <div className={`absolute right-0 bottom-full mb-2 p-3 rounded-xl shadow-xl ${c.bg} ${c.border} border z-50 min-w-[260px]`}>
+                  <p className={`text-xs font-medium ${c.text} mb-2`}>Senden um:</p>
+                  <input
+                    type="datetime-local"
+                    value={scheduleDateTime}
+                    onChange={e => setScheduleDateTime(e.target.value)}
+                    min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                    className={`w-full text-sm rounded-lg px-3 py-1.5 ${c.bgSecondary} ${c.text} ${c.border} border outline-none`}
+                  />
+                  <button
+                    onClick={() => {
+                      if (!scheduleDateTime) return;
+                      handleSend(new Date(scheduleDateTime).getTime());
+                      setShowSchedulePicker(false);
+                    }}
+                    disabled={!scheduleDateTime}
+                    className={`mt-2 w-full py-1.5 rounded-lg text-sm text-white ${c.accentBg} ${c.accentHover} disabled:opacity-40 transition-colors`}
+                  >
+                    Einplanen
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Senden / Undo */}
             <button
-              onClick={handleSend}
-              disabled={sending || success}
+              onClick={() => handleSend()}
+              disabled={sending || success || undoCountdown !== null}
               className={`px-5 py-1.5 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors disabled:opacity-50`}
             >
               {sending ? 'Sende...' : success ? '✓ Gesendet!' : '📤 Senden'}
@@ -549,6 +626,21 @@ function ComposeEmail({ onBack, replyTo = null }) {
         {/* Formular (scrollbar) */}
         <div className="flex-1 overflow-y-auto p-5">
           <div className="max-w-3xl mx-auto space-y-3">
+
+            {/* Undo-Send Banner */}
+            {undoCountdown !== null && (
+              <div className="flex items-center justify-between p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+                <span className="text-sm text-blue-300">
+                  📤 E-Mail wird in <strong>{undoCountdown}s</strong> gesendet…
+                </span>
+                <button
+                  onClick={cancelSend}
+                  className="px-3 py-1 rounded-lg text-sm font-medium bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+                >
+                  Abbrechen
+                </button>
+              </div>
+            )}
 
             {/* Fehler / Erfolg */}
             {error && <div className="p-3 bg-red-900/20 border border-red-600 rounded-lg text-red-400 text-sm">{error}</div>}

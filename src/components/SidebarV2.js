@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'inbox', label: 'Posteingang', icon: '📥' },
   { id: 'compose', label: 'Verfassen', icon: '✏️' },
+  { id: 'calendar', label: 'Kalender', icon: '📅' },
 ];
 
 function SidebarV2({ currentView, onNavigate }) {
