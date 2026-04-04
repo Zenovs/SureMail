@@ -2485,7 +2485,11 @@ ipcMain.handle('graph:fetchEmail', async (event, accountId, messageId) => {
 ipcMain.handle('graph:sendEmail', async (event, accountId, emailData) => {
   try {
     const parseAddrs = (str) => (str || '').split(/[,;]/).map(s => s.trim()).filter(Boolean)
-      .map(addr => ({ emailAddress: { address: addr } }));
+      .map(addr => {
+        const match = addr.match(/^(.*?)\s*<([^>]+)>\s*$/);
+        if (match) return { emailAddress: { name: match[1].trim(), address: match[2].trim() } };
+        return { emailAddress: { address: addr.trim() } };
+      });
 
     const message = {
       subject: emailData.subject || '(Kein Betreff)',
