@@ -38,7 +38,7 @@ else
 fi
 
 # Variablen
-VERSION="4.2.1"
+VERSION="4.3.0"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail-Desktop-${VERSION}-${ARCH}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 CONFIG_DIR="$HOME/.config/coremail-desktop"
