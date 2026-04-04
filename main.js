@@ -2303,16 +2303,30 @@ async function getGraphAccessToken(accountId) {
   }
 
   const msalAccounts = await pca.getTokenCache().getAllAccounts();
-  if (msalAccounts.length === 0) {
-    throw new Error('TOKEN_EXPIRED');
+
+  // Try silent first; if it fails (expired, new scope consent needed), fall back to interactive
+  if (msalAccounts.length > 0) {
+    try {
+      const result = await pca.acquireTokenSilent({
+        scopes: MS_GRAPH_SCOPES,
+        account: msalAccounts[0]
+      });
+      store.set(cacheKey, pca.getTokenCache().serialize());
+      return result.accessToken;
+    } catch (silentErr) {
+      console.log('[MSAL] Silent token failed, trying interactive:', silentErr.message);
+      // Fall through to interactive below
+    }
   }
 
-  const result = await pca.acquireTokenSilent({
+  // Interactive login (opens browser for consent / re-auth)
+  const result = await pca.acquireTokenInteractive({
     scopes: MS_GRAPH_SCOPES,
-    account: msalAccounts[0]
+    openBrowser: async (authUrl) => { await shell.openExternal(authUrl); },
+    successTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#3fb950">✅ Anmeldung erfolgreich!</h2><p>Du kannst dieses Fenster schließen und zu CoreMail zurückkehren.</p></body></html>',
+    errorTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#f85149">❌ Anmeldung fehlgeschlagen</h2><p>{error}</p></body></html>'
   });
 
-  // Persist refreshed cache
   store.set(cacheKey, pca.getTokenCache().serialize());
   return result.accessToken;
 }
