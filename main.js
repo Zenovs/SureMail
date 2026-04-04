@@ -2576,6 +2576,7 @@ ipcMain.handle('graph:listFolders', async (event, accountId) => {
     return { success: true, folders };
   } catch (error) {
     console.error('[Graph] listFolders:', error.message);
+    if (error.message === 'TOKEN_EXPIRED') return { success: false, error: 'TOKEN_EXPIRED' };
     return { success: false, error: error.message };
   }
 });

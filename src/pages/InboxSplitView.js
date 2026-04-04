@@ -520,6 +520,11 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
         // Try to load real folders from Graph API (includes custom folders + unread counts)
         result = await window.electronAPI.listGraphFolders(activeAccountId);
+        if (result?.error === 'TOKEN_EXPIRED') {
+          setError('TOKEN_EXPIRED');
+          setLoadingFolders(false);
+          return;
+        }
         if (result.success && result.folders && result.folders.length > 0) {
           const WELLKNOWN_PATH = {
             inbox: 'INBOX', sentitems: 'Sent', drafts: 'Drafts',
