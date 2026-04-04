@@ -238,12 +238,15 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   const [customHtmlPaste, setCustomHtmlPaste] = useState('');
   const [showCustomPaste, setShowCustomPaste] = useState(false);
 
-  // --- Senden ---
+  // --- Senden & Undo ---
   const [sending, setSending] = useState(false);
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
   const [scheduleDateTime, setScheduleDateTime] = useState('');
   const [error,   setError]   = useState(null);
   const [success, setSuccess] = useState(false);
+  const [undoCountdown, setUndoCountdown] = useState(null);
+  const undoTimerRef = useRef(null);
+  const undoCancelledRef = useRef(false);
 
   // --- Anhänge ---
   const [attachments,    setAttachments]    = useState([]);
@@ -454,10 +457,6 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   };
 
   // ── Undo Send ────────────────────────────────────────────────────────────────
-  const [undoCountdown, setUndoCountdown] = useState(null); // null | 5..0
-  const undoTimerRef = useRef(null);
-  const undoCancelledRef = useRef(false);
-
   const cancelSend = () => {
     undoCancelledRef.current = true;
     clearInterval(undoTimerRef.current);

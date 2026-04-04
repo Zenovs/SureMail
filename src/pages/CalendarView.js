@@ -255,8 +255,10 @@ export default function CalendarView() {
         setEvents(result.events);
       } else {
         const msg = result.error || '';
-        if (msg.includes('403') || msg.includes('AccessDenied')) {
-          setError('Kalender-Zugriff verweigert (403). Bitte das Microsoft-Konto erneut verbinden: Einstellungen → Kontenverwaltung → Konto auswählen → Erneut anmelden. Danach werden die Kalender-Berechtigungen neu beantragt.');
+        if (msg === 'TOKEN_EXPIRED' || msg.includes('TOKEN_EXPIRED')) {
+          setError('Microsoft-Token abgelaufen. Bitte das Konto erneut verbinden: Einstellungen → Kontenverwaltung → Erneut anmelden.');
+        } else if (msg.includes('403') || msg.includes('AccessDenied')) {
+          setError('Kalender-Zugriff verweigert. Bitte das Microsoft-Konto erneut verbinden (Einstellungen → Kontenverwaltung → Erneut anmelden), damit die Kalender-Berechtigungen neu beantragt werden.');
         } else {
           setError(msg || 'Fehler beim Laden der Termine');
         }
@@ -426,28 +428,30 @@ export default function CalendarView() {
         </div>
 
         {/* Cells */}
-        <div className="grid grid-cols-7">
-          {cells.map((cell, idx) => (
-            <DayCell
-              key={idx}
-              date={cell.date}
-              today={today}
-              events={events}
-              isCurrentMonth={cell.isCurrentMonth}
-              onDayClick={handleDayClick}
-              onEventClick={handleEventClick}
-              c={c}
-            />
-          ))}
-        </div>
-
-        {loading && (
-          <div className={`absolute inset-0 bg-black/20 flex items-center justify-center`}>
-            <div className={`${c.bgSecondary} ${c.border} border rounded-xl px-6 py-4 text-sm ${c.text}`}>
-              Lade Termine…
-            </div>
+        <div className="relative">
+          <div className="grid grid-cols-7">
+            {cells.map((cell, idx) => (
+              <DayCell
+                key={idx}
+                date={cell.date}
+                today={today}
+                events={events}
+                isCurrentMonth={cell.isCurrentMonth}
+                onDayClick={handleDayClick}
+                onEventClick={handleEventClick}
+                c={c}
+              />
+            ))}
           </div>
-        )}
+
+          {loading && (
+            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+              <div className={`${c.bgSecondary} ${c.border} border rounded-xl px-6 py-4 text-sm ${c.text}`}>
+                Lade Termine…
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Event Detail / Edit Modal */}
