@@ -102,4 +102,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   logAdd: (type, title, detail) => ipcRenderer.invoke('log:add', { type, title, detail }),
   logGetAll: () => ipcRenderer.invoke('log:getAll'),
   logClear: () => ipcRenderer.invoke('log:clear'),
+
+  // Übersetzung
+  translationGetSettings: () => ipcRenderer.invoke('translation:getSettings'),
+  translationSaveSettings: (settings) => ipcRenderer.invoke('translation:saveSettings', settings),
+  translationTranslate: ({ text, targetLang }) => ipcRenderer.invoke('translation:translate', { text, targetLang }),
 });

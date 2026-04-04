@@ -11,6 +11,7 @@ import EmailSettings from './EmailSettings';
 import FontSettings from './FontSettings';
 import SpamFilterSettings from './SpamFilterSettings';
 import SenderManagement from './SenderManagement';
+import TranslationSettings from './TranslationSettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
@@ -61,6 +62,7 @@ function SettingsV2() {
     { id: 'notifications', name: 'Benachrichtigungen', icon: '🔔' },
     { id: 'signatures', name: 'Signaturen', icon: '✍️' },
     { id: 'downloads', name: 'Downloads', icon: '📁' },
+    { id: 'translation', name: 'Übersetzung', icon: '🌐' },
     { id: 'updates', name: 'Updates', icon: '🔄' },
   ];
 
@@ -281,6 +283,9 @@ function SettingsV2() {
           </div>
         );
       
+      case 'translation':
+        return <TranslationSettings />;
+
       case 'updates':
         return <UpdateSettings />;
       

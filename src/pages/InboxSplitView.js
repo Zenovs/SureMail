@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -88,6 +88,124 @@ const CategoryButtons = memo(({ email, currentCategory, onCategorize, c }) => {
         </div>
       )}
     </div>
+  );
+});
+
+// Übersetzen-Button mit Dropdown + Ergebnisanzeige
+const TranslateBar = memo(({ email, c }) => {
+  const [enabledLanguages, setEnabledLanguages] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null); // { lang, text } | null
+  const [error, setError] = useState(null);
+  const dropdownRef = useRef(null);
+
+  const LANG_NAMES = {
+    DE:'Deutsch', EN:'Englisch', FR:'Französisch', IT:'Italienisch',
+    ES:'Spanisch', PT:'Portugiesisch', NL:'Niederländisch', PL:'Polnisch',
+    RU:'Russisch', ZH:'Chinesisch', JA:'Japanisch', TR:'Türkisch',
+    AR:'Arabisch', UK:'Ukrainisch',
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      const s = await window.electronAPI?.translationGetSettings?.();
+      setEnabledLanguages(s?.enabledLanguages || []);
+    };
+    load();
+  }, []);
+
+  // Reset on email change
+  useEffect(() => { setResult(null); setError(null); }, [email?.uid]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const translate = async (lang) => {
+    setOpen(false);
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    const text = email?.text || email?.html?.replace(/<[^>]*>/g, '') || '';
+    const res = await window.electronAPI?.translationTranslate?.({ text, targetLang: lang });
+    setLoading(false);
+    if (res?.success) {
+      setResult({ lang, text: res.translatedText });
+    } else {
+      setError(res?.error || 'Übersetzung fehlgeschlagen');
+    }
+  };
+
+  if (enabledLanguages.length === 0) return null;
+
+  return (
+    <>
+      <div className={`px-4 py-2 ${c.bgSecondary} ${c.border} border-t flex items-center gap-3 flex-wrap`}>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Globe className={`w-4 h-4 ${c.textSecondary}`} />
+          <span className={`text-sm font-medium ${c.text}`}>Übersetzen:</span>
+        </div>
+
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setOpen(o => !o)}
+            disabled={loading}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${c.bgTertiary} ${c.border} border ${c.text} ${c.hover} disabled:opacity-50`}
+          >
+            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+            <span>{loading ? 'Übersetze...' : result ? `→ ${result.lang}` : 'Sprache wählen'}</span>
+            <ChevronDown className="w-3 h-3 opacity-60" />
+          </button>
+
+          {open && (
+            <div className={`absolute top-full left-0 mt-1 z-50 min-w-[160px] rounded-xl shadow-xl ${c.bg} ${c.border} border py-1`}>
+              {enabledLanguages.map(code => (
+                <button
+                  key={code}
+                  onClick={() => translate(code)}
+                  className={`w-full text-left px-3 py-2 text-sm ${c.text} ${c.hover} flex items-center justify-between gap-4`}
+                >
+                  <span>{LANG_NAMES[code] || code}</span>
+                  <span className={`text-xs ${c.textSecondary}`}>{code}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {result && (
+          <button
+            onClick={() => setResult(null)}
+            className={`ml-auto text-xs ${c.textSecondary} ${c.hover} px-2 py-1 rounded flex items-center gap-1`}
+          >
+            <X className="w-3 h-3" /> Übersetzung schließen
+          </button>
+        )}
+      </div>
+
+      {/* Übersetzungs-Ergebnis */}
+      {(result || error) && (
+        <div className={`mx-4 mt-4 rounded-xl border ${c.border} overflow-hidden`}>
+          <div className={`px-4 py-2 ${c.bgSecondary} flex items-center gap-2 border-b ${c.border}`}>
+            <Globe className={`w-4 h-4 ${c.accent}`} />
+            <span className={`text-sm font-medium ${c.text}`}>
+              {result ? `Übersetzung → ${LANG_NAMES[result.lang] || result.lang}` : 'Übersetzungsfehler'}
+            </span>
+          </div>
+          <div className="p-4">
+            {error
+              ? <p className="text-sm text-red-400">{error}</p>
+              : <p className={`text-sm ${c.text} whitespace-pre-wrap leading-relaxed`}>{result.text}</p>
+            }
+          </div>
+        </div>
+      )}
+    </>
   );
 });
 
@@ -1897,6 +2015,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
               onCategorize={handleCategorize}
               c={c}
             />
+
+            {/* Übersetzen-Button */}
+            <TranslateBar email={selectedEmail} c={c} />
 
             <div className={`flex-1 overflow-auto ${c.bg} flex flex-col`}>
               {/* v2.9.3: Inline Reply Panel — oberhalb des Mails */}

@@ -2619,3 +2619,94 @@ ipcMain.handle('log:clear', async () => {
   store.set(LOG_KEY, []);
   return { success: true };
 });
+
+// ============================================================
+// ÜBERSETZUNG
+// ============================================================
+
+const TRANSLATION_KEY = 'translationSettings';
+const TRANSLATION_DEFAULTS = {
+  service: 'deepl',
+  deeplFree: true,
+  apiKey: '',
+  customApiUrl: '',
+  enabledLanguages: ['DE', 'EN'],
+};
+
+ipcMain.handle('translation:getSettings', async () => {
+  return { ...TRANSLATION_DEFAULTS, ...store.get(TRANSLATION_KEY, {}) };
+});
+
+ipcMain.handle('translation:saveSettings', async (event, settings) => {
+  store.set(TRANSLATION_KEY, settings);
+  return { success: true };
+});
+
+ipcMain.handle('translation:translate', async (event, { text, targetLang }) => {
+  const fetch = require('node-fetch');
+  const s = { ...TRANSLATION_DEFAULTS, ...store.get(TRANSLATION_KEY, {}) };
+
+  if (!text || !targetLang) return { success: false, error: 'Kein Text oder Zielsprache angegeben' };
+
+  try {
+    if (s.service === 'deepl') {
+      if (!s.apiKey) return { success: false, error: 'Kein DeepL API-Key konfiguriert' };
+      const base = s.deeplFree !== false
+        ? 'https://api-free.deepl.com'
+        : 'https://api.deepl.com';
+      const res = await fetch(`${base}/v2/translate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `DeepL-Auth-Key ${s.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: [text], target_lang: targetLang }),
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        return { success: false, error: `DeepL Fehler ${res.status}: ${errBody}` };
+      }
+      const data = await res.json();
+      const translatedText = data?.translations?.[0]?.text || '';
+      return { success: true, translatedText };
+
+    } else if (s.service === 'google') {
+      if (!s.apiKey) return { success: false, error: 'Kein Google API-Key konfiguriert' };
+      const url = `https://translation.googleapis.com/language/translate/v2?key=${s.apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: text, target: targetLang.toLowerCase(), format: 'text' }),
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        return { success: false, error: `Google Fehler ${res.status}: ${errBody}` };
+      }
+      const data = await res.json();
+      const translatedText = data?.data?.translations?.[0]?.translatedText || '';
+      return { success: true, translatedText };
+
+    } else if (s.service === 'custom') {
+      if (!s.customApiUrl) return { success: false, error: 'Keine Custom-API-URL konfiguriert' };
+      const res = await fetch(s.customApiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, targetLang }),
+      });
+      if (!res.ok) {
+        const errBody = await res.text();
+        return { success: false, error: `API Fehler ${res.status}: ${errBody}` };
+      }
+      const data = await res.json();
+      const translatedText = data?.translatedText || data?.text || data?.result || '';
+      if (!translatedText) return { success: false, error: 'Antwort enthält kein Übersetzungsfeld' };
+      return { success: true, translatedText };
+
+    } else {
+      return { success: false, error: 'Unbekannter Übersetzungsdienst' };
+    }
+  } catch (e) {
+    console.error('[Translation] error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
