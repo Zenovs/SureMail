@@ -2548,30 +2548,58 @@ ipcMain.handle('graph:moveEmail', async (event, accountId, messageId, destinatio
 // --- IPC: Graph – List mail folders ---
 ipcMain.handle('graph:listFolders', async (event, accountId) => {
   try {
+    const SELECT = 'id,displayName,unreadItemCount,totalItemCount,wellKnownName,childFolderCount';
+
+    // Fetch all top-level folders (up to 100)
     const data = await graphRequest(
       accountId, 'GET',
-      '/me/mailFolders?$top=50&$select=id,displayName,unreadItemCount,totalItemCount,wellKnownName'
+      `/me/mailFolders?$top=100&$select=${SELECT}`
     );
+    const topLevel = data?.value || [];
+
+    // For each folder that has child folders, fetch them too (one level deep)
+    const mapFolder = (f) => ({
+      id: f.id,
+      name: f.displayName,
+      path: f.id,
+      wellKnown: f.wellKnownName || null,
+      unread: f.unreadItemCount || 0,
+      total: f.totalItemCount || 0,
+      type: f.wellKnownName || 'folder',
+      childFolderCount: f.childFolderCount || 0,
+    });
+
+    const foldersWithChildren = await Promise.all(
+      topLevel.map(async (f) => {
+        const folder = mapFolder(f);
+        if (f.childFolderCount > 0) {
+          try {
+            const childData = await graphRequest(
+              accountId, 'GET',
+              `/me/mailFolders/${f.id}/childFolders?$top=100&$select=${SELECT}`
+            );
+            folder.children = (childData?.value || []).map(mapFolder);
+          } catch (_) {
+            folder.children = [];
+          }
+        } else {
+          folder.children = [];
+        }
+        return folder;
+      })
+    );
+
     const folderOrder = ['inbox', 'sentitems', 'drafts', 'deleteditems', 'junkemail', 'archive'];
-    const folders = (data?.value || [])
-      .map(f => ({
-        id: f.id,
-        name: f.displayName,
-        path: f.id,
-        wellKnown: f.wellKnownName || null,
-        unread: f.unreadItemCount || 0,
-        total: f.totalItemCount || 0,
-        type: f.wellKnownName || 'folder'
-      }))
-      .sort((a, b) => {
-        const ai = folderOrder.indexOf(a.wellKnown);
-        const bi = folderOrder.indexOf(b.wellKnown);
-        if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-      });
-    return { success: true, folders };
+    foldersWithChildren.sort((a, b) => {
+      const ai = folderOrder.indexOf(a.wellKnown);
+      const bi = folderOrder.indexOf(b.wellKnown);
+      if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
+
+    return { success: true, folders: foldersWithChildren };
   } catch (error) {
     console.error('[Graph] listFolders:', error.message);
     if (error.message === 'TOKEN_EXPIRED') return { success: false, error: 'TOKEN_EXPIRED' };

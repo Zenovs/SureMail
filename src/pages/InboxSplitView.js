@@ -648,13 +648,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
             inbox: 'INBOX', sentitems: 'Sent', drafts: 'Drafts',
             deleteditems: 'Deleted', junkemail: 'Junk', archive: 'Archive'
           };
-          const normalized = result.folders.map(f => ({
+          const normalizeFolder = (f) => ({
             name: f.name,
             path: WELLKNOWN_PATH[f.type] || f.path,
             type: f.type,
-            children: [],
-            unread: f.unread || 0
-          }));
+            unread: f.unread || 0,
+            children: (f.children || []).map(normalizeFolder),
+          });
+          const normalized = result.folders.map(normalizeFolder);
           setFolders(normalized);
           folderCache.set(cacheKey, { data: normalized, timestamp: Date.now() });
         }
@@ -949,6 +950,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
   // Initial load
   useEffect(() => {
+    // Invalidate folder cache on account switch so custom folders always reload
+    folderCache.delete(`folders:${activeAccountId}`);
     setCurrentFolder('INBOX');
     setSelectedIndex(0);
     setSelectedEmail(null);
