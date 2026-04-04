@@ -771,16 +771,24 @@ function InboxSplitView({ onFullView, onNavigate }) {
     }
 
     // v1.8.2: Try IndexedDB first (stale-while-revalidate)
+    // Perf: if IndexedDB data is fresh (< 2 min), skip server fetch entirely.
+    // Background sync will pick up new emails on its own timer.
+    const FRESH_TTL = 2 * 60 * 1000; // 2 Minuten
     let existingEmails = [];
     if (localStorageEnabled && useCache) {
       const localData = await loadEmailsFromIndexedDB(activeAccountId, currentFolder);
       if (localData && localData.emails?.length > 0) {
         existingEmails = localData.emails;
-        // Show cached data immediately
         setEmails(existingEmails);
         setLoading(false);
         loadEmailPreview(existingEmails[0].uid);
-        // Continue to fetch fresh data in background
+
+        // Cache fresh enough → skip server round-trip
+        if (localData.timestamp && Date.now() - localData.timestamp < FRESH_TTL) {
+          emailCache.set(cacheKey, { data: existingEmails, hasMore: false, timestamp: localData.timestamp });
+          return;
+        }
+        // Otherwise continue and refresh in background
       }
     }
 
