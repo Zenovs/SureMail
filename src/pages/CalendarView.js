@@ -254,7 +254,12 @@ export default function CalendarView() {
       if (result.success) {
         setEvents(result.events);
       } else {
-        setError(result.error || 'Fehler beim Laden der Termine');
+        const msg = result.error || '';
+        if (msg.includes('403') || msg.includes('AccessDenied')) {
+          setError('Kalender-Zugriff verweigert (403). Bitte das Microsoft-Konto erneut verbinden: Einstellungen → Kontenverwaltung → Konto auswählen → Erneut anmelden. Danach werden die Kalender-Berechtigungen neu beantragt.');
+        } else {
+          setError(msg || 'Fehler beim Laden der Termine');
+        }
       }
     } catch (err) {
       setError(err.message);

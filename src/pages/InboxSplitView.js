@@ -530,26 +530,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [draggedEmail, setDraggedEmail] = useState(null);
   const [dragOverFolder, setDragOverFolder] = useState(null);
 
-  const handleDropOnFolder = useCallback(async (targetFolder) => {
-    setDragOverFolder(null);
-    if (!draggedEmail || targetFolder === currentFolder) return;
-    const email = draggedEmail;
-    setDraggedEmail(null);
-    // Optimistic UI: remove from list
-    setEmails(prev => prev.filter(e => e.uid !== email.uid));
-    try {
-      let result;
-      if (isGraphAccount()) {
-        result = await window.electronAPI.moveGraphEmail(activeAccountId, email.uid, targetFolder);
-      } else {
-        result = await window.electronAPI.moveEmail(activeAccountId, email.uid, currentFolder, targetFolder);
-      }
-      if (!result?.success) setEmails(prev => [email, ...prev]); // rollback
-    } catch {
-      setEmails(prev => [email, ...prev]); // rollback
-    }
-  }, [draggedEmail, currentFolder, activeAccountId, isGraphAccount]);
-
   // v2.9.3: Inline reply state
   const [replyMode, setReplyMode] = useState(null); // null | 'reply' | 'replyAll'
   const [replySending, setReplySending] = useState(false);
@@ -636,6 +616,26 @@ function InboxSplitView({ onFullView, onNavigate }) {
     const acc = getActiveAccount();
     return acc?.type === 'microsoft';
   }, [getActiveAccount]);
+
+  // Drag & Drop: move email to folder (optimistic UI + rollback)
+  const handleDropOnFolder = useCallback(async (targetFolder) => {
+    setDragOverFolder(null);
+    if (!draggedEmail || targetFolder === currentFolder) return;
+    const email = draggedEmail;
+    setDraggedEmail(null);
+    setEmails(prev => prev.filter(e => e.uid !== email.uid)); // optimistic remove
+    try {
+      let result;
+      if (isGraphAccount()) {
+        result = await window.electronAPI.moveGraphEmail(activeAccountId, email.uid, targetFolder);
+      } else {
+        result = await window.electronAPI.moveEmail(activeAccountId, email.uid, currentFolder, targetFolder);
+      }
+      if (!result?.success) setEmails(prev => [email, ...prev]); // rollback
+    } catch {
+      setEmails(prev => [email, ...prev]); // rollback
+    }
+  }, [draggedEmail, currentFolder, activeAccountId, isGraphAccount]);
 
   // Load folders for account
   const loadFolders = useCallback(async () => {

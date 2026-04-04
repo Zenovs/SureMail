@@ -966,11 +966,14 @@ ipcMain.handle('update:install', async (event, filePath) => {
       shell.openPath(installTarget);
     });
 
-    // Quit current instance after new one has time to start
+    // Hide window immediately so user doesn't see a black screen, then quit
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide();
+    }
     setTimeout(() => {
       app.quit();
     }, 1500);
-    
+
     return { success: true };
   } catch (error) {
     console.error('Update install error:', error);
@@ -1048,11 +1051,14 @@ ipcMain.handle('update:restoreBackup', async (event, backupPath) => {
     });
     
     child.unref();
-    
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide();
+    }
     setTimeout(() => {
       app.quit();
     }, 1500);
-    
+
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -2245,6 +2251,7 @@ const MS_GRAPH_SCOPES = [
   'https://graph.microsoft.com/Mail.ReadWrite',
   'https://graph.microsoft.com/Mail.Send',
   'https://graph.microsoft.com/User.Read',
+  'https://graph.microsoft.com/Calendars.ReadWrite',
   'offline_access'
 ];
 
