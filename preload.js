@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   restoreBackup: (backupPath) => ipcRenderer.invoke('update:restoreBackup', backupPath),
   onUpdateAvailable: (callback) => ipcRenderer.on('update:available', (event, data) => callback(data)),
   onUpdateProgress: (callback) => ipcRenderer.on('update:progress', (event, data) => callback(data)),
+  onUpdateRestartRequired: (callback) => ipcRenderer.on('update:restart-required', () => callback()),
   
   // Ollama Installation (v1.6.0)
   checkOllamaInstalled: () => ipcRenderer.invoke('ollama:checkInstalled'),

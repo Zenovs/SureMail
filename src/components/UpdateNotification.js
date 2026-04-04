@@ -22,7 +22,7 @@ import UpdateManager, {
 function UpdateNotification({ onOpenSettings }) {
   const { currentTheme } = useTheme();
   const c = currentTheme.colors;
-  
+
   const [state, setState] = useState({
     status: UpdateStatus.IDLE,
     updateInfo: null,
@@ -31,6 +31,13 @@ function UpdateNotification({ onOpenSettings }) {
   });
   const [dismissed, setDismissed] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [restartRequired, setRestartRequired] = useState(false);
+
+  useEffect(() => {
+    if (window.electronAPI?.onUpdateRestartRequired) {
+      window.electronAPI.onUpdateRestartRequired(() => setRestartRequired(true));
+    }
+  }, []);
 
   useEffect(() => {
     // Subscribe to UpdateManager
@@ -67,6 +74,20 @@ function UpdateNotification({ onOpenSettings }) {
   const handleInstall = useCallback(() => {
     UpdateManager.installUpdate();
   }, []);
+
+  // Update installiert — Neustart erforderlich
+  if (restartRequired) {
+    return (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+        <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-8 shadow-2xl max-w-sm w-full mx-4 text-center`}>
+          <div className="text-5xl mb-4">✅</div>
+          <h3 className={`font-semibold ${c.text} text-lg mb-2`}>Update installiert!</h3>
+          <p className={`text-sm ${c.textSecondary} mb-1`}>CoreMail wird gleich beendet.</p>
+          <p className={`text-sm ${c.textSecondary}`}>Bitte CoreMail danach manuell neu starten.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Nicht anzeigen wenn dismissed oder kein Update
   if (dismissed || state.status === UpdateStatus.IDLE || state.status === UpdateStatus.UP_TO_DATE) {

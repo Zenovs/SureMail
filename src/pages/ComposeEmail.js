@@ -202,18 +202,28 @@ function EmailTagInput({ label, tags, onChange, placeholder, c, isLarge = false 
 }
 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
-function ComposeEmail({ onBack, replyTo = null }) {
+function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount, accounts } = useAccounts();
   const { isAvailable: aiAvailable, suggestReply, improveText } = useOllama();
   const c = currentTheme.colors;
 
+  // Normalise: App.js passes composeData, some callers pass replyTo directly
+  const replyTo = replyToProp || composeData?.originalEmail || null;
+  const isForward = composeData?.type === 'forward';
+  const isReplyAll = composeData?.type === 'replyAll';
+
   // --- Formularfelder ---
-  const [toTags,  setToTags]  = useState(replyTo?.from ? [replyTo.from] : []);
+  const replyToAddr = isReplyAll
+    ? [replyTo?.from, ...(replyTo?.cc ? replyTo.cc.split(',').map(s => s.trim()) : [])].filter(Boolean)
+    : replyTo?.from ? [replyTo.from] : [];
+  const [toTags,  setToTags]  = useState(isForward ? [] : replyToAddr);
   const [ccTags,  setCcTags]  = useState([]);
   const [bccTags, setBccTags] = useState([]);
   const [form, setForm] = useState({
-    subject: replyTo ? `Re: ${replyTo.subject}` : '',
+    subject: replyTo
+      ? (isForward ? `Fwd: ${replyTo.subject}` : `Re: ${replyTo.subject}`)
+      : '',
   });
   const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId);
   const [senderName, setSenderName] = useState('');
@@ -263,14 +273,19 @@ function ComposeEmail({ onBack, replyTo = null }) {
     setSenderName(acc?.displayName || '');
   }, [selectedAccountId, accounts]);
 
-  // Antwort-Zitat in Editor einfügen
+  // Antwort-Zitat / Weiterleitung in Editor einfügen
   useEffect(() => {
     if (editorRef.current && replyTo) {
       const quoted = replyTo.html
         ? replyTo.html
         : (replyTo.text || '').replace(/\n/g, '<br>');
-      editorRef.current.innerHTML =
-        `<p></p><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${quoted}</blockquote>`;
+      if (isForward) {
+        editorRef.current.innerHTML =
+          `<p></p><br><hr><p><strong>Weitergeleitete Nachricht</strong><br>Von: ${replyTo.from || ''}<br>Betreff: ${replyTo.subject || ''}</p>${quoted}`;
+      } else {
+        editorRef.current.innerHTML =
+          `<p></p><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${quoted}</blockquote>`;
+      }
     }
   }, []); // eslint-disable-line
 
@@ -551,7 +566,7 @@ function ComposeEmail({ onBack, replyTo = null }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={onBack} className={`p-2 ${c.hover} rounded-lg ${c.textSecondary}`}>←</button>
-            <h2 className={`text-base font-semibold ${c.text}`}>{replyTo ? 'Antworten' : 'Neue E-Mail'}</h2>
+            <h2 className={`text-base font-semibold ${c.text}`}>{isForward ? 'Weiterleiten' : replyTo ? 'Antworten' : 'Neue E-Mail'}</h2>
           </div>
           <div className="flex items-center gap-2">
             {attachments.length > 0 && (

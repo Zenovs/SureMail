@@ -953,28 +953,16 @@ ipcMain.handle('update:install', async (event, filePath) => {
       return { success: false, error: 'Konnte AppImage nicht ersetzen: ' + replaceError.message };
     }
 
-    // Launch the newly installed AppImage
-    console.log('Launching new version from:', installTarget);
-    const child = spawn(installTarget, [], {
-      detached: true,
-      stdio: 'ignore',
-      env: { ...process.env, APPIMAGE_EXTRACT_AND_RUN: '0' }
-    });
-    child.unref();
-    child.on('error', (err) => {
-      console.error('Failed to launch new version:', err);
-      shell.openPath(installTarget);
-    });
-
-    // Hide window immediately so user doesn't see a black screen, then quit
+    // AppImage replaced — quit app cleanly so user can restart the new version
+    // (auto-launch is unreliable on Linux due to AppImage sandbox restrictions)
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.hide();
+      mainWindow.webContents.send('update:restart-required');
     }
     setTimeout(() => {
       app.quit();
-    }, 1500);
+    }, 3000);
 
-    return { success: true };
+    return { success: true, restartRequired: true };
   } catch (error) {
     console.error('Update install error:', error);
     return { success: false, error: error.message };
@@ -1053,13 +1041,13 @@ ipcMain.handle('update:restoreBackup', async (event, backupPath) => {
     child.unref();
 
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.hide();
+      mainWindow.webContents.send('update:restart-required');
     }
     setTimeout(() => {
       app.quit();
-    }, 1500);
+    }, 3000);
 
-    return { success: true };
+    return { success: true, restartRequired: true };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -2303,32 +2291,23 @@ async function getGraphAccessToken(accountId) {
   }
 
   const msalAccounts = await pca.getTokenCache().getAllAccounts();
-
-  // Try silent first; if it fails (expired, new scope consent needed), fall back to interactive
-  if (msalAccounts.length > 0) {
-    try {
-      const result = await pca.acquireTokenSilent({
-        scopes: MS_GRAPH_SCOPES,
-        account: msalAccounts[0]
-      });
-      store.set(cacheKey, pca.getTokenCache().serialize());
-      return result.accessToken;
-    } catch (silentErr) {
-      console.log('[MSAL] Silent token failed, trying interactive:', silentErr.message);
-      // Fall through to interactive below
-    }
+  if (msalAccounts.length === 0) {
+    throw new Error('TOKEN_EXPIRED');
   }
 
-  // Interactive login (opens browser for consent / re-auth)
-  const result = await pca.acquireTokenInteractive({
-    scopes: MS_GRAPH_SCOPES,
-    openBrowser: async (authUrl) => { await shell.openExternal(authUrl); },
-    successTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#3fb950">✅ Anmeldung erfolgreich!</h2><p>Du kannst dieses Fenster schließen und zu CoreMail zurückkehren.</p></body></html>',
-    errorTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#f85149">❌ Anmeldung fehlgeschlagen</h2><p>{error}</p></body></html>'
-  });
-
-  store.set(cacheKey, pca.getTokenCache().serialize());
-  return result.accessToken;
+  try {
+    const result = await pca.acquireTokenSilent({
+      scopes: MS_GRAPH_SCOPES,
+      account: msalAccounts[0]
+    });
+    store.set(cacheKey, pca.getTokenCache().serialize());
+    return result.accessToken;
+  } catch (err) {
+    // Silent token failed: scope consent needed (AADSTS65001) or token truly expired
+    // Surface as TOKEN_EXPIRED so the UI shows the re-login prompt
+    console.log('[MSAL] Silent token failed:', err.message);
+    throw new Error('TOKEN_EXPIRED');
+  }
 }
 
 async function graphRequest(accountId, method, apiPath, body) {
