@@ -204,7 +204,7 @@ function EmailTagInput({ label, tags, onChange, placeholder, c, isLarge = false 
 // ─── Hauptkomponente ──────────────────────────────────────────────────────────
 function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null }) {
   const { currentTheme } = useTheme();
-  const { activeAccountId, getActiveAccount, accounts } = useAccounts();
+  const { activeAccountId, accounts } = useAccounts();
   const { isAvailable: aiAvailable, suggestReply, improveText } = useOllama();
   const c = currentTheme.colors;
 
@@ -212,6 +212,12 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   const replyTo = replyToProp || composeData?.originalEmail || null;
   const isForward = composeData?.type === 'forward';
   const isReplyAll = composeData?.type === 'replyAll';
+
+  // Helper: works for both IMAP (smtp.fromEmail) and M365 (microsoft.email) accounts
+  const getAccountEmail = (acc) =>
+    acc?.type === 'microsoft'
+      ? (acc.microsoft?.email || acc.name || '')
+      : (acc?.smtp?.fromEmail || acc?.smtp?.username || '');
 
   // --- Formularfelder ---
   const replyToAddr = isReplyAll
@@ -674,13 +680,13 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                     >
                       {accounts.map(acc => (
                         <option key={acc.id} value={acc.id}>
-                          {acc.smtp.fromEmail || acc.smtp.username}
+                          {getAccountEmail(acc)}
                         </option>
                       ))}
                     </select>
                   ) : (
                     <div className={`text-sm ${c.textSecondary}`}>
-                      {accounts[0]?.smtp?.fromEmail || accounts[0]?.smtp?.username || '–'}
+                      {getAccountEmail(accounts[0]) || '–'}
                     </div>
                   )}
                   {/* Absendername-Override */}
