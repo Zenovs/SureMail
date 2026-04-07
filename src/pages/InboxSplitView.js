@@ -984,13 +984,16 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
   // Initial load
   useEffect(() => {
-    // Invalidate folder cache on account switch so custom folders always reload
-    folderCache.delete(`folders:${activeAccountId}`);
-    setCurrentFolder('INBOX');
-    setSelectedIndex(0);
+    // Sofort leeren damit keine alten Mails vom vorherigen Konto sichtbar sind
+    setEmails([]);
     setSelectedEmail(null);
+    setSelectedIndex(0);
+    setError(null);
+    // Ordner-Cache komplett leeren damit Graph-Ordner neu geladen werden
+    folderCache.clear();
+    setCurrentFolder('INBOX');
     loadFolders();
-    fetchEmails(true);
+    fetchEmails(false); // false = kein Cache beim Konto-Wechsel
   }, [activeAccountId]);
 
   // Load emails when folder changes

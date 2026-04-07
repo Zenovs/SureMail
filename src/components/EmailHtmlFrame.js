@@ -37,13 +37,42 @@ function EmailHtmlFrame({ html, fontFamily }) {
     const iframe = iframeRef.current;
     if (!iframe) return;
     try {
-      const body = iframe.contentDocument?.body;
+      const doc = iframe.contentDocument;
+      const body = doc?.body;
       if (body) {
-        // Set height to fit content so no double scrollbar appears
         iframe.style.height = (body.scrollHeight + 32) + 'px';
+
+        // Links im Browser öffnen statt im iframe navigieren
+        body.querySelectorAll('a[href]').forEach(link => {
+          link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            if (href && window.electronAPI?.openExternal) {
+              window.electronAPI.openExternal(href);
+            }
+          });
+        });
+
+        // Kontextmenü-Events an Electron weiterleiten (Kopieren etc.)
+        body.addEventListener('contextmenu', (e) => {
+          const selection = doc.getSelection()?.toString();
+          const linkEl = e.target.closest('a[href]');
+          const customEvent = new MouseEvent('contextmenu', {
+            bubbles: true, cancelable: true,
+            clientX: e.clientX, clientY: e.clientY
+          });
+          // Selektion in Clipboard für native Kontextmenü-Unterstützung
+          if (selection) {
+            window._emailSelection = selection;
+          }
+          if (linkEl) {
+            window._emailLinkUrl = linkEl.href;
+          }
+          window.dispatchEvent(customEvent);
+        });
       }
     } catch {
-      // Cross-origin guard (shouldn't happen with srcdoc but be safe)
+      // Cross-origin guard
     }
   }, []);
 

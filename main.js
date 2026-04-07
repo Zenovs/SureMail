@@ -122,6 +122,25 @@ function createWindow() {
     mainWindow = null;
   });
 
+  // Context menu für Kopieren/Einfügen in der gesamten App
+  mainWindow.webContents.on('context-menu', (e, params) => {
+    const { Menu, MenuItem } = require('electron');
+    const menu = new Menu();
+    if (params.selectionText) {
+      menu.append(new MenuItem({ label: 'Kopieren', role: 'copy' }));
+    }
+    if (params.isEditable) {
+      menu.append(new MenuItem({ label: 'Ausschneiden', role: 'cut' }));
+      menu.append(new MenuItem({ label: 'Einfügen', role: 'paste' }));
+      menu.append(new MenuItem({ label: 'Alles auswählen', role: 'selectAll' }));
+    }
+    if (params.linkURL) {
+      menu.append(new MenuItem({ label: 'Link öffnen', click: () => shell.openExternal(params.linkURL) }));
+      menu.append(new MenuItem({ label: 'Link kopieren', click: () => require('electron').clipboard.writeText(params.linkURL) }));
+    }
+    if (menu.items.length > 0) menu.popup();
+  });
+
   // Auto-Update Check on startup if enabled
   const settings = store.get('appSettings', {});
   if (settings.autoCheckUpdates !== false) {
@@ -861,6 +880,12 @@ ipcMain.handle('theme:getAvailableIcons', async () => {
 
 // === APP INFO ===
 ipcMain.handle('app:getVersion', () => APP_VERSION);
+
+ipcMain.handle('app:openExternal', async (event, url) => {
+  if (url && (url.startsWith('https://') || url.startsWith('http://') || url.startsWith('mailto:'))) {
+    await shell.openExternal(url);
+  }
+});
 
 ipcMain.handle('app:openDevTools', () => {
   if (mainWindow) mainWindow.webContents.openDevTools();
