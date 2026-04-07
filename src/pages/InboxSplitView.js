@@ -243,7 +243,7 @@ const PREVIEW_DEFAULT_WIDTH = 450;
 // Email cache for performance (v1.8.0)
 const emailCache = new Map();
 const folderCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 15 * 60 * 1000; // 15 Minuten
 
 
 // v1.8.2: IndexedDB for local email storage
@@ -501,6 +501,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const [folderError, setFolderError] = useState(null);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [hasMore, setHasMore] = useState(false);
@@ -637,18 +638,21 @@ function InboxSplitView({ onFullView, onNavigate }) {
     }
   }, [draggedEmail, currentFolder, activeAccountId, isGraphAccount]);
 
-  // Load folders for account
-  const loadFolders = useCallback(async () => {
+  // Load folders for account (forceRefresh = bypass cache)
+  const loadFolders = useCallback(async (forceRefresh = false) => {
     if (!window.electronAPI || !activeAccountId) return;
 
     const cacheKey = `folders:${activeAccountId}`;
-    const cached = folderCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      setFolders(cached.data);
-      return;
+    if (!forceRefresh) {
+      const cached = folderCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        setFolders(cached.data);
+        return;
+      }
     }
 
     setLoadingFolders(true);
+    setFolderError(null);
     try {
       let result;
       if (isGraphAccount()) {
@@ -662,7 +666,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
         ];
         setFolders(GRAPH_DEFAULT_FOLDERS);
 
-        // Try to load real folders from Graph API (includes custom folders + unread counts)
+        // Load real folders from Graph API (includes custom folders + unread counts)
         result = await window.electronAPI.listGraphFolders(activeAccountId);
         if (result?.error === 'TOKEN_EXPIRED') {
           setError('Microsoft-Token abgelaufen. Bitte Konto erneut verbinden (Einstellungen → Kontenverwaltung).');
@@ -684,6 +688,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
           const normalized = result.folders.map(normalizeFolder);
           setFolders(normalized);
           folderCache.set(cacheKey, { data: normalized, timestamp: Date.now() });
+        } else if (!result.success) {
+          setFolderError(result.error || 'Ordner konnten nicht geladen werden');
+          console.error('[Folders] Graph Ordner Fehler:', result.error);
         }
       } else {
         result = await window.electronAPI.listFolders(activeAccountId);
@@ -691,7 +698,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
           setFolders(result.folders);
           folderCache.set(cacheKey, { data: result.folders, timestamp: Date.now() });
         } else {
-          // Fallback: Standardordner anzeigen wenn IMAP-Ordner nicht geladen werden konnten
           const IMAP_DEFAULT_FOLDERS = [
             { name: 'Posteingang', path: 'INBOX',        type: 'inbox',  children: [], unread: 0 },
             { name: 'Gesendet',    path: 'Sent',         type: 'sent',   children: [], unread: 0 },
@@ -705,6 +711,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       }
     } catch (err) {
       console.error('Error loading folders:', err);
+      setFolderError(err.message);
     }
     setLoadingFolders(false);
   }, [activeAccountId, isGraphAccount]);
@@ -797,9 +804,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
     }
 
     // v1.8.2: Try IndexedDB first (stale-while-revalidate)
-    // Perf: if IndexedDB data is fresh (< 2 min), skip server fetch entirely.
+    // Perf: if IndexedDB data is fresh (< 10 min), skip server fetch entirely.
     // Background sync will pick up new emails on its own timer.
-    const FRESH_TTL = 2 * 60 * 1000; // 2 Minuten
+    const FRESH_TTL = 10 * 60 * 1000; // 10 Minuten
     let existingEmails = [];
     if (localStorageEnabled && useCache) {
       const localData = await loadEmailsFromIndexedDB(activeAccountId, currentFolder);
@@ -982,18 +989,20 @@ function InboxSplitView({ onFullView, onNavigate }) {
     }
   }, [activeAccountId, currentFolder, isGraphAccount, getCacheKey]);
 
-  // Initial load
+  // Initial load / account switch
   useEffect(() => {
-    // Sofort leeren damit keine alten Mails vom vorherigen Konto sichtbar sind
-    setEmails([]);
     setSelectedEmail(null);
     setSelectedIndex(0);
     setError(null);
-    // Ordner-Cache komplett leeren damit Graph-Ordner neu geladen werden
+    setFolderError(null);
+    // Ordner-Cache leeren damit Ordner des neuen Kontos geladen werden
     folderCache.clear();
     setCurrentFolder('INBOX');
     loadFolders();
-    fetchEmails(false); // false = kein Cache beim Konto-Wechsel
+    // useCache=true: zeigt Memory-Cache oder IndexedDB sofort an, kein erneuter Download nötig
+    // Mails bleiben leer bis Cache geladen ist (kein falsches Konto sichtbar, da Cache-Key accountId enthält)
+    setEmails([]);
+    fetchEmails(true);
   }, [activeAccountId]);
 
   // Load emails when folder changes
@@ -1669,8 +1678,19 @@ function InboxSplitView({ onFullView, onNavigate }) {
       >
         <div className={`p-3 ${c.border} border-b flex items-center justify-between`}>
           <h3 className={`font-medium ${c.text} text-sm`}>Ordner</h3>
-          {loadingFolders && <RefreshCw className={`w-4 h-4 ${c.textSecondary} animate-spin`} />}
+          <button
+            onClick={() => { folderCache.delete(`folders:${activeAccountId}`); loadFolders(true); }}
+            title="Ordner synchronisieren"
+            className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary}`}
+          >
+            <RefreshCw className={`w-4 h-4 ${loadingFolders ? 'animate-spin' : ''}`} />
+          </button>
         </div>
+        {folderError && (
+          <div className="px-3 py-2 text-xs text-red-400 bg-red-900/20 border-b border-red-500/20">
+            ⚠️ {folderError}
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto py-2">
           {flatFolders.map(folder => (
             <div key={folder.path}>
