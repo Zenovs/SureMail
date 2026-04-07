@@ -62,6 +62,26 @@ wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install
 
 ---
 
+## 🔄 Update
+
+Das Installations-Script erkennt eine bestehende Installation automatisch und aktualisiert sie:
+
+#### 🖥️ x64
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --x64
+```
+
+#### 🍓 arm64
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --arm64
+```
+
+> Einstellungen, Konten und Daten bleiben beim Update erhalten.
+
+---
+
 ## 🗑️ Deinstallation
 
 ```bash
