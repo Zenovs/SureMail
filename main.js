@@ -2320,10 +2320,18 @@ async function getGraphAccessToken(accountId) {
     throw new Error('TOKEN_EXPIRED');
   }
 
+  // When multiple M365 accounts share the same clientId, the MSAL instance cache
+  // accumulates all their tokens. Pick the account matching this CoreMail account's
+  // email to avoid always fetching mail for the first account in the cache.
+  const accountEmail = (account.microsoft?.email || account.email || '').toLowerCase();
+  const msalAccount = accountEmail
+    ? (msalAccounts.find(a => (a.username || '').toLowerCase() === accountEmail) || msalAccounts[0])
+    : msalAccounts[0];
+
   try {
     const result = await pca.acquireTokenSilent({
       scopes: MS_GRAPH_SCOPES,
-      account: msalAccounts[0]
+      account: msalAccount
     });
     store.set(cacheKey, pca.getTokenCache().serialize());
     return result.accessToken;
