@@ -521,6 +521,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
   // v2.4.0: Inbox Subfolder Filter State
   const [categoryFilter, setCategoryFilter] = useState(null); // null = alle, 'werbung', 'spam', 'schaedlich', 'virus'
   const [inboxExpanded, setInboxExpanded] = useState(true);
+  const [collapsedFolders, setCollapsedFolders] = useState(new Set());
+  const toggleFolderCollapsed = (path) => {
+    setCollapsedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path); else next.add(path);
+      return next;
+    });
+  };
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   
   // v2.6.0: Manual sender-based categorization state
@@ -1526,14 +1534,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
     const flatten = (folderList, depth = 0) => {
       folderList.forEach(folder => {
         flat.push({ ...folder, depth });
-        if (folder.children?.length > 0) {
+        if (folder.children?.length > 0 && !collapsedFolders.has(folder.path)) {
           flatten(folder.children, depth + 1);
         }
       });
     };
     flatten(sortedFolders);
     return flat;
-  }, [sortedFolders]);
+  }, [sortedFolders, collapsedFolders]);
 
   // Perf: debounce spam analysis + limit Map to current emails only
   const spamDebounceRef = useRef(null);
@@ -1713,12 +1721,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 }`}
                 style={{ paddingLeft: `${(folder.depth * 12) + 12}px` }}
               >
-                {/* v2.4.0: Expand/Collapse arrow for INBOX */}
+                {/* Expand/Collapse arrow for INBOX virtual subfolders */}
                 {folder.path === 'INBOX' ? (
-                  <button 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      setInboxExpanded(!inboxExpanded); 
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInboxExpanded(!inboxExpanded);
                     }}
                     className="p-0.5 -ml-1 hover:bg-white/10 rounded"
                   >
@@ -1728,7 +1736,20 @@ function InboxSplitView({ onFullView, onNavigate }) {
                       <ChevronRight className="w-3 h-3" />
                     )}
                   </button>
-                ) : null}
+                ) : folder.children?.length > 0 ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleFolderCollapsed(folder.path); }}
+                    className="p-0.5 -ml-1 hover:bg-white/10 rounded"
+                  >
+                    {collapsedFolders.has(folder.path) ? (
+                      <ChevronRight className="w-3 h-3" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3" />
+                    )}
+                  </button>
+                ) : (
+                  <span className="w-4 shrink-0" />
+                )}
                 {getFolderIcon(folder.type)}
                 <span className="truncate flex-1">{folder.name}</span>
                 {/* v1.11.0: Show unread count badge for inbox */}
