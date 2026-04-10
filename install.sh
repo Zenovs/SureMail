@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # CoreMail Desktop Installation Script
-# Version: 4.5.2
 
 set -e
 
@@ -37,8 +36,14 @@ else
     echo -e "${YELLOW}🖥️  Erkannte Architektur: ${RAW_ARCH} → ${ARCH}${NC}"
 fi
 
-# Variablen
-VERSION="4.5.3"
+# Neueste Version von GitHub ermitteln
+echo "🔍 Ermittle neueste Version..."
+VERSION=$(curl -s "https://api.github.com/repos/Zenovs/coremail/releases/latest" | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
+if [ -z "$VERSION" ]; then
+    echo -e "${RED}❌ Fehler: Version konnte nicht ermittelt werden. Bitte Internetverbindung prüfen.${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ Neueste Version: v${VERSION}${NC}"
 APPIMAGE_URL="https://github.com/Zenovs/coremail/releases/download/v${VERSION}/CoreMail-Desktop-${VERSION}-${ARCH}.AppImage"
 ICON_BASE_URL="https://raw.githubusercontent.com/Zenovs/coremail/initial-code/public/icons"
 CONFIG_DIR="$HOME/.config/coremail-desktop"
