@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { useAccounts } from '../../context/AccountContext';
+import { useAccounts, useAccountStats } from '../../context/AccountContext';
 import WidgetWrapper from './WidgetWrapper';
 
 function StatsWidget({ widget }) {
   const { currentTheme } = useTheme();
-  const { accounts, accountStats, updateAccountStats } = useAccounts();
+  const { accounts, updateAccountStats } = useAccounts();
+  const accountStats = useAccountStats();
   const [loading, setLoading] = useState(true);
   const [totalStats, setTotalStats] = useState({ total: 0, unread: 0 });
   const c = currentTheme.colors;

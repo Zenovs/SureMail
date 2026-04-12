@@ -2620,9 +2620,18 @@ ipcMain.handle('graph:moveEmail', async (event, accountId, messageId, destinatio
   }
 });
 
-// --- IPC: Graph – List mail folders ---
+// --- IPC: Graph – List mail folders (with 60s TTL cache) ---
+const graphFolderCache = new Map(); // accountId → { folders, ts }
+const GRAPH_FOLDER_CACHE_TTL = 60_000; // 60 seconds
+
 ipcMain.handle('graph:listFolders', async (event, accountId) => {
   try {
+    // Return cached result if still fresh
+    const cached = graphFolderCache.get(accountId);
+    if (cached && (Date.now() - cached.ts) < GRAPH_FOLDER_CACHE_TTL) {
+      return { success: true, folders: cached.folders, fromCache: true };
+    }
+
     // No $select — let Graph return all default fields to avoid tenant-specific issues
     const data = await graphRequest(
       accountId, 'GET',
@@ -2644,6 +2653,7 @@ ipcMain.handle('graph:listFolders', async (event, accountId) => {
       children: [],
     });
 
+    // Fetch child folders for all parent folders in parallel
     const foldersWithChildren = await Promise.all(
       topLevel.map(async (f) => {
         const folder = mapFolder(f);
@@ -2671,6 +2681,9 @@ ipcMain.handle('graph:listFolders', async (event, accountId) => {
       if (bi === -1) return -1;
       return ai - bi;
     });
+
+    // Store in cache
+    graphFolderCache.set(accountId, { folders: foldersWithChildren, ts: Date.now() });
 
     return { success: true, folders: foldersWithChildren };
   } catch (error) {

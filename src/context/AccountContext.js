@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 
 const AccountContext = createContext();
+const AccountStatsContext = createContext();
 
 const defaultCategories = [
   { id: 'work', name: 'Arbeit', color: '#3b82f6' },
@@ -18,128 +19,149 @@ export function AccountProvider({ children }) {
     loadAccountsAndCategories();
   }, []);
 
-  const loadAccountsAndCategories = async () => {
+  const loadAccountsAndCategories = useCallback(async () => {
     if (window.electronAPI) {
       const result = await window.electronAPI.loadAccounts();
       if (result.success) {
         setAccounts(result.accounts || []);
         setCategories(result.categories || defaultCategories);
-        if (result.accounts?.length > 0 && !activeAccountId) {
-          setActiveAccountId(result.accounts[0].id);
+        if (result.accounts?.length > 0) {
+          setActiveAccountId(prev => prev || result.accounts[0].id);
         }
       }
     }
-  };
+  }, []);
 
-  const saveAccountsAndCategories = async (newAccounts, newCategories) => {
+  const saveAccountsAndCategories = useCallback(async (newAccounts, newCategories) => {
     if (window.electronAPI) {
       await window.electronAPI.saveAccounts({
         accounts: newAccounts,
         categories: newCategories
       });
     }
-  };
+  }, []);
 
-  const addAccount = async (account) => {
-    const newAccount = {
-      ...account,
-      id: `acc_${Date.now()}`
-    };
-    const newAccounts = [...accounts, newAccount];
-    setAccounts(newAccounts);
-    await saveAccountsAndCategories(newAccounts, categories);
-    if (!activeAccountId) {
-      setActiveAccountId(newAccount.id);
-    }
+  const addAccount = useCallback(async (account) => {
+    const newAccount = { ...account, id: `acc_${Date.now()}` };
+    setAccounts(prev => {
+      const newAccounts = [...prev, newAccount];
+      saveAccountsAndCategories(newAccounts, categories);
+      return newAccounts;
+    });
+    setActiveAccountId(prev => prev || newAccount.id);
     return newAccount;
-  };
+  }, [categories, saveAccountsAndCategories]);
 
-  const updateAccount = async (id, updates) => {
-    const newAccounts = accounts.map(acc => 
-      acc.id === id ? { ...acc, ...updates } : acc
-    );
-    setAccounts(newAccounts);
-    await saveAccountsAndCategories(newAccounts, categories);
-  };
+  const updateAccount = useCallback(async (id, updates) => {
+    setAccounts(prev => {
+      const newAccounts = prev.map(acc => acc.id === id ? { ...acc, ...updates } : acc);
+      saveAccountsAndCategories(newAccounts, categories);
+      return newAccounts;
+    });
+  }, [categories, saveAccountsAndCategories]);
 
-  const deleteAccount = async (id) => {
-    const newAccounts = accounts.filter(acc => acc.id !== id);
-    setAccounts(newAccounts);
-    await saveAccountsAndCategories(newAccounts, categories);
-    if (activeAccountId === id) {
-      setActiveAccountId(newAccounts[0]?.id || null);
-    }
-  };
+  const deleteAccount = useCallback(async (id) => {
+    setAccounts(prev => {
+      const newAccounts = prev.filter(acc => acc.id !== id);
+      saveAccountsAndCategories(newAccounts, categories);
+      return newAccounts;
+    });
+    setActiveAccountId(prev => {
+      if (prev !== id) return prev;
+      return accounts.find(acc => acc.id !== id)?.id || null;
+    });
+  }, [accounts, categories, saveAccountsAndCategories]);
 
-  const addCategory = async (category) => {
-    const newCategory = {
-      ...category,
-      id: `cat_${Date.now()}`
-    };
-    const newCategories = [...categories, newCategory];
-    setCategories(newCategories);
-    await saveAccountsAndCategories(accounts, newCategories);
+  const addCategory = useCallback(async (category) => {
+    const newCategory = { ...category, id: `cat_${Date.now()}` };
+    setCategories(prev => {
+      const newCategories = [...prev, newCategory];
+      saveAccountsAndCategories(accounts, newCategories);
+      return newCategories;
+    });
     return newCategory;
-  };
+  }, [accounts, saveAccountsAndCategories]);
 
-  const updateCategory = async (id, updates) => {
-    const newCategories = categories.map(cat => 
-      cat.id === id ? { ...cat, ...updates } : cat
-    );
-    setCategories(newCategories);
-    await saveAccountsAndCategories(accounts, newCategories);
-  };
+  const updateCategory = useCallback(async (id, updates) => {
+    setCategories(prev => {
+      const newCategories = prev.map(cat => cat.id === id ? { ...cat, ...updates } : cat);
+      saveAccountsAndCategories(accounts, newCategories);
+      return newCategories;
+    });
+  }, [accounts, saveAccountsAndCategories]);
 
-  const deleteCategory = async (id) => {
-    const newCategories = categories.filter(cat => cat.id !== id);
-    setCategories(newCategories);
-    // Move accounts to 'other'
-    const newAccounts = accounts.map(acc => 
-      acc.categoryId === id ? { ...acc, categoryId: 'other' } : acc
-    );
-    setAccounts(newAccounts);
-    await saveAccountsAndCategories(newAccounts, newCategories);
-  };
+  const deleteCategory = useCallback(async (id) => {
+    setCategories(prev => {
+      const newCategories = prev.filter(cat => cat.id !== id);
+      setAccounts(accs => {
+        const newAccounts = accs.map(acc =>
+          acc.categoryId === id ? { ...acc, categoryId: 'other' } : acc
+        );
+        saveAccountsAndCategories(newAccounts, newCategories);
+        return newAccounts;
+      });
+      return newCategories;
+    });
+  }, [saveAccountsAndCategories]);
 
-  const getActiveAccount = () => {
+  const getActiveAccount = useCallback(() => {
     return accounts.find(acc => acc.id === activeAccountId) || null;
-  };
+  }, [accounts, activeAccountId]);
 
-  const getAccountsByCategory = (categoryId) => {
+  const getAccountsByCategory = useCallback((categoryId) => {
     return accounts.filter(acc => acc.categoryId === categoryId);
-  };
+  }, [accounts]);
 
-  const updateAccountStats = (accountId, stats) => {
+  const updateAccountStats = useCallback((accountId, stats) => {
     setAccountStats(prev => ({ ...prev, [accountId]: stats }));
-  };
+  }, []);
+
+  // Memoized context value — only re-creates when actual data changes,
+  // preventing all consumers from re-rendering on unrelated state updates.
+  const value = useMemo(() => ({
+    accounts,
+    categories,
+    activeAccountId,
+    setActiveAccountId,
+    addAccount,
+    updateAccount,
+    deleteAccount,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    getActiveAccount,
+    getAccountsByCategory,
+    updateAccountStats,
+    refreshAccounts: loadAccountsAndCategories
+  }), [
+    accounts, categories, activeAccountId,
+    addAccount, updateAccount, deleteAccount,
+    addCategory, updateCategory, deleteCategory,
+    getActiveAccount, getAccountsByCategory,
+    updateAccountStats, loadAccountsAndCategories
+  ]);
+
+  // accountStats in separate context so badge updates don't re-render
+  // components that only need accounts/categories (e.g. folder list, sidebar).
+  const statsValue = useMemo(() => accountStats, [accountStats]);
 
   return (
-    <AccountContext.Provider value={{
-      accounts,
-      categories,
-      activeAccountId,
-      accountStats,
-      setActiveAccountId,
-      addAccount,
-      updateAccount,
-      deleteAccount,
-      addCategory,
-      updateCategory,
-      deleteCategory,
-      getActiveAccount,
-      getAccountsByCategory,
-      updateAccountStats,
-      refreshAccounts: loadAccountsAndCategories
-    }}>
-      {children}
+    <AccountContext.Provider value={value}>
+      <AccountStatsContext.Provider value={statsValue}>
+        {children}
+      </AccountStatsContext.Provider>
     </AccountContext.Provider>
   );
 }
 
 export function useAccounts() {
   const context = useContext(AccountContext);
-  if (!context) {
-    throw new Error('useAccounts must be used within AccountProvider');
-  }
+  if (!context) throw new Error('useAccounts must be used within AccountProvider');
+  return context;
+}
+
+export function useAccountStats() {
+  const context = useContext(AccountStatsContext);
+  if (context === undefined) throw new Error('useAccountStats must be used within AccountProvider');
   return context;
 }

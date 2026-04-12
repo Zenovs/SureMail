@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import { FixedSizeList } from 'react-window';
 import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useAccounts } from '../context/AccountContext';
+import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmailHtmlFrame from '../components/EmailHtmlFrame';
 import { getCurrentFont } from './FontSettings';
@@ -496,6 +497,62 @@ const getFolderIcon = (type) => {
   }
 };
 
+// Virtual row renderer for react-window — defined outside InboxSplitView to avoid re-creation
+const EMAIL_ITEM_HEIGHT = 72;
+
+const EmailVirtualRow = memo(({ index, style, data }) => {
+  const {
+    emails, manualCategories, spamResults, selectedIndex, selectedUids,
+    currentFolder, handleSelectEmail, handleCheckboxChange, handleDelete,
+    handleToggleRead, c, actionLoading, showCheckboxes, setDraggedEmail,
+    hasMore, loadingMore, loadMoreEmails,
+  } = data;
+
+  // Last slot: "load more" indicator
+  if (index === emails.length) {
+    return (
+      <div style={style} className="flex items-center justify-center p-4">
+        {loadingMore
+          ? <span className={`text-sm ${c.textSecondary}`}>Lade mehr...</span>
+          : hasMore
+            ? <button onClick={loadMoreEmails} className={`text-sm ${c.accent} hover:underline`}>Mehr laden...</button>
+            : null}
+      </div>
+    );
+  }
+
+  const email = emails[index];
+  if (!email) return null;
+  const manualCat = manualCategories.get(email.uid);
+  const spamAnalysis = spamResults.get(email.uid);
+  const effectiveAnalysis = manualCat
+    ? { ...spamAnalysis, category: manualCat, isManual: true }
+    : spamAnalysis;
+  const folderLower = currentFolder.toLowerCase();
+  const isSentFolder = folderLower.includes('sent') || folderLower.includes('gesendet');
+
+  return (
+    <div style={style}>
+      <EmailListItem
+        email={email}
+        index={index}
+        isSelected={index === selectedIndex}
+        isChecked={selectedUids.has(email.uid)}
+        onSelect={handleSelectEmail}
+        onCheckboxChange={handleCheckboxChange}
+        onDelete={handleDelete}
+        onToggleRead={handleToggleRead}
+        c={c}
+        actionLoading={actionLoading}
+        spamAnalysis={effectiveAnalysis}
+        showCheckboxes={showCheckboxes}
+        isSentFolder={isSentFolder}
+        onDragStart={setDraggedEmail}
+      />
+    </div>
+  );
+});
+
 function InboxSplitView({ onFullView, onNavigate }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount, accounts, updateAccountStats } = useAccounts();
@@ -517,6 +574,10 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const bgLoadAbortRef = useRef(false);
   // v4.5.6: Version counter to prevent stale loadFolders from overwriting current account's folders
   const folderLoadVersionRef = useRef(0);
+  // Virtual scrolling: measure the email list container to give FixedSizeList a concrete height
+  const emailListContainerRef = useRef(null);
+  const virtualListRef = useRef(null);
+  const [emailListHeight, setEmailListHeight] = useState(500);
   const c = currentTheme.colors;
   
   // v2.3.0: Multi-Select State
@@ -541,7 +602,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
   
   // v2.6.0: Manual sender-based categorization state
   const [manualCategories, setManualCategories] = useState(new Map()); // uid -> category
-  const [senderCategoryVersion, setSenderCategoryVersion] = useState(0); // Force re-render on sender category changes
 
   // Drag & Drop state
   const [draggedEmail, setDraggedEmail] = useState(null);
@@ -1227,25 +1287,22 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLastClickedIndex(clickedIndex);
   }, [emails, lastClickedIndex]);
 
-  // v2.6.0: Filtered emails based on category filter (moved up to avoid TDZ)
+  // v2.6.0: Category-filtered emails — only recomputes when category/spam data changes
+  const categoryFilteredEmails = useMemo(() => {
+    if (!categoryFilter || currentFolder !== 'INBOX') return emails;
+    return emails.filter(email => {
+      const manualCat = manualCategories.get(email.uid);
+      if (manualCat) return manualCat === categoryFilter;
+      const analysis = spamResults.get(email.uid);
+      return analysis?.category === categoryFilter;
+    });
+  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder]);
+
+  // Visibility filter — only recomputes when read-filter or category result changes
   const filteredEmails = useMemo(() => {
-    let result = emails;
-
-    if (categoryFilter && currentFolder === 'INBOX') {
-      result = result.filter(email => {
-        const manualCat = manualCategories.get(email.uid);
-        if (manualCat) return manualCat === categoryFilter;
-        const analysis = spamResults.get(email.uid);
-        return analysis?.category === categoryFilter;
-      });
-    }
-
-    if (showUnreadOnly) {
-      result = result.filter(email => !email.seen);
-    }
-
-    return result;
-  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder, showUnreadOnly]);
+    if (!showUnreadOnly) return categoryFilteredEmails;
+    return categoryFilteredEmails.filter(email => !email.seen);
+  }, [categoryFilteredEmails, showUnreadOnly]);
 
   const handleSelectAll = useCallback(() => {
     if (selectedUids.size === filteredEmails.length) {
@@ -1314,54 +1371,40 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setBulkDeleting(false);
   }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex]);
 
-  // v2.6.0: Manual categorization handler - saves sender category and updates UI
+  // v2.6.0: Manual categorization handler - saves sender category and updates ALL matching emails
   const handleCategorize = useCallback((email, category) => {
     if (!email) return;
-    
+
     const senderEmail = SenderCategoryManager.extractEmail(email.from);
-    
-    // Save sender category
     SenderCategoryManager.setSenderCategory(senderEmail, category);
-    
-    // Update local state for immediate UI feedback
+
+    // Update all emails from this sender in one setState call (no version counter needed)
     setManualCategories(prev => {
       const newMap = new Map(prev);
-      if (category === null) {
-        newMap.delete(email.uid);
-      } else {
-        newMap.set(email.uid, category);
-      }
+      emails.forEach(e => {
+        if (SenderCategoryManager.extractEmail(e.from) === senderEmail) {
+          if (category === null) newMap.delete(e.uid);
+          else newMap.set(e.uid, category);
+        }
+      });
       return newMap;
     });
-    
-    // Force re-render to update all emails from this sender
-    setSenderCategoryVersion(v => v + 1);
-    
-    // Show notification
-    const catName = category 
-      ? MANUAL_CATEGORIES.find(c => c.id === category)?.name || category 
+
+    const catName = category
+      ? MANUAL_CATEGORIES.find(c => c.id === category)?.name || category
       : 'Keine';
     console.log(`[Categorize] ${senderEmail} -> ${catName}`);
-    
-    // Optional: Show toast notification
-    if (category) {
-      // Could integrate with a toast system here
-      console.log(`E-Mail als "${catName}" markiert. Zukünftige E-Mails von ${senderEmail} werden automatisch kategorisiert.`);
-    }
-  }, []);
+  }, [emails]);
 
-  // v2.6.0: Apply sender-based categories when emails change
+  // v2.6.0: Apply sender-based categories when email list changes (new load/folder switch)
   useEffect(() => {
-    // Update manual categories based on sender rules
     const newCategories = new Map();
     emails.forEach(email => {
       const senderCategory = SenderCategoryManager.getSenderCategory(email.from);
-      if (senderCategory) {
-        newCategories.set(email.uid, senderCategory);
-      }
+      if (senderCategory) newCategories.set(email.uid, senderCategory);
     });
     setManualCategories(newCategories);
-  }, [emails, senderCategoryVersion]);
+  }, [emails]);
 
   // v2.6.0: Get effective category for an email (manual > spam filter)
   const getEmailCategory = useCallback((email) => {
@@ -1494,13 +1537,38 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids]);
 
-  // Scroll handler for infinite loading
-  const handleScroll = useCallback((e) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.target;
-    if (scrollHeight - scrollTop - clientHeight < 200 && hasMore && !loadingMore) {
+  // Virtual scroll: trigger loadMore when user scrolls near the end of the list
+  const handleItemsRendered = useCallback(({ visibleStopIndex }) => {
+    if (visibleStopIndex >= filteredEmails.length - 5 && hasMore && !loadingMore) {
       loadMoreEmails();
     }
-  }, [hasMore, loadingMore, loadMoreEmails]);
+  }, [filteredEmails.length, hasMore, loadingMore, loadMoreEmails]);
+
+  // Virtual scroll: memoized item data passed to each row renderer
+  const virtualItemData = useMemo(() => ({
+    emails: filteredEmails,
+    manualCategories,
+    spamResults,
+    selectedIndex,
+    selectedUids,
+    currentFolder,
+    handleSelectEmail,
+    handleCheckboxChange,
+    handleDelete,
+    handleToggleRead,
+    c,
+    actionLoading,
+    showCheckboxes,
+    setDraggedEmail,
+    hasMore,
+    loadingMore,
+    loadMoreEmails,
+  }), [
+    filteredEmails, manualCategories, spamResults, selectedIndex, selectedUids,
+    currentFolder, handleSelectEmail, handleCheckboxChange, handleDelete,
+    handleToggleRead, c, actionLoading, showCheckboxes, setDraggedEmail,
+    hasMore, loadingMore, loadMoreEmails,
+  ]);
 
   const account = getActiveAccount();
 
@@ -1565,6 +1633,18 @@ function InboxSplitView({ onFullView, onNavigate }) {
     flatten(sortedFolders);
     return flat;
   }, [sortedFolders, collapsedFolders]);
+
+  // Virtual scroll: track email list container height via ResizeObserver
+  useEffect(() => {
+    const el = emailListContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      const h = entries[0]?.contentRect.height;
+      if (h > 0) setEmailListHeight(h);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Perf: debounce spam analysis + limit Map to current emails only
   const spamDebounceRef = useRef(null);
@@ -1984,9 +2064,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
             </div>
           )}
         </div>
-        <div 
-          className="flex-1 overflow-y-auto"
-          onScroll={handleScroll}
+        <div
+          ref={emailListContainerRef}
+          className="flex-1 overflow-hidden"
         >
           {filteredEmails.length === 0 ? (
             <div className={`p-8 text-center ${c.textSecondary}`}>
@@ -2017,52 +2097,18 @@ function InboxSplitView({ onFullView, onNavigate }) {
               )}
             </div>
           ) : (
-            <>
-              {filteredEmails.map((email, index) => {
-                const manualCat = manualCategories.get(email.uid);
-                const spamAnalysis = spamResults.get(email.uid);
-                const effectiveAnalysis = manualCat
-                  ? { ...spamAnalysis, category: manualCat, isManual: true }
-                  : spamAnalysis;
-                const folderLower = currentFolder.toLowerCase();
-                const isSentFolder = folderLower.includes('sent') || folderLower.includes('gesendet');
-
-                return (
-                  // Perf: content-visibility skips rendering off-screen items in Chromium/Electron
-                  <div key={email.uid} style={{ contentVisibility: 'auto', containIntrinsicSize: '0 72px' }}>
-                    <EmailListItem
-                      email={email}
-                      index={index}
-                      isSelected={index === selectedIndex}
-                      isChecked={selectedUids.has(email.uid)}
-                      onSelect={handleSelectEmail}
-                      onCheckboxChange={handleCheckboxChange}
-                      onDelete={handleDelete}
-                      onToggleRead={handleToggleRead}
-                      c={c}
-                      actionLoading={actionLoading}
-                      spamAnalysis={effectiveAnalysis}
-                      showCheckboxes={showCheckboxes}
-                      isSentFolder={isSentFolder}
-                      onDragStart={setDraggedEmail}
-                    />
-                  </div>
-                );
-              })}
-              {loadingMore && (
-                <div className={`p-4 text-center ${c.textSecondary}`}>
-                  <LoadingSpinner size="small" message="Lade mehr..." />
-                </div>
-              )}
-              {hasMore && !loadingMore && (
-                <button
-                  onClick={loadMoreEmails}
-                  className={`w-full p-3 text-sm ${c.accent} ${c.hover} transition-colors`}
-                >
-                  Mehr laden...
-                </button>
-              )}
-            </>
+            <FixedSizeList
+              ref={virtualListRef}
+              height={emailListHeight}
+              width="100%"
+              itemCount={filteredEmails.length + (hasMore || loadingMore ? 1 : 0)}
+              itemSize={EMAIL_ITEM_HEIGHT}
+              itemData={virtualItemData}
+              onItemsRendered={handleItemsRendered}
+              overscanCount={5}
+            >
+              {EmailVirtualRow}
+            </FixedSizeList>
           )}
         </div>
         

@@ -1,11 +1,12 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import { useAccounts } from '../../context/AccountContext';
+import { useAccounts, useAccountStats } from '../../context/AccountContext';
 import WidgetWrapper from './WidgetWrapper';
 
 function CategoryWidget({ widget, onNavigate, onSelectAccount }) {
   const { currentTheme } = useTheme();
-  const { categories, getAccountsByCategory, accountStats } = useAccounts();
+  const { categories, getAccountsByCategory } = useAccounts();
+  const accountStats = useAccountStats();
   const c = currentTheme.colors;
 
   const category = categories.find(cat => cat.id === widget.config.categoryId);

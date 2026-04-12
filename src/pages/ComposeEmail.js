@@ -405,10 +405,19 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
     const newAttachments = files.map(file => {
       const reader = new FileReader();
       const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Throttle progress updates via rAF — prevents 50+ re-renders per large file
+      let rafPending = false;
+      let latestPct = 0;
       reader.onprogress = (ev) => {
-        if (ev.lengthComputable) {
-          setUploadProgress(prev => ({ ...prev, [id]: Math.round((ev.loaded / ev.total) * 100) }));
-        }
+        if (!ev.lengthComputable) return;
+        latestPct = Math.round((ev.loaded / ev.total) * 100);
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+          rafPending = false;
+          setUploadProgress(prev => ({ ...prev, [id]: latestPct }));
+        });
       };
       reader.onload = (ev) => {
         setAttachments(prev => prev.map(a =>

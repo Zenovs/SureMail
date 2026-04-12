@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useAccounts } from '../context/AccountContext';
+import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
 import { useSearch } from '../context/SearchContext';
 import { getCategoryIcon } from '../pages/CategorySettings';
@@ -15,7 +15,8 @@ const NAV_ITEMS = [
 
 function SidebarV2({ currentView, onNavigate }) {
   const { currentTheme } = useTheme();
-  const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId, accountStats } = useAccounts();
+  const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId } = useAccounts();
+  const accountStats = useAccountStats();
   const { settings, updateWidth, isResizing, setIsResizing } = useSidebar();
   const { openSearch } = useSearch();
   const [expandedCategories, setExpandedCategories] = useState(['work', 'personal', 'other']);
