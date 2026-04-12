@@ -270,6 +270,9 @@ const openEmailDB = () => {
 
 const MAX_EMAILS_INDEXED_DB = 500;
 
+// Custom event to surface IndexedDB quota errors to the UI
+const INDEXEDDB_QUOTA_EVENT = 'coremail:indexeddb-quota';
+
 const saveEmailsToIndexedDB = async (accountId, folder, emails) => {
   try {
     const db = await openEmailDB();
@@ -280,6 +283,9 @@ const saveEmailsToIndexedDB = async (accountId, folder, emails) => {
     await store.put({ id: `${accountId}:${folder}`, accountId, folder, emails: trimmed, timestamp: Date.now() });
     db.close();
   } catch (e) {
+    if (e?.name === 'QuotaExceededError' || e?.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+      window.dispatchEvent(new CustomEvent(INDEXEDDB_QUOTA_EVENT));
+    }
     console.error('Failed to save to IndexedDB:', e);
   }
 };
@@ -611,6 +617,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [replyMode, setReplyMode] = useState(null); // null | 'reply' | 'replyAll'
   const [replySending, setReplySending] = useState(false);
   const [replyError, setReplyError] = useState(null);
+
+  // Toast for IndexedDB quota warning
+  const [showQuotaWarning, setShowQuotaWarning] = useState(false);
   const replyEditorRef = useRef(null);
 
   // v3.0.2: Attachment download/open state for split-view
@@ -1321,7 +1330,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
   const handleBulkDelete = useCallback(async () => {
     if (!window.electronAPI || !activeAccountId || selectedUids.size === 0) return;
-    
+
+    // Pause background sync to prevent deleted emails from reappearing
+    bgLoadAbortRef.current = true;
     setBulkDeleting(true);
     const uidsToDelete = Array.from(selectedUids);
     let deletedCount = 0;
@@ -1369,6 +1380,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
     }
     
     setBulkDeleting(false);
+    // Re-enable background sync
+    bgLoadAbortRef.current = false;
   }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex]);
 
   // v2.6.0: Manual categorization handler - saves sender category and updates ALL matching emails
@@ -1526,9 +1539,13 @@ function InboxSplitView({ onFullView, onNavigate }) {
       }
 
       if (e.key === 'ArrowDown' && selectedIndex < filteredEmails.length - 1) {
-        handleSelectEmail(selectedIndex + 1);
+        const next = selectedIndex + 1;
+        handleSelectEmail(next);
+        virtualListRef.current?.scrollToItem(next, 'smart');
       } else if (e.key === 'ArrowUp' && selectedIndex > 0) {
-        handleSelectEmail(selectedIndex - 1);
+        const prev = selectedIndex - 1;
+        handleSelectEmail(prev);
+        virtualListRef.current?.scrollToItem(prev, 'smart');
       } else if (e.key === 'Enter' && selectedEmail) {
         onFullView(selectedEmail, currentFolder);
       }
@@ -1633,6 +1650,13 @@ function InboxSplitView({ onFullView, onNavigate }) {
     flatten(sortedFolders);
     return flat;
   }, [sortedFolders, collapsedFolders]);
+
+  // IndexedDB quota warning listener
+  useEffect(() => {
+    const handler = () => setShowQuotaWarning(true);
+    window.addEventListener(INDEXEDDB_QUOTA_EVENT, handler);
+    return () => window.removeEventListener(INDEXEDDB_QUOTA_EVENT, handler);
+  }, []);
 
   // Virtual scroll: track email list container height via ResizeObserver
   useEffect(() => {
@@ -1813,6 +1837,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
   }
 
   return (
+    <div className={`flex-1 flex flex-col overflow-hidden ${c.bg}`}>
+      {/* IndexedDB quota warning */}
+      {showQuotaWarning && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-sm flex-shrink-0">
+          <span>⚠️ Offline-Speicher voll. Ältere E-Mails werden nicht mehr zwischengespeichert.</span>
+          <button onClick={() => setShowQuotaWarning(false)} className="ml-auto opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
     <div className={`flex-1 flex overflow-hidden ${c.bg}`}>
       {/* Folder List - Resizable (v1.8.1) */}
       <div 
@@ -2130,8 +2162,19 @@ function InboxSplitView({ onFullView, onNavigate }) {
         style={{ minWidth: `${PREVIEW_MIN_WIDTH}px` }}
       >
         {loadingPreview ? (
-          <div className="flex-1 flex items-center justify-center">
-            <LoadingSpinner />
+          // Skeleton loading state for email preview
+          <div className="flex-1 p-6 space-y-4 animate-pulse">
+            <div className={`h-6 w-3/4 rounded ${c.bgSecondary}`} />
+            <div className={`h-4 w-1/2 rounded ${c.bgSecondary}`} />
+            <div className={`h-4 w-1/3 rounded ${c.bgSecondary}`} />
+            <div className={`h-px w-full ${c.border} border-t mt-4`} />
+            <div className="space-y-3 pt-2">
+              <div className={`h-4 w-full rounded ${c.bgSecondary}`} />
+              <div className={`h-4 w-5/6 rounded ${c.bgSecondary}`} />
+              <div className={`h-4 w-4/5 rounded ${c.bgSecondary}`} />
+              <div className={`h-4 w-full rounded ${c.bgSecondary}`} />
+              <div className={`h-4 w-3/4 rounded ${c.bgSecondary}`} />
+            </div>
           </div>
         ) : selectedEmail ? (
           <>
@@ -2287,7 +2330,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     </button>
                   </div>
 
-                  {/* Reply editor */}
+                  {/* Reply editor — paste handler strips HTML to prevent XSS */}
                   <div
                     ref={replyEditorRef}
                     contentEditable
@@ -2295,6 +2338,11 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     className={`min-h-[120px] max-h-[240px] overflow-y-auto p-4 focus:outline-none ${c.text}`}
                     style={{ fontSize: '14px', lineHeight: '1.6' }}
                     data-placeholder="Antwort schreiben..."
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const text = e.clipboardData.getData('text/plain');
+                      document.execCommand('insertText', false, text);
+                    }}
                   />
 
                   {/* Quoted original email */}
@@ -2421,6 +2469,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -347,6 +347,62 @@ function getImapConfigForAccount(account) {
   };
 }
 
+// ── IMAP Connection Pool ────────────────────────────────────────────────────
+// Keeps one live IMAP connection per account, reconnects transparently on error.
+// Avoids the TCP handshake + TLS + auth overhead (typically 1–3s) on every fetch.
+const imapPool = new Map(); // accountId → { connection, busy }
+const IMAP_IDLE_TTL = 5 * 60 * 1000; // close connections idle for > 5 minutes
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of imapPool) {
+    if (!entry.busy && (now - entry.lastUsed) > IMAP_IDLE_TTL) {
+      try { entry.connection.end(); } catch (_) {}
+      imapPool.delete(id);
+      console.log(`[IMAPPool] Closed idle connection for ${id}`);
+    }
+  }
+}, 60_000);
+
+async function getPooledImapConnection(account) {
+  const entry = imapPool.get(account.id);
+  if (entry && !entry.busy) {
+    // Verify the connection is still alive via a lightweight STATUS check
+    try {
+      entry.busy = true;
+      entry.lastUsed = Date.now();
+      return entry.connection;
+    } catch (_) {
+      imapPool.delete(account.id);
+    }
+  }
+  // Create a new connection
+  const config = getImapConfigForAccount(account);
+  const connection = await imapSimple.connect(config);
+  imapPool.set(account.id, { connection, busy: true, lastUsed: Date.now() });
+  return connection;
+}
+
+function releaseImapConnection(accountId, destroy = false) {
+  const entry = imapPool.get(accountId);
+  if (!entry) return;
+  if (destroy) {
+    try { entry.connection.end(); } catch (_) {}
+    imapPool.delete(accountId);
+  } else {
+    entry.busy = false;
+    entry.lastUsed = Date.now();
+  }
+}
+
+// Clean up all pooled connections on quit
+app.on('before-quit', () => {
+  for (const [, entry] of imapPool) {
+    try { entry.connection.end(); } catch (_) {}
+  }
+  imapPool.clear();
+});
+
 // v2.8.4: Find the Sent folder by \Sent attribute or common names
 async function findSentFolderName(connection) {
   try {
@@ -1315,6 +1371,12 @@ ipcMain.handle('accounts:save', async (event, data) => {
       }
     }
 
+    // Close pooled connections for any removed accounts
+    const newIds = new Set((data.accounts || []).map(a => a.id));
+    for (const [id] of imapPool) {
+      if (!newIds.has(id)) releaseImapConnection(id, true);
+    }
+
     store.set('accounts', data.accounts);
     store.set('categories', data.categories);
     return { success: true };
@@ -1401,9 +1463,16 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
   const { folder = 'INBOX', limit = 0, offset = 0 } = options;
 
   let connection;
+  let usedPool = false;
   try {
-    const config = getImapConfigForAccount(account);
-    connection = await imapSimple.connect(config);
+    try {
+      connection = await getPooledImapConnection(account);
+      usedPool = true;
+    } catch (_) {
+      // Pool failed (e.g. connection died) — fall back to fresh connection
+      const config = getImapConfigForAccount(account);
+      connection = await imapSimple.connect(config);
+    }
     await connection.openBox(folder);
 
     const searchCriteria = ['ALL'];
@@ -1493,9 +1562,13 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
     };
   } catch (error) {
     console.error('IMAP Fehler:', error);
+    if (usedPool) releaseImapConnection(accountId, true); // destroy broken connection
     return { success: false, error: error.message };
   } finally {
-    if (connection) try { await connection.end(); } catch (_) {}
+    if (connection) {
+      if (usedPool) releaseImapConnection(accountId); // return to pool
+      else try { await connection.end(); } catch (_) {}
+    }
   }
 });
 
@@ -2383,7 +2456,7 @@ async function getGraphAccessToken(accountId) {
   }
 }
 
-async function graphRequest(accountId, method, apiPath, body) {
+async function graphRequest(accountId, method, apiPath, body, _retryCount = 0) {
   const fetch = require('node-fetch');
   const token = await getGraphAccessToken(accountId);
 
@@ -2400,6 +2473,16 @@ async function graphRequest(accountId, method, apiPath, body) {
   const resp = await fetch(`https://graph.microsoft.com/v1.0${apiPath}`, opts);
 
   if (resp.status === 204) return null; // No content (DELETE/PATCH)
+
+  // Retry on 429 (rate limit) or 503 (service unavailable), up to 3 times
+  if ((resp.status === 429 || resp.status === 503) && _retryCount < 3) {
+    const retryAfter = parseInt(resp.headers.get('Retry-After') || '0', 10);
+    const backoff = retryAfter > 0 ? retryAfter * 1000 : Math.min(1000 * Math.pow(2, _retryCount), 16000);
+    console.warn(`[Graph] ${resp.status} on ${apiPath} — retry ${_retryCount + 1}/3 after ${backoff}ms`);
+    await new Promise(r => setTimeout(r, backoff));
+    return graphRequest(accountId, method, apiPath, body, _retryCount + 1);
+  }
+
   if (!resp.ok) {
     const errText = await resp.text().catch(() => '');
     throw new Error(`Graph ${resp.status}: ${errText.slice(0, 200)}`);

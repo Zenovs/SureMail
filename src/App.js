@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Component } from 'react';
+import React, { useState, useEffect, useCallback, Component, useRef } from 'react';
 
 // v2.7.6: Global error boundary to catch render crashes (shows error instead of black window)
 class ErrorBoundary extends Component {
@@ -34,7 +34,7 @@ class ErrorBoundary extends Component {
   }
 }
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { AccountProvider, useAccounts } from './context/AccountContext';
+import { AccountProvider, useAccounts, useAccountStats } from './context/AccountContext';
 import { SidebarProvider } from './context/SidebarContext';
 import { DashboardProvider } from './context/DashboardContext';
 import { OllamaProvider, useOllama } from './context/OllamaContext';
@@ -87,7 +87,7 @@ const REFRESH_INTERVALS_APP = { '1': 60000, '5': 300000, '10': 600000, '15': 900
 
 function AppContent() {
   const { currentTheme } = useTheme();
-  const { setActiveAccountId, accounts } = useAccounts();
+  const { setActiveAccountId, accounts, updateAccountStats } = useAccounts();
   const { isAvailable, isChecking, checkOllama, setCurrentEmailContext } = useOllama();
   const { openSearch, toggleSearch } = useSearch();
   const [currentView, setCurrentView] = useState('dashboard');
@@ -95,7 +95,22 @@ function AppContent() {
   const [currentFolder, setCurrentFolder] = useState('INBOX');
   const [composeData, setComposeData] = useState(null); // v1.8.0: For reply/forward
   const [showOllamaInstaller, setShowOllamaInstaller] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [syncErrorToast, setSyncErrorToast] = useState(null); // { accountName, message }
+  const syncErrorTimerRef = useRef(null);
   const c = currentTheme.colors;
+
+  // Offline/online detection
+  useEffect(() => {
+    const onOnline  = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online',  onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online',  onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   // v1.13.0: Global search keyboard shortcut (Ctrl+K or Cmd+K)
   useEffect(() => {
@@ -127,6 +142,8 @@ function AppContent() {
       if (!window.electronAPI) return;
       // Perf: skip sync when tab/window is hidden — saves CPU + IMAP connections
       if (document.hidden) return;
+      // Skip sync when offline
+      if (!navigator.onLine) return;
 
       const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
 
@@ -142,12 +159,19 @@ function AppContent() {
             if (localStorageEnabled) {
               await bgSaveToIndexedDB(account.id, 'INBOX', result.emails);
             }
+            // Update unread badge in sidebar
+            const unread = result.emails.filter(e => !e.seen).length;
+            updateAccountStats(account.id, { unread, total: result.emails.length });
             window.dispatchEvent(new CustomEvent('coremail:bgSync', {
               detail: { accountId: account.id, folder: 'INBOX', emails: result.emails }
             }));
           }
         } catch (e) {
           console.error('[BGSync] Error for account', account.id, e);
+          // Show sync error toast (auto-dismiss after 5s)
+          setSyncErrorToast({ accountName: account.name || account.id, message: e.message });
+          if (syncErrorTimerRef.current) clearTimeout(syncErrorTimerRef.current);
+          syncErrorTimerRef.current = setTimeout(() => setSyncErrorToast(null), 5000);
         }
       }
     };
@@ -155,10 +179,16 @@ function AppContent() {
     const interval = getInterval();
     if (interval <= 0) return;
 
-    console.log(`[BGSync] Starting background sync every ${interval / 1000}s for ${accounts.length} account(s)`);
-    const id = setInterval(syncAllAccounts, interval);
+    // Add random jitter (±10s) to spread concurrent syncs across users
+    const jitter = Math.random() * 10000;
+    console.log(`[BGSync] Starting background sync every ${interval / 1000}s (+${Math.round(jitter/1000)}s jitter) for ${accounts.length} account(s)`);
+    const firstTimeout = setTimeout(() => {
+      syncAllAccounts();
+      const id = setInterval(syncAllAccounts, interval);
+      return () => clearInterval(id);
+    }, jitter);
     return () => {
-      clearInterval(id);
+      clearTimeout(firstTimeout);
       console.log('[BGSync] Background sync stopped');
     };
   }, [accounts]);
@@ -278,7 +308,23 @@ function AppContent() {
   };
 
   return (
-    <div className={`flex h-screen ${c.bg}`}>
+    <div className={`flex flex-col h-screen ${c.bg}`}>
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600/90 text-white text-sm font-medium flex-shrink-0 z-50">
+          <span>📡</span>
+          <span>Keine Internetverbindung — E-Mails werden offline angezeigt</span>
+        </div>
+      )}
+      {/* Sync error toast */}
+      {syncErrorToast && (
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-red-900/90 border border-red-500/40 text-red-200 text-sm rounded-xl shadow-lg max-w-sm">
+          <span>⚠️</span>
+          <span>Sync fehlgeschlagen für <strong>{syncErrorToast.accountName}</strong></span>
+          <button onClick={() => setSyncErrorToast(null)} className="ml-auto opacity-60 hover:opacity-100">✕</button>
+        </div>
+      )}
+      <div className="flex flex-1 overflow-hidden min-h-0">
       <SidebarV2 currentView={currentView} onNavigate={setCurrentView} />
       <main className="flex-1 flex flex-col overflow-hidden min-h-0">
         <ErrorBoundary>
@@ -299,6 +345,7 @@ function AppContent() {
       
       {/* v1.16.0: Update Notification */}
       <UpdateNotification onOpenSettings={() => setCurrentView('settings')} />
+      </div>
     </div>
   );
 }

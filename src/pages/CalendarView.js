@@ -473,8 +473,8 @@ export default function CalendarView() {
         ? await window.electronAPI.calendarUpdateEvent(selectedAccount, data.id, data)
         : await window.electronAPI.calendarCreateEvent(selectedAccount, data);
       if (result.success) { setEditEvent(null); loadEvents(); }
-      else alert('Fehler: ' + result.error);
-    } catch (err) { alert('Fehler: ' + err.message); }
+      else setError(result.error || 'Speichern fehlgeschlagen');
+    } catch (err) { setError(err.message); }
   };
 
   const handleDelete = async (eventId) => {
@@ -482,8 +482,8 @@ export default function CalendarView() {
     try {
       const result = await window.electronAPI.calendarDeleteEvent(selectedAccount, eventId);
       if (result.success) { setEditEvent(null); loadEvents(); }
-      else alert('Fehler: ' + result.error);
-    } catch (err) { alert('Fehler: ' + err.message); }
+      else setError(result.error || 'Löschen fehlgeschlagen');
+    } catch (err) { setError(err.message); }
   };
 
   if (m365Accounts.length === 0) {

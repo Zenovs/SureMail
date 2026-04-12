@@ -342,9 +342,13 @@ export function analyzeEmail(email, settings = {}) {
  * @param {Object} settings - Spam-Filter-Einstellungen
  * @returns {Map} Map von uid -> Analyse-Ergebnis
  */
+const ANALYZE_CAP = 500;
+
 export function analyzeEmails(emails, settings = {}) {
   const results = new Map();
-  for (const email of emails) {
+  // Cap to the most recent N emails to avoid blocking the main thread
+  const slice = emails.length > ANALYZE_CAP ? emails.slice(0, ANALYZE_CAP) : emails;
+  for (const email of slice) {
     const uid = email.uid || email.id;
     if (uid) {
       results.set(uid, analyzeEmail(email, settings));

@@ -253,6 +253,8 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   const [undoCountdown, setUndoCountdown] = useState(null);
   const undoTimerRef = useRef(null);
   const undoCancelledRef = useRef(false);
+  // Draft autosave key — unique per new compose vs. reply/forward
+  const draftKey = replyTo ? null : 'composeDraft';
 
   // --- Anhänge ---
   const [attachments,    setAttachments]    = useState([]);
@@ -274,11 +276,35 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   // ── Initialisierung ─────────────────────────────────────────────────────────
   useEffect(() => {
     loadSignatures();
+    // Draft restore on mount (new compose only)
+    if (draftKey) {
+      try {
+        const saved = localStorage.getItem(draftKey);
+        if (saved) {
+          const draft = JSON.parse(saved);
+          if (draft.to?.length) setToTags(draft.to);
+          if (draft.subject) setForm(f => ({ ...f, subject: draft.subject }));
+          if (draft.html && editorRef.current) editorRef.current.innerHTML = draft.html;
+        }
+      } catch (_) {}
+    }
     return () => {
       // Cleanup undo timer on unmount to prevent state updates after unmount
       if (undoTimerRef.current) clearInterval(undoTimerRef.current);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Draft autosave every 10s (new compose only)
+  useEffect(() => {
+    if (!draftKey) return;
+    const id = setInterval(() => {
+      try {
+        const html = editorMode === 'richtext' ? editorRef.current?.innerHTML : htmlSource;
+        localStorage.setItem(draftKey, JSON.stringify({ to: toTags, subject: form.subject, html }));
+      } catch (_) {}
+    }, 10000);
+    return () => clearInterval(id);
+  }, [draftKey, toTags, form.subject, editorMode, htmlSource]);
 
   // Absendername aus Konto übernehmen
   useEffect(() => {
@@ -514,7 +540,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
         accountId: selectedAccountId,
         accountType: activeAcc?.type || 'imap',
       });
-      if (result?.success) { setSuccess(true); setTimeout(() => onBack(), 2000); }
+      if (result?.success) { if (draftKey) localStorage.removeItem(draftKey); setSuccess(true); setTimeout(() => onBack(), 2000); }
       else setError(result?.error || 'Planung fehlgeschlagen');
       return;
     }
@@ -548,6 +574,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       }
 
       if (result.success) {
+        if (draftKey) localStorage.removeItem(draftKey);
         setSuccess(true);
         window.electronAPI.logAdd('email_sent',
           `E-Mail gesendet: ${form.subject || '(kein Betreff)'}`,
