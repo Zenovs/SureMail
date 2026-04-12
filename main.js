@@ -1885,26 +1885,27 @@ ipcMain.handle('smtp:test', async (event, settings) => {
 // v1.10.0: OAuth2 support for delete
 ipcMain.handle('imap:deleteEmail', async (event, accountId, uid, folder = 'INBOX') => {
   const account = getAccountById(accountId);
-  
+
   if (!account) {
     return { success: false, error: 'Konto nicht gefunden' };
   }
 
+  let connection;
   try {
     const config = getImapConfigForAccount(account);
-
-    const connection = await imapSimple.connect(config);
+    connection = await imapSimple.connect(config);
     await connection.openBox(folder);
-    
+
     // Add \Deleted flag and expunge
     await connection.addFlags(uid, ['\\Deleted'], { uid: true });
     await connection.imap.expunge();
-    
-    await connection.end();
+
     return { success: true, message: 'E-Mail gelöscht' };
   } catch (error) {
     console.error('IMAP Delete Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
   }
 });
 
@@ -1912,28 +1913,29 @@ ipcMain.handle('imap:deleteEmail', async (event, accountId, uid, folder = 'INBOX
 // v1.10.0: OAuth2 support
 ipcMain.handle('imap:markAsRead', async (event, accountId, uid, isRead = true, folder = 'INBOX') => {
   const account = getAccountById(accountId);
-  
+
   if (!account) {
     return { success: false, error: 'Konto nicht gefunden' };
   }
 
+  let connection;
   try {
     const config = getImapConfigForAccount(account);
-
-    const connection = await imapSimple.connect(config);
+    connection = await imapSimple.connect(config);
     await connection.openBox(folder);
-    
+
     if (isRead) {
       await connection.addFlags(uid, ['\\Seen'], { uid: true });
     } else {
       await connection.delFlags(uid, ['\\Seen'], { uid: true });
     }
-    
-    await connection.end();
+
     return { success: true, message: isRead ? 'Als gelesen markiert' : 'Als ungelesen markiert' };
   } catch (error) {
     console.error('IMAP Mark Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
   }
 });
 
@@ -1941,29 +1943,30 @@ ipcMain.handle('imap:markAsRead', async (event, accountId, uid, isRead = true, f
 // v1.10.0: OAuth2 support
 ipcMain.handle('imap:moveEmail', async (event, accountId, uid, sourceFolder, destFolder) => {
   const account = getAccountById(accountId);
-  
+
   if (!account) {
     return { success: false, error: 'Konto nicht gefunden' };
   }
 
+  let connection;
   try {
     const config = getImapConfigForAccount(account);
-
-    const connection = await imapSimple.connect(config);
+    connection = await imapSimple.connect(config);
     await connection.openBox(sourceFolder);
-    
+
     // Copy to destination folder
     await connection.imap.copy(uid, destFolder, { uid: true });
-    
+
     // Delete from source folder
     await connection.addFlags(uid, ['\\Deleted'], { uid: true });
     await connection.imap.expunge();
-    
-    await connection.end();
+
     return { success: true, message: 'E-Mail verschoben' };
   } catch (error) {
     console.error('IMAP Move Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
   }
 });
 
@@ -2027,15 +2030,14 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
   // v2.3.1: Changed default limit from 50 to 0 (0 = no limit, fetch all emails)
   const { limit = 0, offset = 0 } = options;
 
+  let connection;
   try {
     const config = getImapConfigForAccount(account);
+    connection = await imapSimple.connect(config);
 
-    const connection = await imapSimple.connect(config);
-    
     try {
       await connection.openBox(folder);
     } catch (err) {
-      await connection.end();
       return { success: false, error: `Ordner "${folder}" konnte nicht geöffnet werden` };
     }
 
@@ -2047,7 +2049,7 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
     };
 
     const messages = await connection.search(searchCriteria, fetchOptions);
-    
+
     // Sort by date descending and apply pagination
     messages.sort((a, b) => {
       const dateA = new Date(a.attributes?.date || 0);
@@ -2057,11 +2059,11 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
 
     // v2.3.1: If limit is 0, return all messages; otherwise apply pagination
     const paginatedMessages = limit > 0 ? messages.slice(offset, offset + limit) : messages.slice(offset);
-    
+
     const emails = paginatedMessages.map(msg => {
       const header = msg.parts.find(p => p.which.includes('HEADER'));
       const headerLines = header?.body || {};
-      
+
       return {
         uid: msg.attributes.uid,
         subject: (headerLines.subject || ['(Kein Betreff)'])[0],
@@ -2074,10 +2076,8 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
       };
     });
 
-    await connection.end();
-    
-    return { 
-      success: true, 
+    return {
+      success: true,
       emails,
       folder,
       total: messages.length,
@@ -2087,6 +2087,8 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
   } catch (error) {
     console.error('IMAP Fetch Folder Fehler:', error);
     return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
   }
 });
 
