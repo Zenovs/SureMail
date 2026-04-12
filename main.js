@@ -33,6 +33,9 @@ app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor');
 app.commandLine.appendSwitch('use-gl', 'swiftshader');
 app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder');
+// Fix for /dev/shm ESRCH error on ARM64/Kali Linux:
+// Use /tmp for shared memory instead of /dev/shm
+app.commandLine.appendSwitch('disable-dev-shm-usage');
 
 // Suppress GPU-related logging
 app.commandLine.appendSwitch('disable-logging');
@@ -70,8 +73,17 @@ try {
     store.store = legacyData;
     console.log('[Store] Migration von Legacy-Key auf benutzerspezifischen Key erfolgreich.');
   } catch (migErr) {
-    // Migration fehlgeschlagen — Fallback auf leeren Store mit neuem Key
-    console.error('[Store] Migrationsfehler, neuer leerer Store wird erstellt:', migErr.message);
+    // Migration fehlgeschlagen — Konfigurationsdatei löschen und neu erstellen
+    console.error('[Store] Migrationsfehler, Konfiguration wird zurückgesetzt:', migErr.message);
+    try {
+      const configPath = require('path').join(require('os').homedir(), '.config', 'coremail-desktop', 'coremail-config.json');
+      if (require('fs').existsSync(configPath)) {
+        require('fs').unlinkSync(configPath);
+        console.log('[Store] Konfigurationsdatei gelöscht, neuer Store wird erstellt.');
+      }
+    } catch (delErr) {
+      console.error('[Store] Fehler beim Löschen der Konfigurationsdatei:', delErr.message);
+    }
     store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
   }
 }
