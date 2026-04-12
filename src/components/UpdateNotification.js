@@ -298,9 +298,10 @@ const styles = `
 }
 `;
 
-// Styles ins Dokument einfügen
-if (typeof document !== 'undefined') {
+// Styles ins Dokument einfügen (einmalig, verhindert Duplikate bei Hot-Reload)
+if (typeof document !== 'undefined' && !document.getElementById('update-notification-styles')) {
   const styleSheet = document.createElement('style');
+  styleSheet.id = 'update-notification-styles';
   styleSheet.textContent = styles;
   document.head.appendChild(styleSheet);
 }

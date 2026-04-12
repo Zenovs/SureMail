@@ -40,6 +40,7 @@ function Logbuch() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(null);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -54,8 +55,10 @@ function Logbuch() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleClear = async () => {
-    if (!window.confirm('Logbuch wirklich leeren?')) return;
+  const handleClear = () => setConfirmClear(true);
+
+  const handleClearConfirmed = async () => {
+    setConfirmClear(false);
     await window.electronAPI.logClear();
     setEntries([]);
   };
@@ -159,6 +162,32 @@ function Logbuch() {
           ))}
         </div>
       </div>
+
+      {/* Bestätigungs-Dialog: Logbuch leeren */}
+      {confirmClear && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6 shadow-2xl max-w-sm w-full mx-4`}>
+            <h3 className={`text-lg font-semibold ${c.text} mb-2`}>Logbuch leeren?</h3>
+            <p className={`text-sm ${c.textSecondary} mb-5`}>
+              Alle {entries.length} Einträge werden unwiderruflich gelöscht.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmClear(false)}
+                className={`px-4 py-2 rounded-lg ${c.bgTertiary} ${c.hover} ${c.text} text-sm transition-colors`}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleClearConfirmed}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm transition-colors"
+              >
+                Leeren
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Einträge */}
       <div className="flex-1 overflow-y-auto">

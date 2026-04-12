@@ -19,6 +19,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
   const [aiSummary, setAiSummary] = useState(null);
   const [summarizing, setSummarizing] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const [isRead, setIsRead] = useState(email?.seen ?? true);
   const c = currentTheme.colors;
 
@@ -90,10 +91,10 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
       if (result.success) {
         onBack?.(); // Go back to list after deletion
       } else {
-        alert('Fehler beim Löschen: ' + result.error);
+        setActionError('Fehler beim Löschen: ' + result.error);
       }
     } catch (err) {
-      alert('Fehler: ' + err.message);
+      setActionError('Fehler: ' + err.message);
     }
     setActionLoading(null);
   };
@@ -108,10 +109,10 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
       if (result.success) {
         setIsRead(newReadState);
       } else {
-        alert('Fehler: ' + result.error);
+        setActionError('Fehler: ' + result.error);
       }
     } catch (err) {
-      alert('Fehler: ' + err.message);
+      setActionError('Fehler: ' + err.message);
     }
     setActionLoading(null);
   };
@@ -371,6 +372,14 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           </div>
         </div>
       </header>
+
+      {/* Action Error Banner */}
+      {actionError && (
+        <div className="mx-6 mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-between">
+          <span className="text-sm text-red-400">{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-300 ml-3">✕</button>
+        </div>
+      )}
 
       {/* E-Mail Meta */}
       <div className={`px-6 py-4 ${c.border} border-b ${c.bgSecondary}`}>

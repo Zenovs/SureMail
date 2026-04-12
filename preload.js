@@ -23,6 +23,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateAvailable: (callback) => ipcRenderer.on('update:available', (event, data) => callback(data)),
   onUpdateProgress: (callback) => ipcRenderer.on('update:progress', (event, data) => callback(data)),
   onUpdateRestartRequired: (callback) => ipcRenderer.on('update:restart-required', () => callback()),
+  removeUpdateListeners: () => {
+    ipcRenderer.removeAllListeners('update:available');
+    ipcRenderer.removeAllListeners('update:progress');
+    ipcRenderer.removeAllListeners('update:restart-required');
+  },
   
   // Ollama Installation (v1.6.0)
   checkOllamaInstalled: () => ipcRenderer.invoke('ollama:checkInstalled'),
@@ -36,6 +41,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showNotification: (data) => ipcRenderer.invoke('notification:show', data),
   setBadgeCount: (count) => ipcRenderer.invoke('notification:setBadge', count),
   onEmailOpen: (callback) => ipcRenderer.on('email:open', (event, data) => callback(data)),
+  removeEmailOpenListener: () => ipcRenderer.removeAllListeners('email:open'),
   
   // Signatures (v1.2)
   saveSignatures: (signatures) => ipcRenderer.invoke('signatures:save', signatures),
