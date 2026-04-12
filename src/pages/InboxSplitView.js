@@ -377,11 +377,17 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
       onClick={() => onSelect(index)}
       draggable
       onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart?.(email); }}
-      className={`p-3 cursor-pointer transition-colors ${c.border} border-b relative group
-        ${isSelected ? c.bgTertiary : isChecked ? 'bg-cyan-500/10' : isUnread ? 'bg-blue-500/5 hover:bg-blue-500/10' : c.hover}
-        ${getBorderColor()}
+      className={`cm-list-item p-3 cursor-pointer ${c.border} border-b relative group select-none
+        ${isSelected
+          ? `${c.bgTertiary} shadow-[inset_3px_0_0_0] shadow-cyan-500`
+          : isChecked
+          ? 'bg-cyan-500/10 shadow-[inset_3px_0_0_0] shadow-cyan-400'
+          : isUnread
+          ? `bg-blue-500/5 hover:bg-blue-500/10 shadow-[inset_3px_0_0_0] shadow-blue-500`
+          : `${c.hover} shadow-[inset_3px_0_0_0] shadow-transparent hover:shadow-white/10`}
+        ${!isSelected ? getBorderColor() : ''}
       `}
-      style={{ borderLeftWidth: '3px', minHeight: '60px' }}
+      style={{ minHeight: '60px' }}
     >
       <div className="flex items-start justify-between gap-2">
         {/* v2.3.0: Checkbox for multi-select */}
@@ -509,6 +515,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [loadingMore, setLoadingMore] = useState(false);
   // Abort signal for background batch loading — set to true when account/folder changes
   const bgLoadAbortRef = useRef(false);
+  // v4.5.6: Version counter to prevent stale loadFolders from overwriting current account's folders
+  const folderLoadVersionRef = useRef(0);
   const c = currentTheme.colors;
   
   // v2.3.0: Multi-Select State
@@ -647,13 +655,20 @@ function InboxSplitView({ onFullView, onNavigate }) {
   }, [draggedEmail, currentFolder, activeAccountId, isGraphAccount]);
 
   // Load folders for account (forceRefresh = bypass cache)
+  // v4.5.6: version check prevents a stale async call (e.g. slow IMAP) from
+  // overwriting the folders of a newer account after the user switches accounts.
   const loadFolders = useCallback(async (forceRefresh = false) => {
     if (!window.electronAPI || !activeAccountId) return;
+
+    // Capture the current version at call-start; if it changes before we write
+    // state, a newer loadFolders is already running — discard this result.
+    const myVersion = ++folderLoadVersionRef.current;
 
     const cacheKey = `folders:${activeAccountId}`;
     if (!forceRefresh) {
       const cached = folderCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        if (folderLoadVersionRef.current !== myVersion) return;
         setFolders(cached.data);
         return;
       }
@@ -672,10 +687,15 @@ function InboxSplitView({ onFullView, onNavigate }) {
           { name: 'Gelöscht',    path: 'Deleted', type: 'deleteditems', children: [], unread: 0 },
           { name: 'Junk',        path: 'Junk',    type: 'junkemail',    children: [], unread: 0 },
         ];
+        if (folderLoadVersionRef.current !== myVersion) return;
         setFolders(GRAPH_DEFAULT_FOLDERS);
 
         // Load real folders from Graph API (includes custom folders + unread counts)
         result = await window.electronAPI.listGraphFolders(activeAccountId);
+
+        // Stale check: a newer account's loadFolders may have started while we waited
+        if (folderLoadVersionRef.current !== myVersion) return;
+
         if (result?.error === 'TOKEN_EXPIRED') {
           setError('Microsoft-Token abgelaufen. Bitte Konto erneut verbinden (Einstellungen → Kontenverwaltung).');
           setLoadingFolders(false);
@@ -693,7 +713,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
             unread: f.unread || 0,
             children: (f.children || []).map(normalizeFolder),
           });
-          const normalized = result.folders.map(normalizeFolder);
+          const normalized = result.folders.filter(f => !f.isHidden).map(normalizeFolder);
           setFolders(normalized);
           folderCache.set(cacheKey, { data: normalized, timestamp: Date.now() });
         } else if (!result.success) {
@@ -702,6 +722,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
         }
       } else {
         result = await window.electronAPI.listFolders(activeAccountId);
+        if (folderLoadVersionRef.current !== myVersion) return;
         if (result.success && result.folders?.length > 0) {
           setFolders(result.folders);
           folderCache.set(cacheKey, { data: result.folders, timestamp: Date.now() });
@@ -719,9 +740,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
       }
     } catch (err) {
       console.error('Error loading folders:', err);
-      setFolderError(err.message);
+      if (folderLoadVersionRef.current === myVersion) setFolderError(err.message);
     }
-    setLoadingFolders(false);
+    if (folderLoadVersionRef.current === myVersion) setLoadingFolders(false);
   }, [activeAccountId, isGraphAccount]);
 
   // v2.8.3: Background batch loading — runs a loop loading 50 emails at a time
@@ -1633,29 +1654,61 @@ function InboxSplitView({ onFullView, onNavigate }) {
 
   if (loading) {
     return (
-      <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
-        <LoadingSpinner message="E-Mails werden geladen..." />
+      <div className={`flex-1 flex overflow-hidden ${c.bg}`}>
+        {/* Folder skeleton */}
+        <div className={`${c.bgSecondary} ${c.border} border-r flex flex-col`} style={{ width: '200px' }}>
+          <div className={`p-3 ${c.border} border-b`}><div className="cm-skeleton h-4 w-16" /></div>
+          <div className="p-3 space-y-2">
+            {[100,80,90,70,85].map((w,i) => <div key={i} className="cm-skeleton h-7 rounded-xl" style={{ width: `${w}%`, animationDelay: `${i*80}ms` }} />)}
+          </div>
+        </div>
+        {/* Email list skeleton */}
+        <div className={`${c.bgSecondary} ${c.border} border-r flex flex-col`} style={{ width: '320px' }}>
+          <div className={`p-4 ${c.border} border-b`}><div className="cm-skeleton h-5 w-32" /></div>
+          <div className="flex-1 overflow-hidden">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className={`p-3 ${c.border} border-b`} style={{ animationDelay: `${i*60}ms` }}>
+                <div className="flex gap-2 mb-2">
+                  <div className="cm-skeleton h-3.5 rounded-full w-2.5" />
+                  <div className="cm-skeleton h-3.5 flex-1" style={{ animationDelay: `${i*60+20}ms` }} />
+                  <div className="cm-skeleton h-3 w-10" style={{ animationDelay: `${i*60+40}ms` }} />
+                </div>
+                <div className="cm-skeleton h-3 w-4/5 ml-4 mb-1.5" style={{ animationDelay: `${i*60+30}ms` }} />
+                <div className="cm-skeleton h-3 w-2/3 ml-4" style={{ animationDelay: `${i*60+50}ms` }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Preview skeleton */}
+        <div className={`flex-1 ${c.bg} p-6`}>
+          <div className="cm-skeleton h-6 w-2/3 mb-4" />
+          <div className="cm-skeleton h-4 w-1/3 mb-6" />
+          {[95,88,72,80,60].map((w,i) => <div key={i} className="cm-skeleton h-3 mb-2" style={{ width: `${w}%`, animationDelay: `${i*60}ms` }} />)}
+        </div>
       </div>
     );
   }
 
   if (error) {
     const activeAccount = getActiveAccount();
+    const isMsAccount = activeAccount?.type === 'microsoft';
     return (
       <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
         <div className="text-center max-w-lg px-4">
           <div className="text-red-400 text-5xl mb-4">⚠️</div>
           <h3 className={`font-semibold ${c.text} mb-2`}>Verbindung fehlgeschlagen</h3>
-          {activeAccount && (
+          {!isMsAccount && activeAccount?.imap?.host && (
             <p className={`text-xs ${c.textSecondary} mb-2`}>
-              {activeAccount.imap?.host}:{activeAccount.imap?.port} ({activeAccount.imap?.username})
+              {activeAccount.imap.host}:{activeAccount.imap.port} ({activeAccount.imap.username})
             </p>
           )}
           <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 mb-3 text-left">
             <p className="text-red-400 text-sm font-mono break-all">{error}</p>
           </div>
           <p className={`text-xs ${c.textSecondary} mb-4`}>
-            Überprüfe Host, Port, Benutzername und Passwort. Bei Gmail/Outlook wird ein App-Passwort benötigt.
+            {isMsAccount
+              ? 'Öffne die Konto-Einstellungen und verbinde das Microsoft-Konto erneut.'
+              : 'Überprüfe Host, Port, Benutzername und Passwort. Bei Gmail/Outlook wird ein App-Passwort benötigt.'}
           </p>
           <div className="flex flex-wrap gap-2 justify-center">
             <button onClick={() => fetchEmails(false)} className={`px-4 py-2 ${c.accentBg} text-white rounded-lg text-sm`}>

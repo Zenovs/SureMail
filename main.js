@@ -2599,6 +2599,7 @@ ipcMain.handle('graph:listFolders', async (event, accountId) => {
       unread: f.unreadItemCount || 0,
       total: f.totalItemCount || 0,
       type: f.wellKnownName || 'folder',
+      isHidden: f.isHidden === true,
       childFolderCount: f.childFolderCount || 0,
       children: [],
     });
