@@ -292,7 +292,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       // Cleanup undo timer on unmount to prevent state updates after unmount
       if (undoTimerRef.current) clearInterval(undoTimerRef.current);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line
 
   // Draft autosave every 10s (new compose only)
   useEffect(() => {
@@ -326,7 +326,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
           `<p></p><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${quoted}</blockquote>`;
       }
     }
-  }, [replyTo, isForward]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [replyTo, isForward]); // eslint-disable-line
 
   const loadSignatures = async () => {
     if (window.electronAPI?.loadSignatures) {
