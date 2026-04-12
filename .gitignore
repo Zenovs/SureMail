@@ -2,6 +2,7 @@ node_modules/
 build/
 dist/
 .env
+.env.*
 *.log
 .DS_Store
 # App-interne Datendateien — nicht ins Repo
