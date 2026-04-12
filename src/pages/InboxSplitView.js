@@ -1174,19 +1174,19 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLoadingPreview(false);
   }, [activeAccountId, currentFolder, isGraphAccount]);
 
-  const handleSelectEmail = (index) => {
+  const handleSelectEmail = useCallback((index) => {
     setSelectedIndex(index);
     // v2.4.0: Use filteredEmails for selection
     if (filteredEmails[index]) {
       loadEmailPreview(filteredEmails[index].uid);
-      
+
       // Auto-mark as read based on settings (v1.8.1) — default: never
       const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
       if (markMode === 'onClick' && !filteredEmails[index].seen) {
         handleToggleRead(filteredEmails[index].uid, false);
       }
     }
-  };
+  }, [filteredEmails, loadEmailPreview, handleToggleRead]);
 
   // Email Actions
   // v1.12.1: Fixed - now also removes from IndexedDB to prevent deleted emails from reappearing

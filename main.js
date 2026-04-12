@@ -2195,7 +2195,6 @@ ipcMain.handle('search:globalSearch', async (event, searchParams) => {
   }));
 
   const results = accountResults.flat();
-  const errors = [];
 
   // Sort results by date (newest first)
   results.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -2204,7 +2203,6 @@ ipcMain.handle('search:globalSearch', async (event, searchParams) => {
     success: true,
     results: results.slice(0, 200), // Limit total results
     totalFound: results.length,
-    errors: errors.length > 0 ? errors : undefined,
     searchedAccounts: searchableAccounts.length,
     query: searchTerm
   };
