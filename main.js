@@ -535,9 +535,13 @@ async function checkForUpdates(silent = false) {
         try {
           const release = JSON.parse(data);
           const latestVersion = release.tag_name?.replace('v', '') || '';
-          // Only report an update if a real downloadable AppImage asset exists
+          // Select AppImage matching the current architecture
+          const archSuffix = process.arch === 'arm64' ? 'arm64' : 'x86_64';
           const appImageAsset = (release.assets || []).find(a =>
-            a.name && a.name.toLowerCase().endsWith('.appimage') && a.browser_download_url
+            a.name &&
+            a.name.toLowerCase().endsWith('.appimage') &&
+            a.name.toLowerCase().includes(archSuffix.toLowerCase()) &&
+            a.browser_download_url
           );
           const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0 && !!appImageAsset;
           const downloadUrl = appImageAsset ? appImageAsset.browser_download_url : null;
