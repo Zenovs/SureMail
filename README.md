@@ -15,17 +15,38 @@
 </p>
 
 <p align="center">
+  <strong>Lightweight open-source email client for Linux — IMAP/SMTP + Microsoft 365 + local AI</strong>
+</p>
+
+<p align="center">
   <a href="https://github.com/Zenovs/coremail/releases/latest">
-    <img src="https://img.shields.io/github/v/release/Zenovs/coremail?label=Version&color=06b6d4" alt="Version">
+    <img src="https://img.shields.io/github/v/release/Zenovs/coremail?label=Release&color=06b6d4" alt="Release">
   </a>
-  <img src="https://img.shields.io/badge/Platform-Linux%20x64%20%7C%20arm64-informational?color=6366f1" alt="Platform">
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License">
+  </a>
+  <img src="https://img.shields.io/badge/Platform-Linux%20x64%20%7C%20arm64-6366f1" alt="Platform">
+  <img src="https://img.shields.io/badge/Electron-28-47848f?logo=electron" alt="Electron">
+  <img src="https://img.shields.io/badge/Built%20with-React%2018-61dafb?logo=react" alt="React">
 </p>
 
 ---
 
-## ⚡ Installation
+## What is CoreMail?
 
-### Installieren
+CoreMail Desktop is a **free, open-source email client for Linux** built with Electron and React. It supports any IMAP/SMTP server as well as **Microsoft 365 / Exchange via OAuth2** (no app passwords needed). An optional **local AI assistant powered by Ollama** lets you summarize emails and generate replies — fully offline, no data leaves your machine.
+
+**Key highlights:**
+- Multiple accounts (IMAP/SMTP + Microsoft 365 Graph API)
+- 11 dark/light themes, virtual scrolling, split-view
+- Local spam filter and sender management
+- Optional AI assistant (Ollama) — runs entirely offline
+- Raspberry Pi 4/5 (arm64) support
+- One-command install via AppImage
+
+---
+
+## ⚡ Installation
 
 Wähle deine Architektur und füge den Befehl ins Terminal ein — das Script lädt CoreMail herunter, installiert Icons und erstellt einen Desktop-Eintrag.
 
@@ -57,8 +78,8 @@ wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install
 
 | Architektur | Download |
 |---|---|
-| **x64** (Standard-PC) | [⬇️ CoreMail-Desktop-4.5.5-x86_64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.5.5/CoreMail-Desktop-4.5.5-x86_64.AppImage) |
-| **arm64** (Raspberry Pi 4/5) | [⬇️ CoreMail-Desktop-4.5.5-arm64.AppImage](https://github.com/Zenovs/coremail/releases/download/v4.5.5/CoreMail-Desktop-4.5.5-arm64.AppImage) |
+| **x64** (Standard-PC) | [⬇️ CoreMail-Desktop-4.6.8-x86_64.AppImage](https://github.com/Zenovs/coremail/releases/latest) |
+| **arm64** (Raspberry Pi 4/5) | [⬇️ CoreMail-Desktop-4.6.8-arm64.AppImage](https://github.com/Zenovs/coremail/releases/latest) |
 
 ---
 
@@ -66,16 +87,9 @@ wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install
 
 Das Installations-Script erkennt eine bestehende Installation automatisch und aktualisiert sie:
 
-#### 🖥️ x64
-
 ```bash
 curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --x64
-```
-
-#### 🍓 arm64
-
-```bash
-curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --arm64
+# oder --arm64 für Raspberry Pi
 ```
 
 > Einstellungen, Konten und Daten bleiben beim Update erhalten.
@@ -111,14 +125,13 @@ echo "✅ CoreMail wurde komplett entfernt!"
 
 ### 📬 E-Mail & Konten
 - **Mehrere Konten gleichzeitig** — beliebig viele IMAP/SMTP-Konten
-- **Microsoft Exchange / Microsoft 365** — OAuth2-Login via Microsoft Graph API
+- **Microsoft Exchange / Microsoft 365** — OAuth2-Login via Microsoft Graph API, kein App-Passwort nötig
 - **Hostpoint & Bluewin** — vorkonfigurierte Vorlagen
 - **Split-View** — Mailliste und Vorschau nebeneinander, alle Spalten verstellbar
 - **Inline-Antwort** — direkt in der Vorschau antworten, ohne Seitenwechsel
 - **Allen antworten & Weiterleiten** — inkl. CC/BCC-Unterstützung
-- **Gesendete Mails** — zeigt Empfängeradresse statt eigener Adresse
 - **Ordner-Navigation** — alle IMAP-Ordner durchsuchen und wechseln
-- **Tag-Eingabe für Empfänger** — An/CC/BCC als einzelne Chips, einfach entfernbar
+- **Tag-Eingabe für Empfänger** — An/CC/BCC als einzelne Chips
 
 ### 📎 Anhänge
 - **Speichern** — Anhang direkt in den Download-Ordner speichern
@@ -143,9 +156,10 @@ echo "✅ CoreMail wurde komplett entfernt!"
 - **HTML-Vorlagen** — Leer, Formeller Brief, Newsletter, Angebot, eigenes HTML
 - **Signaturen** — pro Konto, mit HTML-Unterstützung
 - **Anhänge** — per Dateiauswahl oder Drag & Drop
-- **Anzeigename** — pro Mail frei wählbar
+- **Zeitversetztes Senden** — Mail zu einem bestimmten Zeitpunkt versenden
+- **Entwurf-Autosave** — Entwürfe werden alle 10 Sekunden gespeichert
 
-### 🤖 KI-Assistent *(optional)*
+### 🤖 KI-Assistent *(optional, vollständig offline)*
 - **Lokal mit Ollama** — keine Cloud, keine Daten verlassen deinen Computer
 - E-Mails zusammenfassen
 - Antwortvorschläge generieren
@@ -186,15 +200,16 @@ echo "✅ CoreMail wurde komplett entfernt!"
 
 ---
 
-## 🔒 Datenschutz
+## 🔒 Datenschutz & Sicherheit
 
 | | |
 |---|---|
 | ✅ | Alle Daten bleiben **lokal** auf deinem Computer |
-| ✅ | **Keine Telemetrie**, kein Tracking |
+| ✅ | **Keine Telemetrie**, kein Tracking, keine Analytics |
 | ✅ | Verbindet sich ausschliesslich mit deinen eigenen E-Mail-Servern |
 | ✅ | KI-Features laufen **vollständig offline** (Ollama) |
-| ✅ | Open Source |
+| ✅ | Kontodaten **AES-verschlüsselt** gespeichert |
+| ✅ | Open Source — vollständig einsehbarer Code |
 
 ---
 
@@ -204,6 +219,7 @@ echo "✅ CoreMail wurde komplett entfernt!"
 |---|---|
 | **Betriebssystem** | Linux x64 / arm64 |
 | **Speicher** | ~200 MB |
+| **RAM** | mind. 512 MB (2 GB+ für KI-Features) |
 | **KI-Features** | Ollama + mind. 4 GB RAM (optional) |
 
 ---
@@ -230,5 +246,28 @@ Einzelne Architektur bauen:
 
 ---
 
+## 🤝 Contributing
 
-<p align="center"><strong>CoreMail Desktop</strong> — Dein E-Mail-Client für Linux 📧</p>
+Beiträge sind willkommen! So kannst du helfen:
+
+1. **Fork** das Repository
+2. **Branch** erstellen: `git checkout -b feature/meine-funktion`
+3. **Änderungen committen**: `git commit -m 'Add: neue Funktion'`
+4. **Push**: `git push origin feature/meine-funktion`
+5. **Pull Request** öffnen
+
+Für grössere Änderungen bitte zuerst ein **Issue** öffnen, um die Richtung abzustimmen.
+
+**Bug melden:** [Issues öffnen](https://github.com/Zenovs/coremail/issues)
+
+---
+
+## 📄 Lizenz
+
+Dieses Projekt steht unter der **MIT-Lizenz** — see [LICENSE](LICENSE) for details.
+
+Frei verwendbar, modifizierbar und weitergebbar — auch kommerziell.
+
+---
+
+<p align="center"><strong>CoreMail Desktop</strong> — Free, open-source email client for Linux 📧</p>

@@ -1,7 +1,32 @@
 {
   "name": "coremail-desktop",
-  "version": "4.5.5",
-  "description": "CoreMail Desktop - Schlanker IMAP/SMTP E-Mail-Client für Linux mit Microsoft 365 OAuth2 und KI-Assistent",
+  "version": "4.6.8",
+  "description": "CoreMail Desktop - Lightweight IMAP/SMTP email client for Linux with Microsoft 365 OAuth2, dark themes and local AI assistant (Ollama)",
+  "author": "Dario Zenhäusern",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Zenovs/coremail.git"
+  },
+  "keywords": [
+    "email",
+    "email-client",
+    "mail",
+    "imap",
+    "smtp",
+    "electron",
+    "linux",
+    "microsoft-365",
+    "outlook",
+    "graph-api",
+    "oauth2",
+    "ollama",
+    "ai",
+    "dark-theme",
+    "raspberry-pi",
+    "appimage",
+    "desktop-app"
+  ],
   "main": "main.js",
   "scripts": {
     "start": "electron .",

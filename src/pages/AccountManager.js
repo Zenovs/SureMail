@@ -582,7 +582,7 @@ function AccountManager() {
                       type="text"
                       value={accountForm.displayName || ''}
                       onChange={e => setAccountForm(f => ({ ...f, displayName: e.target.value.slice(0, 100) }))}
-                      placeholder="z.B. Dario Zenhäusern"
+                      placeholder="z.B. Max Mustermann"
                       className={`w-full px-4 py-2 rounded-lg ${c.input} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                     />
                     <p className={`text-xs ${c.textSecondary} mt-1`}>Optional – wird als Absendername angezeigt.</p>
