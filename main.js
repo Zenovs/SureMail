@@ -2940,7 +2940,6 @@ async function processScheduledEmails() {
       } else {
         const account = getAccountById(email.accountId);
         if (account) {
-          const nodemailer = require('nodemailer');
           const transporter = nodemailer.createTransport({
             host: account.smtp?.host, port: account.smtp?.port || 587,
             secure: account.smtp?.port === 465,

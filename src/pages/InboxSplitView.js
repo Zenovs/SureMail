@@ -1340,7 +1340,11 @@ function InboxSplitView({ onFullView, onNavigate }) {
     try {
       // Perf: delete all emails in parallel instead of sequentially
       const deleteResults = await Promise.allSettled(
-        uidsToDelete.map(uid => window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder))
+        uidsToDelete.map(uid =>
+          isGraphAccount()
+            ? window.electronAPI.deleteGraphEmail(activeAccountId, uid)
+            : window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder)
+        )
       );
       const successUids = uidsToDelete.filter((_, i) =>
         deleteResults[i].status === 'fulfilled' && deleteResults[i].value?.success
@@ -1382,7 +1386,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setBulkDeleting(false);
     // Re-enable background sync
     bgLoadAbortRef.current = false;
-  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex]);
+  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, isGraphAccount]);
 
   // v2.6.0: Manual categorization handler - saves sender category and updates ALL matching emails
   const handleCategorize = useCallback((email, category) => {
