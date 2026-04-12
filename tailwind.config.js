@@ -114,12 +114,28 @@ module.exports = {
         mono: ['JetBrains Mono', 'monospace'],
         retro: ['VT323', 'Press Start 2P', 'monospace']
       },
+      transitionTimingFunction: {
+        'spring':   'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'smooth':   'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'ios':      'cubic-bezier(0.42, 0, 0.58, 1)',
+      },
+      transitionDuration: {
+        '80':  '80ms',
+        '120': '120ms',
+        '180': '180ms',
+        '250': '250ms',
+      },
       animation: {
-        'pulse-cyan': 'pulseCyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'glow': 'glow 2s ease-in-out infinite alternate',
-        'neon-flicker': 'neonFlicker 1.5s ease-in-out infinite alternate',
-        'scanline': 'scanline 8s linear infinite',
-        'float': 'float 3s ease-in-out infinite'
+        'pulse-cyan':  'pulseCyan 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'glow':        'glow 2s ease-in-out infinite alternate',
+        'neon-flicker':'neonFlicker 1.5s ease-in-out infinite alternate',
+        'scanline':    'scanline 8s linear infinite',
+        'float':       'float 3s ease-in-out infinite',
+        'shimmer':     'shimmer 1.4s ease-in-out infinite',
+        'fade-up':     'fadeUp 280ms cubic-bezier(0.16,1,0.3,1) both',
+        'scale-in':    'scaleIn 200ms cubic-bezier(0.34,1.56,0.64,1) both',
+        'fade-in':     'fadeIn 180ms ease-out both',
       },
       keyframes: {
         pulseCyan: {
@@ -144,8 +160,24 @@ module.exports = {
         },
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-10px)' }
-        }
+          '50%':      { transform: 'translateY(-10px)' }
+        },
+        shimmer: {
+          '0%':   { backgroundPosition: '-400px 0' },
+          '100%': { backgroundPosition:  '400px 0' }
+        },
+        fadeUp: {
+          from: { opacity: '0', transform: 'translateY(8px) scale(0.98)' },
+          to:   { opacity: '1', transform: 'translateY(0) scale(1)' }
+        },
+        scaleIn: {
+          from: { opacity: '0', transform: 'scale(0.96)' },
+          to:   { opacity: '1', transform: 'scale(1)' }
+        },
+        fadeIn: {
+          from: { opacity: '0' },
+          to:   { opacity: '1' }
+        },
       },
       backdropBlur: {
         '3xl': '64px'

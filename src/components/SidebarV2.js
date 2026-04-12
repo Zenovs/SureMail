@@ -164,22 +164,25 @@ function SidebarV2({ currentView, onNavigate }) {
       </div>
 
       {/* Main Navigation */}
-      <nav className="p-3 space-y-1">
-        {NAV_ITEMS.map(item => (
-          <button
-            key={item.id}
-            onClick={() => handleNavItemClick(item.id)}
-            title={isIconsOnly || settings.collapsed ? item.label : ''}
-            className={`w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-colors ${
-              currentView === item.id
-                ? `${c.accentBg} text-white`
-                : `${c.text} ${c.hover}`
-            }`}
-          >
-            <span>{item.icon}</span>
-            {!isIconsOnly && !settings.collapsed && <span>{item.label}</span>}
-          </button>
-        ))}
+      <nav className="p-3 space-y-0.5">
+        {NAV_ITEMS.map(item => {
+          const isActive = currentView === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNavItemClick(item.id)}
+              title={isIconsOnly || settings.collapsed ? item.label : ''}
+              className={`cm-nav-item w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-xl text-sm font-medium ${
+                isActive
+                  ? `${c.accentBg} text-white shadow-sm`
+                  : `${c.text} ${c.hover} opacity-75 hover:opacity-100`
+              }`}
+            >
+              <span className={`text-base transition-transform duration-120 ease-spring ${isActive ? 'scale-110' : ''}`}>{item.icon}</span>
+              {!isIconsOnly && !settings.collapsed && <span className="tracking-tight">{item.label}</span>}
+            </button>
+          );
+        })}
       </nav>
 
       {/* Kategorien mit Konten */}
@@ -229,10 +232,10 @@ function SidebarV2({ currentView, onNavigate }) {
                             setActiveAccountId(account.id);
                             onNavigate('inbox');
                           }}
-                          className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                          className={`cm-nav-item w-full text-left px-3 py-1.5 rounded-xl text-sm flex items-center justify-between ${
                             activeAccountId === account.id
-                              ? `${c.bgTertiary} ${c.accent}`
-                              : `${c.textSecondary} ${c.hover}`
+                              ? `${c.bgTertiary} ${c.accent} font-medium`
+                              : `${c.textSecondary} ${c.hover} opacity-70 hover:opacity-100`
                           }`}
                         >
                           <span className="truncate">{account.displayName || account.name}</span>
@@ -256,22 +259,25 @@ function SidebarV2({ currentView, onNavigate }) {
       {(isIconsOnly || settings.collapsed) && <div className="flex-1" />}
 
       {/* Bottom Navigation */}
-      <div className={`p-3 ${c.border} border-t space-y-1`}>
-        {bottomItems.map(item => (
-          <button
-            key={item.id}
-            onClick={() => onNavigate(item.id)}
-            title={isIconsOnly || settings.collapsed ? item.label : ''}
-            className={`w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg transition-colors text-sm ${
-              currentView === item.id
-                ? `${c.bgTertiary} ${c.accent}`
-                : `${c.textSecondary} ${c.hover}`
-            }`}
-          >
-            <span>{item.icon}</span>
-            {!isIconsOnly && !settings.collapsed && <span>{item.label}</span>}
-          </button>
-        ))}
+      <div className={`p-3 ${c.border} border-t space-y-0.5`}>
+        {bottomItems.map(item => {
+          const isActive = currentView === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onNavigate(item.id)}
+              title={isIconsOnly || settings.collapsed ? item.label : ''}
+              className={`cm-nav-item w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-xl text-sm ${
+                isActive
+                  ? `${c.bgTertiary} ${c.accent} font-medium`
+                  : `${c.textSecondary} ${c.hover} opacity-70 hover:opacity-100`
+              }`}
+            >
+              <span>{item.icon}</span>
+              {!isIconsOnly && !settings.collapsed && <span>{item.label}</span>}
+            </button>
+          );
+        })}
       </div>
 
       {/* Resize Handle */}
