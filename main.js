@@ -42,10 +42,38 @@ const APP_VERSION = require('./package.json').version;
 const GITHUB_REPO = 'Zenovs/coremail';
 
 // Verschlüsselte Speicherung
-const store = new Store({
-  encryptionKey: 'coremail-secure-key-v1',
-  name: 'coremail-config'
-});
+// v4.5.6: Benutzerspezifischer Key statt hardcodiertem String.
+// Der Key wird aus dem Home-Verzeichnis des Users abgeleitet — damit ist er
+// pro Benutzer und Maschine einzigartig und steht nicht im Quellcode.
+// Migrations-Logik: Falls die Config noch mit dem alten Key verschlüsselt ist,
+// wird sie automatisch auf den neuen Key migriert.
+const os = require('os');
+const LEGACY_ENCRYPTION_KEY = 'coremail-secure-key-v1';
+const deriveEncryptionKey = () =>
+  crypto.createHash('sha256')
+    .update(os.homedir() + '-coremail-v2')
+    .digest('hex');
+
+let store;
+try {
+  store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
+  // Lese-Test: prüft ob der Key korrekt ist
+  store.get('accounts', []);
+} catch (_) {
+  // Config wurde mit altem Key verschlüsselt → migrieren
+  try {
+    const legacyStore = new Store({ encryptionKey: LEGACY_ENCRYPTION_KEY, name: 'coremail-config' });
+    const legacyData = legacyStore.store; // Gesamten Inhalt lesen
+    // Neu verschlüsseln mit dem benutzerspezifischen Key
+    store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
+    store.store = legacyData;
+    console.log('[Store] Migration von Legacy-Key auf benutzerspezifischen Key erfolgreich.');
+  } catch (migErr) {
+    // Migration fehlgeschlagen — Fallback auf leeren Store mit neuem Key
+    console.error('[Store] Migrationsfehler, neuer leerer Store wird erstellt:', migErr.message);
+    store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
+  }
+}
 
 let mainWindow;
 

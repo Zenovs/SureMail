@@ -4,3 +4,5 @@ dist/
 .env
 *.log
 .DS_Store
+# App-interne Datendateien — nicht ins Repo
+.abacus.*
