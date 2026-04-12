@@ -182,13 +182,14 @@ function AppContent() {
     // Add random jitter (±10s) to spread concurrent syncs across users
     const jitter = Math.random() * 10000;
     console.log(`[BGSync] Starting background sync every ${interval / 1000}s (+${Math.round(jitter/1000)}s jitter) for ${accounts.length} account(s)`);
+    let syncIntervalId = null;
     const firstTimeout = setTimeout(() => {
       syncAllAccounts();
-      const id = setInterval(syncAllAccounts, interval);
-      return () => clearInterval(id);
+      syncIntervalId = setInterval(syncAllAccounts, interval);
     }, jitter);
     return () => {
       clearTimeout(firstTimeout);
+      if (syncIntervalId) clearInterval(syncIntervalId);
       console.log('[BGSync] Background sync stopped');
     };
   }, [accounts]);

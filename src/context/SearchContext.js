@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 
 const SearchContext = createContext();
 
@@ -22,6 +22,13 @@ export function SearchProvider({ children }) {
   const [showFilters, setShowFilters] = useState(false);
   
   const debounceRef = useRef(null);
+
+  // Clear any pending debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   // Open/Close search panel
   const openSearch = useCallback(() => {

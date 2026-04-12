@@ -56,6 +56,7 @@ function CategorySettings() {
   const [newColor, setNewColor] = useState('#3b82f6');
   const [newIcon, setNewIcon] = useState('tag');
   const [error, setError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState(null); // { categoryId, message }
   const c = currentTheme.colors;
 
   const handleStartEdit = (category) => {
@@ -95,15 +96,18 @@ function CategorySettings() {
     setError('');
   };
 
-  const handleDelete = async (categoryId) => {
+  const handleDelete = (categoryId) => {
     const accounts = getAccountsByCategory(categoryId);
-    const confirmMessage = accounts.length > 0
+    const message = accounts.length > 0
       ? `Diese Kategorie enthält ${accounts.length} Konto(en). Die Konten werden zur Kategorie "Sonstiges" verschoben. Fortfahren?`
       : 'Diese Kategorie wirklich löschen?';
-    
-    if (window.confirm(confirmMessage)) {
-      await deleteCategory(categoryId);
-    }
+    setConfirmDelete({ categoryId, message });
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (!confirmDelete) return;
+    await deleteCategory(confirmDelete.categoryId);
+    setConfirmDelete(null);
   };
 
   const handleStartAdd = () => {
@@ -390,6 +394,30 @@ function CategorySettings() {
           })}
         </div>
       </div>
+
+      {/* Bestätigungs-Dialog: Kategorie löschen */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6 shadow-2xl max-w-sm w-full mx-4`}>
+            <h3 className={`text-lg font-semibold ${c.text} mb-2`}>Kategorie löschen?</h3>
+            <p className={`text-sm ${c.textSecondary} mb-5`}>{confirmDelete.message}</p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className={`px-4 py-2 rounded-lg ${c.bgTertiary} ${c.hover} ${c.text} text-sm transition-colors`}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleDeleteConfirmed}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm transition-colors"
+              >
+                Löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tips */}
       <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6`}>
