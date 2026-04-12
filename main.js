@@ -163,7 +163,11 @@ function createWindow() {
       menu.append(new MenuItem({ label: 'Alles auswählen', role: 'selectAll' }));
     }
     if (params.linkURL) {
-      menu.append(new MenuItem({ label: 'Link öffnen', click: () => shell.openExternal(params.linkURL) }));
+      const safeUrl = params.linkURL;
+      const isSafeUrl = safeUrl.startsWith('https://') || safeUrl.startsWith('http://') || safeUrl.startsWith('mailto:');
+      if (isSafeUrl) {
+        menu.append(new MenuItem({ label: 'Link öffnen', click: () => shell.openExternal(safeUrl) }));
+      }
       menu.append(new MenuItem({ label: 'Link kopieren', click: () => require('electron').clipboard.writeText(params.linkURL) }));
     }
     if (menu.items.length > 0) menu.popup();
@@ -1248,10 +1252,12 @@ ipcMain.handle('attachment:saveAll', async (event, attachments) => {
   const results = [];
   for (const att of attachments) {
     try {
-      const filePath = path.join(downloadPath, att.filename);
+      // path.basename() verhindert Path-Traversal (z.B. ../../../etc/passwd)
+      const safeFilename = path.basename(att.filename || 'anhang');
+      const filePath = path.join(downloadPath, safeFilename);
       const buffer = Buffer.from(att.content, 'base64');
       fs.writeFileSync(filePath, buffer);
-      results.push({ filename: att.filename, success: true, path: filePath });
+      results.push({ filename: safeFilename, success: true, path: filePath });
     } catch (error) {
       results.push({ filename: att.filename, success: false, error: error.message });
     }
@@ -2389,7 +2395,7 @@ async function graphRequest(accountId, method, apiPath, body) {
 
   if (resp.status === 204) return null; // No content (DELETE/PATCH)
   if (!resp.ok) {
-    const errText = await resp.text();
+    const errText = await resp.text().catch(() => '');
     throw new Error(`Graph ${resp.status}: ${errText.slice(0, 200)}`);
   }
   return resp.json();

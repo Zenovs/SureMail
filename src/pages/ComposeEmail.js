@@ -127,7 +127,7 @@ function EmailTagInput({ label, tags, onChange, placeholder, c, isLarge = false 
   const [inputValue, setInputValue] = React.useState('');
   const inputRef = React.useRef(null);
 
-  const isValidEmail = (val) => val.includes('@') && val.includes('.');
+  const isValidEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val.trim());
 
   const addTag = (val) => {
     // Support paste with multiple addresses (comma/semicolon separated)
