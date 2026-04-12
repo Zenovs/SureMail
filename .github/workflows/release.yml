@@ -33,7 +33,7 @@ jobs:
             dpkg
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --prefer-offline
 
       - name: Build React
         run: npm run react-build
