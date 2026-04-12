@@ -1271,10 +1271,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
     
     try {
       // Perf: delete all emails in parallel instead of sequentially
-      const deleteResults = await Promise.all(
+      const deleteResults = await Promise.allSettled(
         uidsToDelete.map(uid => window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder))
       );
-      const successUids = uidsToDelete.filter((_, i) => deleteResults[i]?.success);
+      const successUids = uidsToDelete.filter((_, i) =>
+        deleteResults[i].status === 'fulfilled' && deleteResults[i].value?.success
+      );
       deletedCount = successUids.length;
 
       // Remove successfully deleted emails from IndexedDB in parallel

@@ -8,7 +8,8 @@ import React, { useRef, useCallback } from 'react';
 function EmailHtmlFrame({ html, fontFamily }) {
   const iframeRef = useRef(null);
 
-  const font = fontFamily || 'Arial, sans-serif';
+  // Sanitize font to prevent CSS injection (strip everything after first semicolon/brace/quote)
+  const font = (fontFamily || 'Arial, sans-serif').replace(/[;"'{}\\]/g, '');
 
   const srcDoc = `<!DOCTYPE html>
 <html>
@@ -48,26 +49,28 @@ function EmailHtmlFrame({ html, fontFamily }) {
             e.preventDefault();
             const href = link.getAttribute('href');
             if (href && window.electronAPI?.openExternal) {
-              window.electronAPI.openExternal(href);
+              // Block javascript: and other dangerous protocols
+              const proto = href.trim().toLowerCase().split(':')[0];
+              if (['http', 'https', 'mailto'].includes(proto)) {
+                window.electronAPI.openExternal(href);
+              }
             }
-          });
+          }, { once: true });
         });
 
         // Kontextmenü-Events an Electron weiterleiten (Kopieren etc.)
         body.addEventListener('contextmenu', (e) => {
-          const selection = doc.getSelection()?.toString();
+          const selection = doc.getSelection()?.toString() || null;
           const linkEl = e.target.closest('a[href]');
-          const customEvent = new MouseEvent('contextmenu', {
+          const customEvent = new CustomEvent('contextmenu', {
             bubbles: true, cancelable: true,
-            clientX: e.clientX, clientY: e.clientY
+            detail: {
+              selection,
+              linkUrl: linkEl?.href || null,
+              clientX: e.clientX,
+              clientY: e.clientY
+            }
           });
-          // Selektion in Clipboard für native Kontextmenü-Unterstützung
-          if (selection) {
-            window._emailSelection = selection;
-          }
-          if (linkEl) {
-            window._emailLinkUrl = linkEl.href;
-          }
           window.dispatchEvent(customEvent);
         });
       }

@@ -232,7 +232,8 @@ app.whenReady().then(async () => {
   // Logbuch: App-Start protokollieren
   addLogEntry('app_start', `CoreMail v${APP_VERSION} gestartet`, `Plattform: ${process.platform}`);
   // Zeitversetzt senden: alle 30s prüfen
-  setInterval(() => processScheduledEmails(), 30000);
+  const scheduledEmailInterval = setInterval(() => processScheduledEmails(), 30000);
+  app.on('before-quit', () => clearInterval(scheduledEmailInterval));
 });
 
 // v3.0.3: Refresh Linux system launcher icons from GitHub so the correct icon
@@ -784,13 +785,18 @@ async function startOllamaService(progressCallback) {
       let attempts = 0;
       const checkInterval = setInterval(async () => {
         attempts++;
-        if (await isOllamaRunning()) {
+        try {
+          if (await isOllamaRunning()) {
+            clearInterval(checkInterval);
+            progressCallback({ step: 'running', message: 'Ollama-Dienst läuft!' });
+            resolve({ success: true });
+          } else if (attempts > 15) {
+            clearInterval(checkInterval);
+            reject(new Error('Ollama-Dienst konnte nicht gestartet werden. Versuche: ollama serve'));
+          }
+        } catch (err) {
           clearInterval(checkInterval);
-          progressCallback({ step: 'running', message: 'Ollama-Dienst läuft!' });
-          resolve({ success: true });
-        } else if (attempts > 15) {
-          clearInterval(checkInterval);
-          reject(new Error('Ollama-Dienst konnte nicht gestartet werden. Versuche: ollama serve'));
+          reject(err);
         }
       }, 1000);
     }, 1000);

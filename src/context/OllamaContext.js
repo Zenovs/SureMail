@@ -35,11 +35,14 @@ export const OllamaProvider = ({ children }) => {
   // Check Ollama availability
   const checkOllama = useCallback(async () => {
     setIsChecking(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
     try {
       const response = await fetch(`${OLLAMA_BASE_URL}/api/tags`, {
         method: 'GET',
-        signal: AbortSignal.timeout(3000)
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
       
       if (response.ok) {
         const data = await response.json();
@@ -48,6 +51,7 @@ export const OllamaProvider = ({ children }) => {
         return true;
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.log('Ollama not available:', err.message);
     }
     setIsAvailable(false);
