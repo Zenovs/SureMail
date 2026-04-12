@@ -1154,7 +1154,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return () => window.removeEventListener('coremail:bgSync', handleBgSync);
   }, [activeAccountId, currentFolder]); // eslint-disable-line
 
-  const loadEmailPreview = async (uid) => {
+  const loadEmailPreview = useCallback(async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
 
     setLoadingPreview(true);
@@ -1172,7 +1172,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       console.error('Error loading email preview', e);
     }
     setLoadingPreview(false);
-  };
+  }, [activeAccountId, currentFolder, isGraphAccount]);
 
   const handleSelectEmail = (index) => {
     setSelectedIndex(index);
@@ -1223,10 +1223,10 @@ function InboxSplitView({ onFullView, onNavigate }) {
           setSelectedEmail(null);
         }
       } else {
-        alert('Fehler beim Löschen: ' + result.error);
+        setError('Fehler beim Löschen: ' + result.error);
       }
     } catch (err) {
-      alert('Fehler: ' + err.message);
+      setError(err.message);
     }
     setActionLoading(null);
   }, [activeAccountId, currentFolder, emails, selectedIndex, hasMore, getCacheKey, isGraphAccount]);
@@ -1376,7 +1376,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       console.log(`[BulkDelete] Deleted ${deletedCount}/${uidsToDelete.length} emails`);
     } catch (err) {
       console.error('Bulk delete error:', err);
-      alert('Fehler beim Löschen einiger E-Mails: ' + err.message);
+      setError('Fehler beim Löschen: ' + err.message);
     }
     
     setBulkDeleting(false);

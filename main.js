@@ -10,6 +10,7 @@ const Store = require('electron-store');
 const imapSimple = require('imap-simple');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
+const fetch = require('node-fetch');
 
 
 
@@ -2457,7 +2458,6 @@ async function getGraphAccessToken(accountId) {
 }
 
 async function graphRequest(accountId, method, apiPath, body, _retryCount = 0) {
-  const fetch = require('node-fetch');
   const token = await getGraphAccessToken(accountId);
 
   const opts = {
@@ -2529,7 +2529,6 @@ ipcMain.handle('msauth:startLogin', async (event, { clientId }) => {
     });
 
     // Fetch display name and email via Graph
-    const fetch = require('node-fetch');
     const userResp = await fetch('https://graph.microsoft.com/v1.0/me?$select=displayName,mail,userPrincipalName', {
       headers: { 'Authorization': `Bearer ${result.accessToken}` }
     });
@@ -2838,7 +2837,6 @@ ipcMain.handle('translation:saveSettings', async (event, settings) => {
 });
 
 ipcMain.handle('translation:translate', async (event, { text, targetLang }) => {
-  const fetch = require('node-fetch');
   const s = { ...TRANSLATION_DEFAULTS, ...store.get(TRANSLATION_KEY, {}) };
 
   if (!text || !targetLang) return { success: false, error: 'Kein Text oder Zielsprache angegeben' };

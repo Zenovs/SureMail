@@ -94,6 +94,9 @@ const SUSPICIOUS_ARCHIVE_EXTENSIONS = [
   '.zip', '.rar', '.7z', '.tar', '.gz', '.iso', '.cab'
 ];
 
+// ============ PRE-COMPILED REGEX (module level — not re-created per call) ============
+const LINK_MISMATCH_REGEX = /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi;
+
 // ============ ANALYSE-FUNKTIONEN ============
 
 /**
@@ -190,10 +193,10 @@ export function analyzeEmail(email, settings = {}) {
   schaedlichScore += suspiciousUrlCount * 15;
   
   // Check for mismatched display text and href in HTML
-  const linkMismatchRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>([^<]*)<\/a>/gi;
+  LINK_MISMATCH_REGEX.lastIndex = 0; // reset state before reuse
   let match;
   let mismatchCount = 0;
-  while ((match = linkMismatchRegex.exec(html)) !== null) {
+  while ((match = LINK_MISMATCH_REGEX.exec(html)) !== null) {
     const href = match[1].toLowerCase();
     const displayText = match[2].toLowerCase();
     // If display text looks like a URL but doesn't match href
