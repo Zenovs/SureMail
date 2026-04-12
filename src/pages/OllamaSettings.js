@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Download, Loader2, Check, AlertCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useOllama } from '../context/OllamaContext';
@@ -28,6 +28,7 @@ const OllamaSettings = () => {
   
   const [customModel, setCustomModel] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const deleteConfirmTimerRef = useRef(null);
   const [isInstalling, setIsInstalling] = useState(false);
   const [installProgress, setInstallProgress] = useState(null);
   const [installError, setInstallError] = useState(null);
@@ -35,27 +36,32 @@ const OllamaSettings = () => {
 
   // Listen for installation progress
   useEffect(() => {
-    if (window.electronAPI?.onOllamaProgress) {
-      const handler = (data) => {
-        setInstallProgress(data);
-        if (data.step === 'complete') {
-          setIsInstalling(false);
-          checkOllama();
-        } else if (data.step === 'error') {
-          setIsInstalling(false);
-          setInstallError(data.message);
-        }
-      };
-      
-      window.electronAPI.onOllamaProgress(handler);
-      
-      return () => {
-        if (window.electronAPI?.removeOllamaProgressListener) {
-          window.electronAPI.removeOllamaProgressListener();
-        }
-      };
-    }
+    if (!window.electronAPI?.onOllamaProgress) return;
+
+    const handler = (data) => {
+      setInstallProgress(data);
+      if (data.step === 'complete') {
+        setIsInstalling(false);
+        checkOllama();
+      } else if (data.step === 'error') {
+        setIsInstalling(false);
+        setInstallError(data.message);
+      }
+    };
+
+    window.electronAPI.onOllamaProgress(handler);
+
+    return () => {
+      window.electronAPI.removeOllamaProgressListener?.();
+    };
   }, [checkOllama]);
+
+  // Cleanup delete-confirm auto-reset timer on unmount
+  useEffect(() => {
+    return () => {
+      if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+    };
+  }, []);
 
   const handleInstallOllama = async () => {
     setIsInstalling(true);
@@ -106,8 +112,9 @@ const OllamaSettings = () => {
         if (otherModel) changeModel(otherModel.name);
       }
     } else {
+      if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
       setDeleteConfirm(modelName);
-      setTimeout(() => setDeleteConfirm(null), 3000);
+      deleteConfirmTimerRef.current = setTimeout(() => setDeleteConfirm(null), 3000);
     }
   };
 
