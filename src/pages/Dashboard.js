@@ -165,7 +165,7 @@ Keine langen Einleitungen.`;
       generateBrief();
     }
     return () => { if (abortRef.current) abortRef.current.abort(); };
-  }, [isAvailable, accounts]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isAvailable, accounts]); // eslint-disable-line
 
   // ── Derived ─────────────────────────────────────────────────────────────
   const greeting = () => {
