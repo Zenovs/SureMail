@@ -1174,13 +1174,55 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setLoadingPreview(false);
   }, [activeAccountId, currentFolder, isGraphAccount]);
 
+  // Moved before handleSelectEmail to avoid TDZ in deps array
+  const handleToggleRead = useCallback(async (uid, currentSeen) => {
+    if (!window.electronAPI || !activeAccountId) return;
+
+    setActionLoading(`read-${uid}`);
+    try {
+      const result = isGraphAccount()
+        ? await window.electronAPI.markGraphAsRead(activeAccountId, uid, !currentSeen)
+        : await window.electronAPI.markAsRead(activeAccountId, uid, !currentSeen, currentFolder);
+      if (result.success) {
+        const newEmails = emails.map(e =>
+          e.uid === uid ? { ...e, seen: !currentSeen } : e
+        );
+        setEmails(newEmails);
+        const cacheKey = getCacheKey(activeAccountId, currentFolder);
+        emailCache.set(cacheKey, { data: newEmails, hasMore, timestamp: Date.now() });
+        const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
+        if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, newEmails);
+        if (selectedEmail?.uid === uid) {
+          setSelectedEmail({ ...selectedEmail, seen: !currentSeen });
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling read status:', err);
+    }
+    setActionLoading(null);
+  }, [activeAccountId, currentFolder, emails, selectedEmail, hasMore, getCacheKey, isGraphAccount]);
+
+  // v2.6.0: Category-filtered emails — moved before handleSelectEmail to avoid TDZ
+  const categoryFilteredEmails = useMemo(() => {
+    if (!categoryFilter || currentFolder !== 'INBOX') return emails;
+    return emails.filter(email => {
+      const manualCat = manualCategories.get(email.uid);
+      if (manualCat) return manualCat === categoryFilter;
+      const analysis = spamResults.get(email.uid);
+      return analysis?.category === categoryFilter;
+    });
+  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder]);
+
+  // Visibility filter — moved before handleSelectEmail to avoid TDZ
+  const filteredEmails = useMemo(() => {
+    if (!showUnreadOnly) return categoryFilteredEmails;
+    return categoryFilteredEmails.filter(email => !email.seen);
+  }, [categoryFilteredEmails, showUnreadOnly]);
+
   const handleSelectEmail = useCallback((index) => {
     setSelectedIndex(index);
-    // v2.4.0: Use filteredEmails for selection
     if (filteredEmails[index]) {
       loadEmailPreview(filteredEmails[index].uid);
-
-      // Auto-mark as read based on settings (v1.8.1) — default: never
       const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
       if (markMode === 'onClick' && !filteredEmails[index].seen) {
         handleToggleRead(filteredEmails[index].uid, false);
@@ -1231,40 +1273,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setActionLoading(null);
   }, [activeAccountId, currentFolder, emails, selectedIndex, hasMore, getCacheKey, isGraphAccount]);
 
-  const handleToggleRead = useCallback(async (uid, currentSeen) => {
-    if (!window.electronAPI || !activeAccountId) return;
-
-    setActionLoading(`read-${uid}`);
-    try {
-      const result = isGraphAccount()
-        ? await window.electronAPI.markGraphAsRead(activeAccountId, uid, !currentSeen)
-        : await window.electronAPI.markAsRead(activeAccountId, uid, !currentSeen, currentFolder);
-      if (result.success) {
-        // Update local state
-        const newEmails = emails.map(e =>
-          e.uid === uid ? { ...e, seen: !currentSeen } : e
-        );
-        setEmails(newEmails);
-
-        // Update memory cache
-        const cacheKey = getCacheKey(activeAccountId, currentFolder);
-        emailCache.set(cacheKey, { data: newEmails, hasMore, timestamp: Date.now() });
-
-        // Also persist to IndexedDB so read status survives account switches
-        const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
-        if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, newEmails);
-
-        // Update selected email if needed
-        if (selectedEmail?.uid === uid) {
-          setSelectedEmail({ ...selectedEmail, seen: !currentSeen });
-        }
-      }
-    } catch (err) {
-      console.error('Error toggling read status:', err);
-    }
-    setActionLoading(null);
-  }, [activeAccountId, currentFolder, emails, selectedEmail, hasMore, getCacheKey, isGraphAccount]);
-
   // v2.3.0: Multi-Select Handlers
   const handleCheckboxChange = useCallback((uid, shiftKey) => {
     setSelectedUids(prev => {
@@ -1295,23 +1303,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
     const clickedIndex = emails.findIndex(e => e.uid === uid);
     setLastClickedIndex(clickedIndex);
   }, [emails, lastClickedIndex]);
-
-  // v2.6.0: Category-filtered emails — only recomputes when category/spam data changes
-  const categoryFilteredEmails = useMemo(() => {
-    if (!categoryFilter || currentFolder !== 'INBOX') return emails;
-    return emails.filter(email => {
-      const manualCat = manualCategories.get(email.uid);
-      if (manualCat) return manualCat === categoryFilter;
-      const analysis = spamResults.get(email.uid);
-      return analysis?.category === categoryFilter;
-    });
-  }, [emails, categoryFilter, manualCategories, spamResults, currentFolder]);
-
-  // Visibility filter — only recomputes when read-filter or category result changes
-  const filteredEmails = useMemo(() => {
-    if (!showUnreadOnly) return categoryFilteredEmails;
-    return categoryFilteredEmails.filter(email => !email.seen);
-  }, [categoryFilteredEmails, showUnreadOnly]);
 
   const handleSelectAll = useCallback(() => {
     if (selectedUids.size === filteredEmails.length) {
