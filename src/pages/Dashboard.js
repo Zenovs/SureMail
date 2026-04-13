@@ -96,7 +96,7 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     return all.slice(0, 8);
   }, [accounts]);
 
-  // ── AI daily brief via Ollama streaming ────────────────────────────────
+  // ── AI daily brief via Ollama /api/chat streaming ─────────────────────
   const generateBrief = useCallback(async () => {
     if (!isAvailable) return;
     if (abortRef.current) abortRef.current.abort();
@@ -108,7 +108,7 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     try {
       const emails  = await getUnread();
       const total   = Object.values(accountStats).reduce((s, x) => s + (x?.unread || 0), 0);
-      const dateStr = now.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
+      const dateStr = new Date().toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
 
       const emailLines = emails.length > 0
         ? emails.map(e => `• Von: ${e.from} | Betreff: ${e.subject}${e.preview ? ` | "${e.preview}"` : ''}`).join('\n')
@@ -118,9 +118,16 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
         ? calEvents.map(ev => `• ${formatEventTime(ev)}: ${ev.title}${ev.location ? ` (${ev.location})` : ''}`).join('\n')
         : 'Keine Termine heute.';
 
-      const prompt =
-`Du bist ein persönlicher Assistent in CoreMail. Heute ist ${dateStr}.
-Antworte auf Deutsch. Sei präzise und freundlich.
+      // Use /api/chat (same endpoint as OllamaContext — proven to work)
+      const messages = [
+        {
+          role: 'system',
+          content: 'Du bist ein persönlicher Assistent in CoreMail. Antworte auf Deutsch. Sei präzise und freundlich. Keine langen Einleitungen.'
+        },
+        {
+          role: 'user',
+          content:
+`Heute ist ${dateStr}.
 
 Ungelesene Mails (${total} total):
 ${emailLines}
@@ -129,16 +136,21 @@ Heutige Kalendertermine:
 ${calLines}
 
 Erstelle ein kurzes Tagesbriefing (max. 6 Punkte) mit dem Zeichen • vor jedem Punkt.
-Fasse wichtige Mails zusammen, hebe Termine hervor und empfehle womit man den Tag beginnen sollte.
-Keine langen Einleitungen.`;
+Fasse wichtige Mails zusammen, hebe Termine hervor und empfehle womit man den Tag beginnen sollte.`
+        }
+      ];
 
-      const resp = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+      const resp = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: abortRef.current.signal,
-        body: JSON.stringify({ model: activeModel, prompt, stream: true })
+        body: JSON.stringify({ model: activeModel, messages, stream: true })
       });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => '');
+        throw new Error(errText || `HTTP ${resp.status}`);
+      }
 
       const reader = resp.body.getReader();
       const dec    = new TextDecoder();
@@ -147,25 +159,35 @@ Keine langen Einleitungen.`;
         const { done, value } = await reader.read();
         if (done) break;
         for (const line of dec.decode(value).split('\n').filter(Boolean)) {
-          try { const j = JSON.parse(line); if (j.response) { text += j.response; setAiBrief(text); } }
-          catch { /* skip malformed */ }
+          try {
+            const j = JSON.parse(line);
+            // /api/chat returns message.content (not response)
+            if (j.message?.content) { text += j.message.content; setAiBrief(text); }
+          } catch { /* skip malformed */ }
         }
       }
     } catch (err) {
-      if (err.name !== 'AbortError') setAiError('KI nicht erreichbar. Stelle sicher, dass Ollama läuft.');
+      if (err.name !== 'AbortError') {
+        setAiError(`KI-Fehler: ${err.message}`);
+      }
     } finally {
       setAiLoading(false);
     }
-  }, [isAvailable, activeModel, accountStats, calEvents, now, getUnread]);
+  }, [isAvailable, activeModel, accountStats, calEvents, getUnread]);
 
-  // Auto-generate once when Ollama + accounts are ready
+  // Auto-generate once when Ollama + accounts are ready.
+  // Use accounts.length (not reference) to avoid aborting in-flight requests
+  // when AccountContext re-creates the array.
   useEffect(() => {
-    if (isAvailable && accounts.length > 0 && !briefDone.current) {
-      briefDone.current = true;
-      generateBrief();
-    }
-    return () => { if (abortRef.current) abortRef.current.abort(); };
-  }, [isAvailable, accounts]); // eslint-disable-line
+    if (!isAvailable || accounts.length === 0 || briefDone.current) return;
+    briefDone.current = true;
+    generateBrief();
+  }, [isAvailable, accounts.length]); // eslint-disable-line
+
+  // Abort only on component unmount
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   // ── Derived ─────────────────────────────────────────────────────────────
   const greeting = () => {
