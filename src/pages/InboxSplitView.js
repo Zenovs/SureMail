@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { FixedSizeList } from 'react-window';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
@@ -394,7 +393,6 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
           : `${c.hover} shadow-[inset_3px_0_0_0] shadow-transparent hover:shadow-white/10`}
         ${!isSelected ? getBorderColor() : ''}
       `}
-      style={{ height: `${EMAIL_ITEM_HEIGHT}px`, overflow: 'hidden' }}
     >
       <div className="flex items-start justify-between gap-2">
         {/* v2.3.0: Checkbox for multi-select */}
@@ -494,61 +492,6 @@ const getFolderIcon = (type) => {
   }
 };
 
-// Virtual row renderer for react-window — defined outside InboxSplitView to avoid re-creation
-const EMAIL_ITEM_HEIGHT = 112;
-
-const EmailVirtualRow = memo(({ index, style, data }) => {
-  const {
-    emails, manualCategories, spamResults, selectedIndex, selectedUids,
-    currentFolder, handleSelectEmail, handleCheckboxChange, handleDelete,
-    handleToggleRead, c, actionLoading, showCheckboxes, setDraggedEmail,
-    hasMore, loadingMore, loadMoreEmails,
-  } = data;
-
-  // Last slot: "load more" indicator
-  if (index === emails.length) {
-    return (
-      <div style={style} className="flex items-center justify-center p-4">
-        {loadingMore
-          ? <span className={`text-sm ${c.textSecondary}`}>Lade mehr...</span>
-          : hasMore
-            ? <button onClick={loadMoreEmails} className={`text-sm ${c.accent} hover:underline`}>Mehr laden...</button>
-            : null}
-      </div>
-    );
-  }
-
-  const email = emails[index];
-  if (!email) return null;
-  const manualCat = manualCategories.get(email.uid);
-  const spamAnalysis = spamResults.get(email.uid);
-  const effectiveAnalysis = manualCat
-    ? { ...spamAnalysis, category: manualCat, isManual: true }
-    : spamAnalysis;
-  const folderLower = currentFolder.toLowerCase();
-  const isSentFolder = folderLower.includes('sent') || folderLower.includes('gesendet');
-
-  return (
-    <div style={style}>
-      <EmailListItem
-        email={email}
-        index={index}
-        isSelected={index === selectedIndex}
-        isChecked={selectedUids.has(email.uid)}
-        onSelect={handleSelectEmail}
-        onCheckboxChange={handleCheckboxChange}
-        onDelete={handleDelete}
-        onToggleRead={handleToggleRead}
-        c={c}
-        actionLoading={actionLoading}
-        spamAnalysis={effectiveAnalysis}
-        showCheckboxes={showCheckboxes}
-        isSentFolder={isSentFolder}
-        onDragStart={setDraggedEmail}
-      />
-    </div>
-  );
-});
 
 function InboxSplitView({ onFullView, onNavigate }) {
   const { currentTheme } = useTheme();
@@ -573,10 +516,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const previewRequestIdRef = useRef(null);
   // v4.5.6: Version counter to prevent stale loadFolders from overwriting current account's folders
   const folderLoadVersionRef = useRef(0);
-  // Virtual scrolling: measure the email list container to give FixedSizeList a concrete height
-  const emailListContainerRef = useRef(null);
-  const virtualListRef = useRef(null);
-  const [emailListHeight, setEmailListHeight] = useState(500);
+  // Scrollable email list container ref (for keyboard-nav scroll)
+  const emailScrollRef = useRef(null);
   const c = currentTheme.colors;
   
   // v2.3.0: Multi-Select State
@@ -1537,11 +1478,11 @@ function InboxSplitView({ onFullView, onNavigate }) {
       if (e.key === 'ArrowDown' && selectedIndex < filteredEmails.length - 1) {
         const next = selectedIndex + 1;
         handleSelectEmail(next);
-        virtualListRef.current?.scrollToItem(next, 'smart');
+        emailScrollRef.current?.querySelectorAll('.cm-list-item')[next]?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
       } else if (e.key === 'ArrowUp' && selectedIndex > 0) {
         const prev = selectedIndex - 1;
         handleSelectEmail(prev);
-        virtualListRef.current?.scrollToItem(prev, 'smart');
+        emailScrollRef.current?.querySelectorAll('.cm-list-item')[prev]?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
       } else if (e.key === 'Enter' && selectedEmail) {
         onFullView(selectedEmail, currentFolder);
       }
@@ -1550,38 +1491,13 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids]);
 
-  // Virtual scroll: trigger loadMore when user scrolls near the end of the list
-  const handleItemsRendered = useCallback(({ visibleStopIndex }) => {
-    if (visibleStopIndex >= filteredEmails.length - 5 && hasMore && !loadingMore) {
+  // Trigger loadMore when user scrolls near the bottom of the email list
+  const handleEmailListScroll = useCallback((e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollHeight - scrollTop - clientHeight < 400 && hasMore && !loadingMore) {
       loadMoreEmails();
     }
-  }, [filteredEmails.length, hasMore, loadingMore, loadMoreEmails]);
-
-  // Virtual scroll: memoized item data passed to each row renderer
-  const virtualItemData = useMemo(() => ({
-    emails: filteredEmails,
-    manualCategories,
-    spamResults,
-    selectedIndex,
-    selectedUids,
-    currentFolder,
-    handleSelectEmail,
-    handleCheckboxChange,
-    handleDelete,
-    handleToggleRead,
-    c,
-    actionLoading,
-    showCheckboxes,
-    setDraggedEmail,
-    hasMore,
-    loadingMore,
-    loadMoreEmails,
-  }), [
-    filteredEmails, manualCategories, spamResults, selectedIndex, selectedUids,
-    currentFolder, handleSelectEmail, handleCheckboxChange, handleDelete,
-    handleToggleRead, c, actionLoading, showCheckboxes, setDraggedEmail,
-    hasMore, loadingMore, loadMoreEmails,
-  ]);
+  }, [hasMore, loadingMore, loadMoreEmails]);
 
   const account = getActiveAccount();
 
@@ -1654,21 +1570,6 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return () => window.removeEventListener(INDEXEDDB_QUOTA_EVENT, handler);
   }, []);
 
-  // Virtual scroll: measure email list container height synchronously before paint,
-  // then keep it up to date via ResizeObserver on every subsequent resize.
-  useLayoutEffect(() => {
-    const el = emailListContainerRef.current;
-    if (!el) return;
-    // Synchronous initial measurement — avoids the 500px default showing on first paint
-    const initial = el.getBoundingClientRect().height;
-    if (initial > 0) setEmailListHeight(initial);
-    const ro = new ResizeObserver(entries => {
-      const h = entries[0]?.contentRect.height;
-      if (h > 0) setEmailListHeight(h);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   // Perf: debounce spam analysis + limit Map to current emails only
   const spamDebounceRef = useRef(null);
@@ -2097,8 +1998,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
           )}
         </div>
         <div
-          ref={emailListContainerRef}
-          className="flex-1 overflow-hidden min-h-0"
+          ref={emailScrollRef}
+          className="flex-1 overflow-y-auto min-h-0"
+          onScroll={handleEmailListScroll}
         >
           {filteredEmails.length === 0 ? (
             <div className={`p-8 text-center ${c.textSecondary}`}>
@@ -2129,18 +2031,44 @@ function InboxSplitView({ onFullView, onNavigate }) {
               )}
             </div>
           ) : (
-            <FixedSizeList
-              ref={virtualListRef}
-              height={emailListHeight}
-              width="100%"
-              itemCount={filteredEmails.length + (hasMore || loadingMore ? 1 : 0)}
-              itemSize={EMAIL_ITEM_HEIGHT}
-              itemData={virtualItemData}
-              onItemsRendered={handleItemsRendered}
-              overscanCount={5}
-            >
-              {EmailVirtualRow}
-            </FixedSizeList>
+            <>
+              {filteredEmails.map((email, index) => {
+                const manualCat = manualCategories.get(email.uid);
+                const spamAnalysis = spamResults.get(email.uid);
+                const effectiveAnalysis = manualCat
+                  ? { ...spamAnalysis, category: manualCat, isManual: true }
+                  : spamAnalysis;
+                const folderLower = currentFolder.toLowerCase();
+                const isSentFolder = folderLower.includes('sent') || folderLower.includes('gesendet');
+                return (
+                  <EmailListItem
+                    key={email.uid}
+                    email={email}
+                    index={index}
+                    isSelected={index === selectedIndex}
+                    isChecked={selectedUids.has(email.uid)}
+                    onSelect={handleSelectEmail}
+                    onCheckboxChange={handleCheckboxChange}
+                    onDelete={handleDelete}
+                    onToggleRead={handleToggleRead}
+                    c={c}
+                    actionLoading={actionLoading}
+                    spamAnalysis={effectiveAnalysis}
+                    showCheckboxes={showCheckboxes}
+                    isSentFolder={isSentFolder}
+                    onDragStart={setDraggedEmail}
+                  />
+                );
+              })}
+              {(hasMore || loadingMore) && (
+                <div className="flex items-center justify-center p-4">
+                  {loadingMore
+                    ? <span className={`text-sm ${c.textSecondary}`}>Lade mehr...</span>
+                    : <button onClick={loadMoreEmails} className={`text-sm ${c.accent} hover:underline`}>Mehr laden...</button>
+                  }
+                </div>
+              )}
+            </>
           )}
         </div>
         
