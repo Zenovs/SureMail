@@ -394,12 +394,12 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
           : `${c.hover} shadow-[inset_3px_0_0_0] shadow-transparent hover:shadow-white/10`}
         ${!isSelected ? getBorderColor() : ''}
       `}
-      style={{ minHeight: '60px' }}
+      style={{ height: `${EMAIL_ITEM_HEIGHT}px`, overflow: 'hidden' }}
     >
       <div className="flex items-start justify-between gap-2">
         {/* v2.3.0: Checkbox for multi-select */}
         {showCheckboxes && (
-          <div 
+          <div
             className="flex-shrink-0 mt-0.5"
             onClick={handleCheckboxClick}
           >
@@ -410,31 +410,22 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             )}
           </div>
         )}
-        
+
         <div className="flex-1 min-w-0 overflow-hidden">
-          {/* Sender with unread indicator - v1.12.2: text wrapping */}
-          <div
-            className={`text-sm flex items-start gap-2 font-medium ${isUnread ? c.accent : c.text}`}
-            style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}
-          >
-            <span className={`inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse mt-1.5 ${isUnread ? '' : 'invisible'}`} />
+          {/* Sender with unread indicator */}
+          <div className={`text-sm flex items-center gap-2 font-medium ${isUnread ? c.accent : c.text}`}>
+            <span className={`inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse ${isUnread ? '' : 'invisible'}`} />
             {isSentFolder && <span className={`text-xs ${c.textSecondary} flex-shrink-0`}>An:</span>}
-            <span style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{displayAddress}</span>
+            <span className="truncate">{displayAddress}</span>
           </div>
 
-          {/* Subject - v1.12.2: text wrapping enabled */}
-          <div
-            className={`text-sm mt-1 font-medium ${isUnread ? c.text : c.textSecondary}`}
-            style={{ overflowWrap: 'break-word', wordBreak: 'break-word', lineHeight: '1.4' }}
-          >
+          {/* Subject */}
+          <div className={`text-sm mt-1 font-medium truncate ${isUnread ? c.text : c.textSecondary}`}>
             {email.subject}
           </div>
-          
-          {/* Preview - v1.12.2: text wrapping enabled */}
-          <div 
-            className={`text-xs ${c.textSecondary} mt-1`}
-            style={{ overflowWrap: 'break-word', wordBreak: 'break-word', lineHeight: '1.3' }}
-          >
+
+          {/* Preview */}
+          <div className={`text-xs ${c.textSecondary} mt-1 truncate`}>
             {email.preview}
           </div>
           
@@ -504,7 +495,7 @@ const getFolderIcon = (type) => {
 };
 
 // Virtual row renderer for react-window — defined outside InboxSplitView to avoid re-creation
-const EMAIL_ITEM_HEIGHT = 72;
+const EMAIL_ITEM_HEIGHT = 112;
 
 const EmailVirtualRow = memo(({ index, style, data }) => {
   const {

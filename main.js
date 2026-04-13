@@ -2540,8 +2540,8 @@ ipcMain.handle('msauth:startLogin', async (event, { clientId }) => {
       openBrowser: async (authUrl) => {
         await shell.openExternal(authUrl);
       },
-      successTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#3fb950">✅ Anmeldung erfolgreich!</h2><p>Du kannst dieses Fenster schließen und zu CoreMail zurückkehren.</p></body></html>',
-      errorTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#f85149">❌ Anmeldung fehlgeschlagen</h2><p>{error}</p></body></html>'
+      successTemplate: '<html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#3fb950">✅ Anmeldung erfolgreich!</h2><p>Du kannst dieses Fenster schließen und zu CoreMail zurückkehren.</p></body></html>',
+      errorTemplate: '<html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#f85149">❌ Anmeldung fehlgeschlagen</h2><p>{error}</p></body></html>'
     });
 
     // Fetch display name and email via Graph
@@ -2582,8 +2582,8 @@ ipcMain.handle('msauth:relogin', async (event, accountId) => {
     const result = await pca.acquireTokenInteractive({
       scopes: MS_GRAPH_SCOPES,
       openBrowser: async (authUrl) => { await shell.openExternal(authUrl); },
-      successTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#3fb950">✅ Erneut angemeldet!</h2><p>Du kannst dieses Fenster schließen.</p></body></html>',
-      errorTemplate: '<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#f85149">❌ Fehler</h2><p>{error}</p></body></html>'
+      successTemplate: '<html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#3fb950">✅ Erneut angemeldet!</h2><p>Du kannst dieses Fenster schließen.</p></body></html>',
+      errorTemplate: '<html><head><meta charset="utf-8"></head><body style="font-family:sans-serif;text-align:center;padding:40px;background:#0d1117;color:#e6edf3"><h2 style="color:#f85149">❌ Fehler</h2><p>{error}</p></body></html>'
     });
 
     store.set(`msalCache_${accountId}`, pca.getTokenCache().serialize());

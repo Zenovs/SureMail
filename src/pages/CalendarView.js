@@ -7,9 +7,10 @@ import { useAccounts } from '../context/AccountContext';
 const WEEKDAYS_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const WEEKDAYS_LONG  = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const HOUR_HEIGHT = 56; // px per hour in week/day view
-const DAY_START   = 7;  // first visible hour
-const DAY_END     = 22; // last visible hour
+const HOUR_HEIGHT  = 56; // px per hour in week/day view
+const DAY_START    = 0;  // first visible hour (midnight — scroll to 07:00 on mount)
+const DAY_END      = 23; // last visible hour
+const SCROLL_TO_H  = 7;  // default scroll position: 07:00
 const HOURS = Array.from({ length: DAY_END - DAY_START + 1 }, (_, i) => DAY_START + i);
 
 const SHOW_AS_COLORS = {
@@ -211,7 +212,7 @@ const WeekView = memo(({ weekStart, events, today, onSlotClick, onEventClick, c 
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = (8 - DAY_START) * HOUR_HEIGHT;
+    if (scrollRef.current) scrollRef.current.scrollTop = SCROLL_TO_H * HOUR_HEIGHT;
   }, [weekStart]);
 
   const getEventsForDay = (day) => events.filter(e => !e.isAllDay && isSameDay(new Date(e.start), day));
@@ -300,7 +301,7 @@ const WeekView = memo(({ weekStart, events, today, onSlotClick, onEventClick, c 
 const DayView = memo(({ date, events, today, onSlotClick, onEventClick, c }) => {
   const scrollRef = useRef(null);
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = (8 - DAY_START) * HOUR_HEIGHT;
+    if (scrollRef.current) scrollRef.current.scrollTop = SCROLL_TO_H * HOUR_HEIGHT;
   }, [date]);
 
   const dayEvts    = events.filter(e => !e.isAllDay && isSameDay(new Date(e.start), date));
