@@ -1833,7 +1833,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
   }
 
   return (
-    <div className={`flex-1 flex flex-col overflow-hidden ${c.bg}`}>
+    <div className={`flex-1 flex flex-col overflow-hidden min-h-0 ${c.bg}`}>
       {/* IndexedDB quota warning */}
       {showQuotaWarning && (
         <div className="flex items-center gap-3 px-4 py-2 bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-sm flex-shrink-0">
@@ -1841,10 +1841,10 @@ function InboxSplitView({ onFullView, onNavigate }) {
           <button onClick={() => setShowQuotaWarning(false)} className="ml-auto opacity-60 hover:opacity-100">✕</button>
         </div>
       )}
-    <div className={`flex-1 flex overflow-hidden ${c.bg}`}>
+    <div className={`flex-1 flex overflow-hidden min-h-0 ${c.bg}`}>
       {/* Folder List - Resizable (v1.8.1) */}
-      <div 
-        className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden relative`}
+      <div
+        className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden min-h-0 relative`}
         style={{ width: `${folderWidth}px`, minWidth: `${FOLDER_MIN_WIDTH}px`, maxWidth: `${FOLDER_MAX_WIDTH}px` }}
       >
         <div className={`p-3 ${c.border} border-b flex items-center justify-between`}>
@@ -1989,8 +1989,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
       </div>
 
       {/* Email List - v1.12.2: Resizable, v2.3.0: Multi-Select */}
-      <div 
-        className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden relative`} 
+      <div
+        className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden min-h-0 relative`}
         style={{ width: `${emailListWidth}px`, minWidth: `${EMAIL_LIST_MIN_WIDTH}px`, maxWidth: `${EMAIL_LIST_MAX_WIDTH}px` }}
       >
         <div className={`p-4 ${c.border} border-b`}>
@@ -2094,7 +2094,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
         </div>
         <div
           ref={emailListContainerRef}
-          className="flex-1 overflow-hidden"
+          className="flex-1 overflow-hidden min-h-0"
         >
           {filteredEmails.length === 0 ? (
             <div className={`p-8 text-center ${c.textSecondary}`}>
@@ -2153,8 +2153,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
       </div>
 
       {/* Email Preview - v1.12.2: Takes remaining space */}
-      <div 
-        className={`flex-1 flex flex-col overflow-hidden ${c.bg}`}
+      <div
+        className={`flex-1 flex flex-col overflow-hidden min-h-0 ${c.bg}`}
         style={{ minWidth: `${PREVIEW_MIN_WIDTH}px` }}
       >
         {loadingPreview ? (
