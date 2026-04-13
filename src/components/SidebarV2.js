@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search } from 'lucide-react';
+import {
+  Search, LayoutDashboard, Inbox, PenLine, Calendar,
+  Users, Settings, BookOpen
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -7,10 +10,10 @@ import { useSearch } from '../context/SearchContext';
 import { getCategoryIcon } from '../pages/CategorySettings';
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'inbox', label: 'Posteingang', icon: '📥' },
-  { id: 'compose', label: 'Verfassen', icon: '✏️' },
-  { id: 'calendar', label: 'Kalender', icon: '📅' },
+  { id: 'dashboard', label: 'Dashboard',   Icon: LayoutDashboard },
+  { id: 'inbox',     label: 'Posteingang', Icon: Inbox            },
+  { id: 'compose',   label: 'Verfassen',   Icon: PenLine          },
+  { id: 'calendar',  label: 'Kalender',    Icon: Calendar         },
 ];
 
 function SidebarV2({ currentView, onNavigate }) {
@@ -78,9 +81,9 @@ function SidebarV2({ currentView, onNavigate }) {
   const handleNavItemClick = useCallback((id) => onNavigate(id), [onNavigate]);
 
   const bottomItems = [
-    { id: 'accounts', label: 'Konten', icon: '👤' },
-    { id: 'settings', label: 'Einstellungen', icon: '⚙️' },
-    { id: 'logbuch', label: 'Logbuch', icon: '📋' },
+    { id: 'accounts', label: 'Konten',        Icon: Users    },
+    { id: 'settings', label: 'Einstellungen', Icon: Settings },
+    { id: 'logbuch',  label: 'Logbuch',       Icon: BookOpen },
   ];
 
   // Icons-Only Mode
@@ -168,18 +171,19 @@ function SidebarV2({ currentView, onNavigate }) {
       <nav className="p-3 space-y-0.5">
         {NAV_ITEMS.map(item => {
           const isActive = currentView === item.id;
+          const { Icon } = item;
           return (
             <button
               key={item.id}
               onClick={() => handleNavItemClick(item.id)}
               title={isIconsOnly || settings.collapsed ? item.label : ''}
-              className={`cm-nav-item w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-xl text-sm font-medium ${
+              className={`cm-nav-item w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
                   ? `${c.accentBg} text-white shadow-sm`
-                  : `${c.text} ${c.hover} opacity-75 hover:opacity-100`
+                  : `${c.hover} opacity-60 hover:opacity-100 text-white`
               }`}
             >
-              <span className={`text-base transition-transform duration-120 ease-spring ${isActive ? 'scale-110' : ''}`}>{item.icon}</span>
+              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-white/80'}`} />
               {!isIconsOnly && !settings.collapsed && <span className="tracking-tight">{item.label}</span>}
             </button>
           );
@@ -263,18 +267,19 @@ function SidebarV2({ currentView, onNavigate }) {
       <div className={`p-3 ${c.border} border-t space-y-0.5`}>
         {bottomItems.map(item => {
           const isActive = currentView === item.id;
+          const { Icon } = item;
           return (
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
               title={isIconsOnly || settings.collapsed ? item.label : ''}
-              className={`cm-nav-item w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-xl text-sm ${
+              className={`cm-nav-item w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-xl text-sm transition-all ${
                 isActive
                   ? `${c.bgTertiary} ${c.accent} font-medium`
-                  : `${c.textSecondary} ${c.hover} opacity-70 hover:opacity-100`
+                  : `${c.hover} opacity-50 hover:opacity-90 text-white`
               }`}
             >
-              <span>{item.icon}</span>
+              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? c.accent : 'text-white/80'}`} />
               {!isIconsOnly && !settings.collapsed && <span>{item.label}</span>}
             </button>
           );

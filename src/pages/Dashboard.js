@@ -1,208 +1,459 @@
-import React, { useState, useCallback } from 'react';
-import GridLayout from 'react-grid-layout';
-import 'react-grid-layout/css/styles.css';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  RefreshCw, Mail, Calendar, Send, Inbox, Brain,
+  AlertCircle, CheckCircle2, ChevronRight, Settings, MapPin
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { useAccounts } from '../context/AccountContext';
-import { useDashboard, WIDGET_TYPES } from '../context/DashboardContext';
-import StatsWidget from '../components/widgets/StatsWidget';
-import AccountWidget from '../components/widgets/AccountWidget';
-import CategoryWidget from '../components/widgets/CategoryWidget';
-import QuickActionsWidget from '../components/widgets/QuickActionsWidget';
-import AddWidgetModal from '../components/widgets/AddWidgetModal';
+import { useAccounts, useAccountStats } from '../context/AccountContext';
+import { useOllama } from '../context/OllamaContext';
 
-function Dashboard({ onNavigate, onSelectAccount }) {
+const OLLAMA_BASE_URL = 'http://localhost:11434';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function formatEventTime(ev) {
+  if (ev.isAllDay) return 'Ganztägig';
+  return new Date(ev.start).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+}
+
+function readCachedEmails(accountId) {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open('CoreMailDB', 1);
+      req.onerror = () => resolve([]);
+      req.onsuccess = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('emails')) { db.close(); resolve([]); return; }
+        const tx = db.transaction('emails', 'readonly');
+        const getReq = tx.objectStore('emails').get(`${accountId}:INBOX`);
+        getReq.onsuccess = () => { db.close(); resolve(getReq.result?.emails || []); };
+        getReq.onerror  = () => { db.close(); resolve([]); };
+      };
+    } catch { resolve([]); }
+  });
+}
+
+function Skel({ className, style }) {
+  return <div className={`animate-pulse rounded-lg ${className}`} style={style} />;
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+export default function Dashboard({ onNavigate, onSelectAccount }) {
   const { currentTheme } = useTheme();
-  const { setActiveAccountId } = useAccounts();
-  const { 
-    widgets, 
-    layout, 
-    isEditMode, 
-    loading,
-    updateLayout, 
-    toggleEditMode,
-    resetToDefaults 
-  } = useDashboard();
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [containerWidth, setContainerWidth] = useState(1200);
+  const { accounts, setActiveAccountId } = useAccounts();
+  const accountStats = useAccountStats();
+  const { isAvailable, activeModel } = useOllama();
   const c = currentTheme.colors;
 
-  // Container ref für Breite
-  const containerRef = React.useRef(null);
+  const [now, setNow]                   = useState(new Date());
+  const [aiBrief, setAiBrief]           = useState('');
+  const [aiLoading, setAiLoading]       = useState(false);
+  const [aiError, setAiError]           = useState(null);
+  const [calEvents, setCalEvents]       = useState([]);
+  const [calLoading, setCalLoading]     = useState(false);
+  const abortRef   = useRef(null);
+  const briefDone  = useRef(false);
 
-  React.useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth - 48); // 48px padding
-      }
-    };
-    
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
+  // ── Live clock (1-minute tick) ──────────────────────────────────────────
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
   }, []);
 
-  const handleLayoutChange = (newLayout) => {
-    updateLayout(newLayout);
-  };
+  // ── Calendar: today's events ────────────────────────────────────────────
+  useEffect(() => {
+    const load = async () => {
+      const m365 = accounts.find(a => a.type === 'microsoft');
+      if (!m365 || !window.electronAPI?.calendarGetEvents) return;
+      setCalLoading(true);
+      try {
+        const s = new Date(); s.setHours(0, 0, 0, 0);
+        const e = new Date(); e.setHours(23, 59, 59, 999);
+        const res = await window.electronAPI.calendarGetEvents(m365.id, {
+          startDate: s.toISOString(), endDate: e.toISOString()
+        });
+        if (res?.success) {
+          setCalEvents(res.events.sort((a, b) => new Date(a.start) - new Date(b.start)));
+        }
+      } catch (err) {
+        console.error('[Dashboard] Calendar:', err);
+      } finally {
+        setCalLoading(false);
+      }
+    };
+    if (accounts.length > 0) load();
+  }, [accounts]);
 
-  const handleSelectAccount = (accountId) => {
-    setActiveAccountId(accountId);
-    onSelectAccount?.(accountId);
-  };
-
-  const renderWidget = useCallback((widget) => {
-    switch (widget.type) {
-      case WIDGET_TYPES.STATS:
-        return <StatsWidget widget={widget} />;
-      case WIDGET_TYPES.ACCOUNT:
-        return (
-          <AccountWidget 
-            widget={widget} 
-            onNavigate={onNavigate}
-            onSelectAccount={handleSelectAccount}
-          />
-        );
-      case WIDGET_TYPES.CATEGORY:
-        return (
-          <CategoryWidget 
-            widget={widget}
-            onNavigate={onNavigate}
-            onSelectAccount={handleSelectAccount}
-          />
-        );
-      case WIDGET_TYPES.QUICK_ACTIONS:
-        return <QuickActionsWidget widget={widget} onNavigate={onNavigate} />;
-      default:
-        return <div className={c.text}>Unbekannter Widget-Typ</div>;
+  // ── Collect recent unread emails from IndexedDB ─────────────────────────
+  const getUnread = useCallback(async () => {
+    const all = [];
+    for (const acc of accounts.slice(0, 4)) {
+      const emails = await readCachedEmails(acc.id);
+      emails
+        .filter(e => !e.seen)
+        .slice(0, 4)
+        .forEach(e => all.push({ from: e.from, subject: e.subject, preview: (e.preview || '').slice(0, 80) }));
     }
-  }, [onNavigate, handleSelectAccount, c.text]);
+    return all.slice(0, 8);
+  }, [accounts]);
 
-  if (loading) {
-    return (
-      <div className={`flex-1 flex items-center justify-center ${c.bg}`}>
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className={c.textSecondary}>Dashboard wird geladen...</p>
-        </div>
-      </div>
-    );
-  }
+  // ── AI daily brief via Ollama streaming ────────────────────────────────
+  const generateBrief = useCallback(async () => {
+    if (!isAvailable) return;
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+    setAiLoading(true);
+    setAiError(null);
+    setAiBrief('');
 
+    try {
+      const emails  = await getUnread();
+      const total   = Object.values(accountStats).reduce((s, x) => s + (x?.unread || 0), 0);
+      const dateStr = now.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
+
+      const emailLines = emails.length > 0
+        ? emails.map(e => `• Von: ${e.from} | Betreff: ${e.subject}${e.preview ? ` | "${e.preview}"` : ''}`).join('\n')
+        : 'Keine ungelesenen Mails.';
+
+      const calLines = calEvents.length > 0
+        ? calEvents.map(ev => `• ${formatEventTime(ev)}: ${ev.title}${ev.location ? ` (${ev.location})` : ''}`).join('\n')
+        : 'Keine Termine heute.';
+
+      const prompt =
+`Du bist ein persönlicher Assistent in CoreMail. Heute ist ${dateStr}.
+Antworte auf Deutsch. Sei präzise und freundlich.
+
+Ungelesene Mails (${total} total):
+${emailLines}
+
+Heutige Kalendertermine:
+${calLines}
+
+Erstelle ein kurzes Tagesbriefing (max. 6 Punkte) mit dem Zeichen • vor jedem Punkt.
+Fasse wichtige Mails zusammen, hebe Termine hervor und empfehle womit man den Tag beginnen sollte.
+Keine langen Einleitungen.`;
+
+      const resp = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: abortRef.current.signal,
+        body: JSON.stringify({ model: activeModel, prompt, stream: true })
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const reader = resp.body.getReader();
+      const dec    = new TextDecoder();
+      let   text   = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        for (const line of dec.decode(value).split('\n').filter(Boolean)) {
+          try { const j = JSON.parse(line); if (j.response) { text += j.response; setAiBrief(text); } }
+          catch { /* skip malformed */ }
+        }
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') setAiError('KI nicht erreichbar. Stelle sicher, dass Ollama läuft.');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [isAvailable, activeModel, accountStats, calEvents, now, getUnread]);
+
+  // Auto-generate once when Ollama + accounts are ready
+  useEffect(() => {
+    if (isAvailable && accounts.length > 0 && !briefDone.current) {
+      briefDone.current = true;
+      generateBrief();
+    }
+    return () => { if (abortRef.current) abortRef.current.abort(); };
+  }, [isAvailable, accounts]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Derived ─────────────────────────────────────────────────────────────
+  const greeting = () => {
+    const h = now.getHours();
+    if (h < 5)  return 'Gute Nacht';
+    if (h < 12) return 'Guten Morgen';
+    if (h < 17) return 'Guten Tag';
+    if (h < 22) return 'Guten Abend';
+    return 'Gute Nacht';
+  };
+  const totalUnread  = Object.values(accountStats).reduce((s, x) => s + (x?.unread || 0), 0);
+  const hasMicrosoft = accounts.some(a => a.type === 'microsoft');
+
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div ref={containerRef} className={`flex-1 overflow-auto ${c.bg}`}>
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className={`text-3xl font-bold ${c.text} mb-1`}>Dashboard</h1>
-            <p className={c.textSecondary}>
-              {isEditMode ? 'Bearbeite dein Dashboard - ziehe Widgets per Drag & Drop' : 'Deine personalisierte Übersicht'}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {isEditMode && (
-              <>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors flex items-center gap-2`}
-                >
-                  <span>+</span> Widget hinzufügen
-                </button>
-                <button
-                  onClick={resetToDefaults}
-                  className={`px-4 py-2 ${c.border} border rounded-lg ${c.textSecondary} ${c.hover} transition-colors`}
-                >
-                  Zurücksetzen
-                </button>
-              </>
-            )}
-            <button
-              onClick={toggleEditMode}
-              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-                isEditMode 
-                  ? 'bg-green-500 hover:bg-green-600 text-white' 
-                  : `${c.bgSecondary} ${c.text} ${c.hover}`
-              }`}
-            >
-              {isEditMode ? (
-                <>
-                  <span>✓</span> Fertig
-                </>
-              ) : (
-                <>
-                  <span>✏️</span> Bearbeiten
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+    <div className={`flex-1 overflow-auto ${c.bg}`}>
+      <div className="max-w-6xl mx-auto p-6 space-y-5">
 
-        {/* Widget Grid */}
-        {widgets.length === 0 ? (
-          <div className={`${c.card} ${c.border} border rounded-2xl p-12 text-center`}>
-            <div className="text-6xl mb-4">📊</div>
-            <h3 className={`text-xl font-semibold ${c.text} mb-2`}>Keine Widgets</h3>
-            <p className={`${c.textSecondary} mb-6`}>
-              Füge Widgets hinzu, um dein Dashboard zu personalisieren.
-            </p>
-            <button
-              onClick={() => {
-                if (!isEditMode) toggleEditMode();
-                setShowAddModal(true);
-              }}
-              className={`px-6 py-3 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors`}
-            >
-              Widget hinzufügen
-            </button>
-          </div>
-        ) : (
-          <div className={`${isEditMode ? 'ring-2 ring-cyan-500/30 ring-offset-2 ring-offset-transparent rounded-xl p-2' : ''}`}>
-            <GridLayout
-              className="layout"
-              layout={layout}
-              cols={12}
-              rowHeight={80}
-              width={containerWidth}
-              onLayoutChange={handleLayoutChange}
-              isDraggable={isEditMode}
-              isResizable={isEditMode}
-              draggableHandle=".drag-handle"
-              margin={[16, 16]}
-              containerPadding={[0, 0]}
-              useCSSTransforms={true}
-            >
-              {widgets.map(widget => (
-                <div key={widget.id} className="widget-container">
-                  {renderWidget(widget)}
-                </div>
-              ))}
-            </GridLayout>
-          </div>
-        )}
-
-        {/* Edit Mode Hinweis */}
-        {isEditMode && widgets.length > 0 && (
-          <div className={`mt-6 p-4 ${c.bgSecondary} rounded-xl border ${c.border}`}>
-            <div className="flex items-center gap-3">
-              <span className="text-xl">💡</span>
-              <div>
-                <p className={`${c.text} font-medium`}>Bearbeitungsmodus aktiv</p>
-                <p className={`text-sm ${c.textSecondary}`}>
-                  Ziehe die Widgets am ⠿ Symbol, um sie zu verschieben. Nutze S/M/L um die Größe zu ändern.
-                </p>
+        {/* ── Hero header ─────────────────────────────────────────────── */}
+        <div className={`rounded-2xl p-6 ${c.card} ${c.border} border`}>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <p className={`text-xs font-medium uppercase tracking-widest ${c.textSecondary} mb-1.5`}>
+                {now.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+              <h1 className={`text-3xl font-bold ${c.text} mb-3`}>{greeting()}</h1>
+              <div className="flex flex-wrap items-center gap-4">
+                <span className={`inline-flex items-center gap-1.5 text-sm ${totalUnread > 0 ? 'text-blue-400' : c.textSecondary}`}>
+                  <Mail className="w-4 h-4" />
+                  {totalUnread > 0 ? <><strong>{totalUnread}</strong>&nbsp;ungelesen</> : 'Keine ungelesenen Mails'}
+                </span>
+                <span className={`inline-flex items-center gap-1.5 text-sm ${calEvents.length > 0 ? 'text-cyan-400' : c.textSecondary}`}>
+                  <Calendar className="w-4 h-4" />
+                  {calEvents.length > 0
+                    ? <><strong>{calEvents.length}</strong>&nbsp;Termin{calEvents.length !== 1 ? 'e' : ''} heute</>
+                    : 'Keine Termine heute'}
+                </span>
+                <span className={`inline-flex items-center gap-1.5 text-sm ${c.textSecondary}`}>
+                  <Inbox className="w-4 h-4" />
+                  {accounts.length}&nbsp;Konto{accounts.length !== 1 ? 'en' : ''}
+                </span>
               </div>
             </div>
+            <div className={`text-4xl font-mono font-light tabular-nums ${c.accent} flex-shrink-0`}>
+              {now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Add Widget Modal */}
-      <AddWidgetModal 
-        isOpen={showAddModal} 
-        onClose={() => setShowAddModal(false)} 
-      />
+        {/* ── AI Brief + Calendar grid ─────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+          {/* AI Brief — 3/5 */}
+          <div className={`lg:col-span-3 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col min-h-[220px]`}>
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center">
+                  <Brain className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div>
+                  <h2 className={`text-sm font-semibold ${c.text}`}>KI-Tagesbriefing</h2>
+                  <p className={`text-xs ${c.textSecondary}`}>
+                    {isAvailable ? activeModel : 'Ollama nicht aktiv'}
+                  </p>
+                </div>
+              </div>
+              {isAvailable && (
+                <button
+                  onClick={generateBrief}
+                  disabled={aiLoading}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${c.bgTertiary} ${c.text} ${c.hover} disabled:opacity-40 transition-colors border ${c.border}`}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${aiLoading ? 'animate-spin' : ''}`} />
+                  {aiLoading ? 'Generiere…' : 'Aktualisieren'}
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1">
+              {!isAvailable && (
+                <div className={`flex items-start gap-3 p-4 rounded-xl ${c.bgTertiary}`}>
+                  <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className={`text-sm font-medium ${c.text} mb-0.5`}>Ollama nicht erreichbar</p>
+                    <p className={`text-xs ${c.textSecondary}`}>
+                      Starte Ollama:{' '}
+                      <code className="font-mono text-cyan-400">ollama serve</code>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {aiError && !aiLoading && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <p className="text-sm text-red-300">{aiError}</p>
+                </div>
+              )}
+
+              {aiLoading && !aiBrief && (
+                <div className="space-y-2.5 pt-1">
+                  {[85, 70, 92, 62, 78].map((w, i) => (
+                    <Skel key={i} className={c.bgTertiary} style={{ height: 14, width: `${w}%` }} />
+                  ))}
+                </div>
+              )}
+
+              {aiBrief && (
+                <p className={`text-sm ${c.text} leading-relaxed whitespace-pre-wrap`}>
+                  {aiBrief}
+                  {aiLoading && (
+                    <span className="inline-block w-1.5 h-4 bg-cyan-400 ml-0.5 rounded-sm animate-pulse align-text-bottom" />
+                  )}
+                </p>
+              )}
+
+              {isAvailable && !aiLoading && !aiBrief && !aiError && accounts.length === 0 && (
+                <p className={`text-sm ${c.textSecondary} italic`}>
+                  Füge ein Konto hinzu, damit die KI deine Mails zusammenfassen kann.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Calendar today — 2/5 */}
+          <div className={`lg:col-span-2 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col min-h-[220px]`}>
+            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center">
+                  <Calendar className="w-4 h-4 text-purple-400" />
+                </div>
+                <h2 className={`text-sm font-semibold ${c.text}`}>Heute</h2>
+              </div>
+              <button
+                onClick={() => onNavigate('calendar')}
+                className={`text-xs ${c.accent} hover:opacity-70 flex items-center gap-0.5 transition-opacity`}
+              >
+                Alle <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+
+            <div className="flex-1">
+              {!hasMicrosoft && (
+                <div className="text-center py-8">
+                  <Calendar className={`w-8 h-8 mx-auto mb-2 opacity-20 ${c.text}`} />
+                  <p className={`text-xs ${c.textSecondary}`}>Nur für Microsoft 365-Konten</p>
+                </div>
+              )}
+              {hasMicrosoft && calLoading && (
+                <div className="space-y-2.5">
+                  {[1, 2, 3].map(i => (
+                    <Skel key={i} className={c.bgTertiary} style={{ height: 48, width: '100%' }} />
+                  ))}
+                </div>
+              )}
+              {hasMicrosoft && !calLoading && calEvents.length === 0 && (
+                <div className="text-center py-8">
+                  <CheckCircle2 className="w-9 h-9 mx-auto mb-2 text-green-500 opacity-40" />
+                  <p className={`text-sm ${c.textSecondary}`}>Heute frei — keine Termine</p>
+                </div>
+              )}
+              {hasMicrosoft && !calLoading && calEvents.length > 0 && (
+                <div className="space-y-2 overflow-auto max-h-[260px] pr-1">
+                  {calEvents.map(ev => {
+                    const isPast = !ev.isAllDay && new Date(ev.end) < now;
+                    return (
+                      <div key={ev.id}
+                        className={`flex items-start gap-3 p-2.5 rounded-xl ${c.bgTertiary} transition-opacity ${isPast ? 'opacity-40' : ''}`}>
+                        <div className="flex-shrink-0 min-w-[48px] text-right pt-0.5">
+                          <span className="text-xs font-mono text-cyan-400 font-medium">
+                            {formatEventTime(ev)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-xs font-medium truncate ${c.text}`}>{ev.title}</p>
+                          {ev.location && (
+                            <p className={`text-xs ${c.textSecondary} truncate flex items-center gap-1 mt-0.5`}>
+                              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                              {ev.location}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Account cards ────────────────────────────────────────────────── */}
+        <div className={`rounded-2xl p-5 ${c.card} ${c.border} border`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
+                <Inbox className="w-4 h-4 text-blue-400" />
+              </div>
+              <h2 className={`text-sm font-semibold ${c.text}`}>Kontenübersicht</h2>
+            </div>
+            <button
+              onClick={() => onNavigate('accounts')}
+              className={`text-xs ${c.accent} hover:opacity-70 flex items-center gap-0.5 transition-opacity`}
+            >
+              Verwalten <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          {accounts.length === 0 ? (
+            <div className="text-center py-8">
+              <Mail className={`w-10 h-10 mx-auto mb-3 opacity-20 ${c.text}`} />
+              <p className={`text-sm ${c.textSecondary} mb-4`}>Noch kein Konto eingerichtet</p>
+              <button
+                onClick={() => onNavigate('accounts')}
+                className="px-5 py-2 bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-medium rounded-xl transition-colors"
+              >
+                Konto hinzufügen
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {accounts.map(account => {
+                const stats  = accountStats[account.id];
+                const unread = stats?.unread || 0;
+                const total  = stats?.total  || 0;
+                return (
+                  <button
+                    key={account.id}
+                    onClick={() => {
+                      setActiveAccountId?.(account.id);
+                      onSelectAccount?.(account.id);
+                      onNavigate('inbox');
+                    }}
+                    className={`group flex items-center gap-3 p-3.5 rounded-xl ${c.bgTertiary} ${c.hover} text-left border ${c.border} hover:border-cyan-500/30 transition-all`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-white/5 flex items-center justify-center flex-shrink-0">
+                      {account.type === 'microsoft' ? (
+                        <svg viewBox="0 0 21 21" className="w-5 h-5" fill="none">
+                          <rect x="1"  y="1"  width="9" height="9" fill="#f25022"/>
+                          <rect x="11" y="1"  width="9" height="9" fill="#7fba00"/>
+                          <rect x="1"  y="11" width="9" height="9" fill="#00a4ef"/>
+                          <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                        </svg>
+                      ) : (
+                        <Mail className="w-4 h-4 text-cyan-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${c.text}`}>{account.displayName || account.name}</p>
+                      <p className={`text-xs ${c.textSecondary} truncate`}>
+                        {total > 0 ? `${total} Mails gecacht` : 'Keine Mails gecacht'}
+                      </p>
+                    </div>
+                    {unread > 0 && (
+                      <span className="flex-shrink-0 min-w-[22px] h-5 px-1.5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                        {unread > 99 ? '99+' : unread}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── Quick actions ────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: 'Verfassen',     icon: Send,     action: 'compose',  col: 'text-cyan-400',   bg: 'bg-cyan-500/10',   hb: 'hover:border-cyan-500/30' },
+            { label: 'Posteingang',   icon: Inbox,    action: 'inbox',    col: 'text-blue-400',   bg: 'bg-blue-500/10',   hb: 'hover:border-blue-500/30' },
+            { label: 'Kalender',      icon: Calendar, action: 'calendar', col: 'text-purple-400', bg: 'bg-purple-500/10', hb: 'hover:border-purple-500/30' },
+            { label: 'Einstellungen', icon: Settings, action: 'settings', col: 'text-gray-400',   bg: 'bg-white/5',       hb: 'hover:border-white/20' },
+          ].map(({ label, icon: Icon, action, col, bg, hb }) => (
+            <button
+              key={action}
+              onClick={() => onNavigate(action)}
+              className={`group flex items-center gap-3 p-4 rounded-xl ${c.card} ${c.border} border ${hb} ${c.hover} transition-all`}
+            >
+              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center flex-shrink-0`}>
+                <Icon className={`w-4 h-4 ${col}`} />
+              </div>
+              <span className={`text-sm font-medium ${c.text} flex-1 text-left`}>{label}</span>
+              <ChevronRight className={`w-4 h-4 ${c.textSecondary} opacity-0 group-hover:opacity-60 transition-opacity`} />
+            </button>
+          ))}
+        </div>
+
+      </div>
     </div>
   );
 }
-
-export default Dashboard;
