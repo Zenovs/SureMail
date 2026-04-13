@@ -569,6 +569,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [loadingMore, setLoadingMore] = useState(false);
   // Abort signal for background batch loading — set to true when account/folder changes
   const bgLoadAbortRef = useRef(false);
+  // Race-guard for loadEmailPreview: tracks the uid of the most-recently requested preview
+  const previewRequestIdRef = useRef(null);
   // v4.5.6: Version counter to prevent stale loadFolders from overwriting current account's folders
   const folderLoadVersionRef = useRef(0);
   // Virtual scrolling: measure the email list container to give FixedSizeList a concrete height
@@ -1016,16 +1018,19 @@ function InboxSplitView({ onFullView, onNavigate }) {
       }
       
       if (result.success) {
-        const newEmails = [...emails, ...result.emails];
+        // Deduplicate: only append emails not already in the list
+        const existingUids = new Set(emails.map(e => e.uid));
+        const newOnes = result.emails.filter(e => !existingUids.has(e.uid));
+        const newEmails = [...emails, ...newOnes];
         setEmails(newEmails);
         setHasMore(result.hasMore || false);
-        
+
         // Update cache
         const cacheKey = getCacheKey(activeAccountId, currentFolder);
-        emailCache.set(cacheKey, { 
-          data: newEmails, 
+        emailCache.set(cacheKey, {
+          data: newEmails,
           hasMore: result.hasMore,
-          timestamp: Date.now() 
+          timestamp: Date.now()
         });
       }
     } catch (e) {
@@ -1148,6 +1153,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const loadEmailPreview = useCallback(async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
 
+    // Race guard: discard responses for any earlier request
+    previewRequestIdRef.current = uid;
     setLoadingPreview(true);
     try {
       let result;
@@ -1156,13 +1163,16 @@ function InboxSplitView({ onFullView, onNavigate }) {
       } else {
         result = await window.electronAPI.fetchEmailForAccount(activeAccountId, uid, currentFolder);
       }
-      if (result?.success) {
+      // Only apply result if this is still the latest request
+      if (previewRequestIdRef.current === uid && result?.success) {
         setSelectedEmail(result.email);
       }
     } catch (e) {
       console.error('Error loading email preview', e);
     }
-    setLoadingPreview(false);
+    if (previewRequestIdRef.current === uid) {
+      setLoadingPreview(false);
+    }
   }, [activeAccountId, currentFolder, isGraphAccount]);
 
   // Moved before handleSelectEmail to avoid TDZ in deps array
