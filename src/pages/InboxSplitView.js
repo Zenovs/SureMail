@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { FixedSizeList } from 'react-window';
 import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -1654,10 +1654,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return () => window.removeEventListener(INDEXEDDB_QUOTA_EVENT, handler);
   }, []);
 
-  // Virtual scroll: track email list container height via ResizeObserver
-  useEffect(() => {
+  // Virtual scroll: measure email list container height synchronously before paint,
+  // then keep it up to date via ResizeObserver on every subsequent resize.
+  useLayoutEffect(() => {
     const el = emailListContainerRef.current;
     if (!el) return;
+    // Synchronous initial measurement — avoids the 500px default showing on first paint
+    const initial = el.getBoundingClientRect().height;
+    if (initial > 0) setEmailListHeight(initial);
     const ro = new ResizeObserver(entries => {
       const h = entries[0]?.contentRect.height;
       if (h > 0) setEmailListHeight(h);
@@ -1845,7 +1849,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       {/* Folder List - Resizable (v1.8.1) */}
       <div
         className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden min-h-0 relative`}
-        style={{ width: `${folderWidth}px`, minWidth: `${FOLDER_MIN_WIDTH}px`, maxWidth: `${FOLDER_MAX_WIDTH}px` }}
+        style={{ width: `${folderWidth}px`, minWidth: `${FOLDER_MIN_WIDTH}px`, maxWidth: `${FOLDER_MAX_WIDTH}px`, alignSelf: 'stretch' }}
       >
         <div className={`p-3 ${c.border} border-b flex items-center justify-between`}>
           <h3 className={`font-medium ${c.text} text-sm`}>Ordner</h3>
@@ -1991,7 +1995,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       {/* Email List - v1.12.2: Resizable, v2.3.0: Multi-Select */}
       <div
         className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden min-h-0 relative`}
-        style={{ width: `${emailListWidth}px`, minWidth: `${EMAIL_LIST_MIN_WIDTH}px`, maxWidth: `${EMAIL_LIST_MAX_WIDTH}px` }}
+        style={{ width: `${emailListWidth}px`, minWidth: `${EMAIL_LIST_MIN_WIDTH}px`, maxWidth: `${EMAIL_LIST_MAX_WIDTH}px`, alignSelf: 'stretch' }}
       >
         <div className={`p-4 ${c.border} border-b`}>
           <div className="flex items-center justify-between">
