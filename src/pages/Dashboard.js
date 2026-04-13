@@ -7,7 +7,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useOllama } from '../context/OllamaContext';
 
-const OLLAMA_BASE_URL = 'http://localhost:11434';
+const OLLAMA_BASE_URL  = 'http://localhost:11434';
+const BRIEF_CACHE_KEY  = 'coremail:dashboard-brief';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatEventTime(ev) {
@@ -45,13 +46,28 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
   const c = currentTheme.colors;
 
   const [now, setNow]                   = useState(new Date());
-  const [aiBrief, setAiBrief]           = useState('');
   const [aiLoading, setAiLoading]       = useState(false);
   const [aiError, setAiError]           = useState(null);
   const [calEvents, setCalEvents]       = useState([]);
   const [calLoading, setCalLoading]     = useState(false);
   const abortRef   = useRef(null);
   const briefDone  = useRef(false);
+
+  // ── Restore cached brief from localStorage ──────────────────────────────
+  const today = new Date().toDateString();
+  const [aiBrief, setAiBriefState] = useState(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY) || 'null');
+      return (c?.date === today && c?.text) ? c.text : '';
+    } catch { return ''; }
+  });
+  const setAiBrief = useCallback((text) => {
+    setAiBriefState(text);
+    if (text) {
+      try { localStorage.setItem(BRIEF_CACHE_KEY, JSON.stringify({ text, date: today })); }
+      catch { /* quota */ }
+    }
+  }, [today]);
 
   // ── Live clock (1-minute tick) ──────────────────────────────────────────
   useEffect(() => {
@@ -176,11 +192,15 @@ Fasse wichtige Mails zusammen, hebe Termine hervor und empfehle womit man den Ta
   }, [isAvailable, activeModel, accountStats, calEvents, getUnread]);
 
   // Auto-generate once when Ollama + accounts are ready.
-  // Use accounts.length (not reference) to avoid aborting in-flight requests
-  // when AccountContext re-creates the array.
+  // Skip if a cached brief for today already exists.
   useEffect(() => {
     if (!isAvailable || accounts.length === 0 || briefDone.current) return;
     briefDone.current = true;
+    // Already have a valid brief for today → don't regenerate
+    try {
+      const cached = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY) || 'null');
+      if (cached?.date === new Date().toDateString() && cached?.text) return;
+    } catch { /* continue */ }
     generateBrief();
   }, [isAvailable, accounts.length]); // eslint-disable-line
 
