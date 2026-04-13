@@ -127,32 +127,35 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
       const dateStr = new Date().toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
 
       const emailLines = emails.length > 0
-        ? emails.map(e => `• Von: ${e.from} | Betreff: ${e.subject}${e.preview ? ` | "${e.preview}"` : ''}`).join('\n')
-        : 'Keine ungelesenen Mails.';
+        ? emails.map(e => `- Von: ${e.from}, Betreff: "${e.subject}"${e.preview ? `, Inhalt: ${e.preview}` : ''}`).join('\n')
+        : 'Keine ungelesenen E-Mails.';
 
       const calLines = calEvents.length > 0
-        ? calEvents.map(ev => `• ${formatEventTime(ev)}: ${ev.title}${ev.location ? ` (${ev.location})` : ''}`).join('\n')
+        ? calEvents.map(ev => `- ${formatEventTime(ev)}: ${ev.title}${ev.location ? ` (Ort: ${ev.location})` : ''}`).join('\n')
         : 'Keine Termine heute.';
 
-      // Use /api/chat (same endpoint as OllamaContext — proven to work)
       const messages = [
         {
           role: 'system',
-          content: 'Du bist ein persönlicher Assistent in CoreMail. Antworte auf Deutsch. Sei präzise und freundlich. Keine langen Einleitungen.'
+          content:
+`Du bist mein persönlicher Tagesassistent. Du bereitest mich jeden Morgen auf meinen Tag vor.
+Sprich mich direkt an (du/Sie-Form, bevorzugt "du").
+Schreibe fliessend, warm und klar — wie ein guter Assistent, nicht wie eine Maschine.
+Antworte immer auf Deutsch. Keine Aufzählungszeichen, keine Bullet-Points.
+Strukturiere mit kurzen Absätzen: zuerst Termine, dann wichtige Mails, dann eine kurze persönliche Empfehlung für den Tag.`
         },
         {
           role: 'user',
           content:
-`Heute ist ${dateStr}.
+`Heute ist ${dateStr}. Ich habe ${total} ungelesene E-Mail${total !== 1 ? 's' : ''}.
 
-Ungelesene Mails (${total} total):
-${emailLines}
-
-Heutige Kalendertermine:
+Meine heutigen Termine:
 ${calLines}
 
-Erstelle ein kurzes Tagesbriefing (max. 6 Punkte) mit dem Zeichen • vor jedem Punkt.
-Fasse wichtige Mails zusammen, hebe Termine hervor und empfehle womit man den Tag beginnen sollte.`
+Meine ungelesenen E-Mails:
+${emailLines}
+
+Erstelle mein persönliches Tagesbriefing. Maximal 4 kurze Absätze.`
         }
       ];
 
