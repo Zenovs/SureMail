@@ -3003,6 +3003,19 @@ ipcMain.handle('scheduled:cancel', async (event, id) => {
 
 // --- IPC: Kalender (v4.4.0) ---
 
+// Graph API calendarView returns UTC times WITHOUT 'Z' suffix.
+// JavaScript parses strings without timezone as *local* time → wrong display.
+// Fix: append 'Z' so the Date constructor treats it as UTC, then
+// toLocaleTimeString() converts correctly to the user's local timezone.
+function normalizeGraphDateTime(dt) {
+  if (!dt) return dt;
+  // All-day dates are "YYYY-MM-DD" — leave untouched
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) return dt;
+  // If no timezone designator present, append 'Z' (treat as UTC)
+  if (!dt.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(dt)) return dt + 'Z';
+  return dt;
+}
+
 ipcMain.handle('calendar:getEvents', async (event, accountId, { startDate, endDate } = {}) => {
   try {
     const start = startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
@@ -3013,9 +3026,9 @@ ipcMain.handle('calendar:getEvents', async (event, accountId, { startDate, endDa
     const events = (data?.value || []).map(e => ({
       id: e.id,
       title: e.subject || '(Kein Titel)',
-      start: e.start?.dateTime || e.start?.date,
+      start: normalizeGraphDateTime(e.start?.dateTime || e.start?.date),
       startTimeZone: e.start?.timeZone,
-      end: e.end?.dateTime || e.end?.date,
+      end: normalizeGraphDateTime(e.end?.dateTime || e.end?.date),
       endTimeZone: e.end?.timeZone,
       isAllDay: e.isAllDay || false,
       location: e.location?.displayName || '',

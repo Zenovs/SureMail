@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   RefreshCw, Mail, Calendar, Send, Inbox, Brain,
   AlertCircle, CheckCircle2, ChevronRight, Settings, MapPin,
@@ -425,10 +425,10 @@ ${emailLines}`;
         </div>
 
         {/* ── AI Brief + Calendar grid ─────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
 
           {/* AI Brief — 3/5 */}
-          <div className={`lg:col-span-3 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col min-h-[220px]`}>
+          <div className={`lg:col-span-3 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col`}>
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center">
@@ -500,7 +500,7 @@ ${emailLines}`;
           </div>
 
           {/* Calendar today — 2/5 */}
-          <div className={`lg:col-span-2 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col min-h-[220px]`}>
+          <div className={`lg:col-span-2 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col`}>
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center">
@@ -537,7 +537,7 @@ ${emailLines}`;
                 </div>
               )}
               {hasMicrosoft && !calLoading && calEvents.length > 0 && (
-                <div className="space-y-2 overflow-auto max-h-[260px] pr-1">
+                <div className="space-y-2 pr-1">
                   {calEvents.map(ev => {
                     const isPast = !ev.isAllDay && new Date(ev.end) < now;
                     return (
