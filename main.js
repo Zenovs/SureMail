@@ -119,7 +119,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     backgroundColor: '#0a0a0a',
-    icon: path.join(__dirname, 'assets/icon.png'),
+    icon: getIconPath(),
     title: 'CoreMail Desktop'
   });
 
@@ -252,6 +252,11 @@ async function autoStartOllama() {
     console.log('[Ollama] Could not auto-start:', err.message);
   }
 }
+
+// v5.0.8: Set app identity before window creation so Linux WM_CLASS matches
+// the StartupWMClass in the .desktop file → taskbar shows the correct icon
+app.setName('coremail-desktop');
+app.setAppUserModelId('com.coremail.desktop');
 
 app.whenReady().then(async () => {
   createWindow();
