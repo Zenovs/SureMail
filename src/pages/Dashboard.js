@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   RefreshCw, Mail, Calendar, Send, Inbox, Brain,
   AlertCircle, CheckCircle2, ChevronRight, Settings, MapPin,
-  MessageSquare, User, Sparkles, Trash2
+  MessageSquare, User, Sparkles, Trash2, Bell,
+  Plus, X, Eye, Clock, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
@@ -11,6 +12,8 @@ import { useOllama } from '../context/OllamaContext';
 const OLLAMA_BASE_URL  = 'http://localhost:11434';
 const BRIEF_CACHE_KEY  = 'coremail:dashboard-brief';
 const CHAT_HISTORY_KEY = 'coremail:dashboard-chat';
+const WATCH_LIST_KEY   = 'coremail:watch-list';   // [{id, text, addedAt}]
+const NOTIFIED_KEY     = 'coremail:notified-ids';  // set of already-notified email UIDs
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatEventTime(ev) {
@@ -39,6 +42,24 @@ function Skel({ className, style }) {
   return <div className={`animate-pulse rounded-lg ${className}`} style={style} />;
 }
 
+function loadWatchList() {
+  try { return JSON.parse(localStorage.getItem(WATCH_LIST_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveWatchList(list) {
+  try { localStorage.setItem(WATCH_LIST_KEY, JSON.stringify(list)); } catch { /* quota */ }
+}
+function loadNotifiedIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(NOTIFIED_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function saveNotifiedIds(set) {
+  try {
+    const arr = [...set].slice(-200); // keep last 200 to avoid bloat
+    localStorage.setItem(NOTIFIED_KEY, JSON.stringify(arr));
+  } catch { /* quota */ }
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard({ onNavigate, onSelectAccount }) {
   const { currentTheme } = useTheme();
@@ -50,17 +71,41 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
   const [now, setNow]                   = useState(new Date());
   const [aiLoading, setAiLoading]       = useState(false);
   const [aiError, setAiError]           = useState(null);
-  const [calEvents, setCalEvents]       = useState([]);
+  const [calEvents, setCalEvents]       = useState([]);       // today
+  const [upcomingEvents, setUpcoming]   = useState([]);       // next 7 days
   const [calLoading, setCalLoading]     = useState(false);
   const [calReady, setCalReady]         = useState(false);
   const abortRef   = useRef(null);
   const briefDone  = useRef(false);
 
+  // ── Watch list ──────────────────────────────────────────────────────────────
+  const [watchList, setWatchListState]  = useState(loadWatchList);
+  const [watchInput, setWatchInput]     = useState('');
+  const [showWatches, setShowWatches]   = useState(false);
+  const notifiedIdsRef = useRef(loadNotifiedIds());
+  const notifiedEventsRef = useRef(new Set()); // event IDs notified this session
+
+  const setWatchList = useCallback((list) => {
+    setWatchListState(list);
+    saveWatchList(list);
+  }, []);
+
+  const addWatch = useCallback(() => {
+    const text = watchInput.trim();
+    if (!text) return;
+    const entry = { id: Date.now().toString(), text, addedAt: new Date().toISOString() };
+    setWatchList([...watchList, entry]);
+    setWatchInput('');
+  }, [watchInput, watchList, setWatchList]);
+
+  const removeWatch = useCallback((id) => {
+    setWatchList(watchList.filter(w => w.id !== id));
+  }, [watchList, setWatchList]);
+
   // ── Chat state ──────────────────────────────────────────────────────────────
   const [chatMessages, setChatMessages] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem(CHAT_HISTORY_KEY) || '[]');
-      // Only restore messages from today
       const today = new Date().toDateString();
       return Array.isArray(saved) && saved.length > 0 && saved[0]?.date === today
         ? saved[0].messages
@@ -79,7 +124,7 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     try {
       localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify([{
         date: new Date().toDateString(),
-        messages: chatMessages.slice(-40) // keep last 40 messages
+        messages: chatMessages.slice(-40)
       }]));
     } catch { /* quota */ }
   }, [chatMessages]);
@@ -91,12 +136,12 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     }
   }, [chatMessages, chatLoading]);
 
-  // ── Restore cached brief from localStorage ──────────────────────────────
+  // ── Restore cached brief ────────────────────────────────────────────────
   const today = new Date().toDateString();
   const [aiBrief, setAiBriefState] = useState(() => {
     try {
-      const c = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY) || 'null');
-      return (c?.date === today && c?.text) ? c.text : '';
+      const cached = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY) || 'null');
+      return (cached?.date === today && cached?.text) ? cached.text : '';
     } catch { return ''; }
   });
   const setAiBrief = useCallback((text) => {
@@ -107,26 +152,36 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     }
   }, [today]);
 
-  // ── Live clock (1-minute tick) ──────────────────────────────────────────
+  // ── Live clock ──────────────────────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(id);
   }, []);
 
-  // ── Calendar: today's events ────────────────────────────────────────────
+  // ── Calendar: today + next 7 days ───────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       const m365 = accounts.find(a => a.type === 'microsoft');
-      if (!m365 || !window.electronAPI?.calendarGetEvents) return;
+      if (!m365 || !window.electronAPI?.calendarGetEvents) { setCalReady(true); return; }
       setCalLoading(true);
       try {
+        // Today
         const s = new Date(); s.setHours(0, 0, 0, 0);
         const e = new Date(); e.setHours(23, 59, 59, 999);
-        const res = await window.electronAPI.calendarGetEvents(m365.id, {
+        const resT = await window.electronAPI.calendarGetEvents(m365.id, {
           startDate: s.toISOString(), endDate: e.toISOString()
         });
-        if (res?.success) {
-          setCalEvents(res.events.sort((a, b) => new Date(a.start) - new Date(b.start)));
+        if (resT?.success) {
+          setCalEvents(resT.events.sort((a, b) => new Date(a.start) - new Date(b.start)));
+        }
+        // Next 7 days (tomorrow → +7)
+        const s7 = new Date(); s7.setDate(s7.getDate() + 1); s7.setHours(0, 0, 0, 0);
+        const e7 = new Date(); e7.setDate(e7.getDate() + 7); e7.setHours(23, 59, 59, 999);
+        const res7 = await window.electronAPI.calendarGetEvents(m365.id, {
+          startDate: s7.toISOString(), endDate: e7.toISOString()
+        });
+        if (res7?.success) {
+          setUpcoming(res7.events.sort((a, b) => new Date(a.start) - new Date(b.start)));
         }
       } catch (err) {
         console.error('[Dashboard] Calendar:', err);
@@ -139,26 +194,101 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     else setCalReady(true);
   }, [accounts]);
 
-  // ── Collect ALL recent emails from IndexedDB (read + unread) ──────────
+  // ── Collect ALL recent emails from IndexedDB ────────────────────────────
   const getAllEmails = useCallback(async () => {
     const all = [];
     for (const acc of accounts) {
       const emails = await readCachedEmails(acc.id);
-      // Sort by date descending, take the 30 most recent per account
       const sorted = [...emails].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-      sorted.slice(0, 30).forEach(e => all.push({
+      sorted.slice(0, 50).forEach(e => all.push({
+        uid: e.uid || '',
         account: acc.displayName || acc.name || acc.email || acc.id,
+        accountId: acc.id,
         from: e.from || '',
         to: e.to || '',
         subject: e.subject || '',
-        preview: (e.preview || e.text || '').slice(0, 200),
+        preview: (e.preview || e.text || '').slice(0, 500),
         date: e.date ? new Date(e.date).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '',
+        rawDate: e.date || null,
         seen: !!e.seen,
       }));
     }
-    // Sort all combined results by date, newest first
-    return all.slice(0, 60);
+    return all.sort((a, b) => new Date(b.rawDate || 0) - new Date(a.rawDate || 0)).slice(0, 150);
   }, [accounts]);
+
+  // ── Proactive notifications ─────────────────────────────────────────────
+  const checkNotifications = useCallback(async () => {
+    if (!window.electronAPI?.showNotification) return;
+    const emails = await getAllEmails();
+    const notifiedIds = notifiedIdsRef.current;
+    const currentWatchList = loadWatchList();
+
+    // 1. New unread emails matching watch list
+    for (const email of emails) {
+      if (email.seen) continue;
+      const uid = email.uid || `${email.account}:${email.subject}:${email.date}`;
+      if (notifiedIds.has(uid)) continue;
+
+      // Check if matches any watch entry
+      const matched = currentWatchList.find(w => {
+        const q = w.text.toLowerCase();
+        return (
+          email.from.toLowerCase().includes(q) ||
+          email.subject.toLowerCase().includes(q) ||
+          email.preview.toLowerCase().includes(q)
+        );
+      });
+
+      if (matched) {
+        notifiedIds.add(uid);
+        saveNotifiedIds(notifiedIds);
+        window.electronAPI.showNotification({
+          title: `📬 Erwartete Mail erhalten`,
+          body: `Von: ${email.from}\nBetreff: ${email.subject}`
+        }).catch(() => {});
+      }
+
+      // Notify all new unread emails (deduplicated)
+      if (!matched) {
+        notifiedIds.add(uid);
+        saveNotifiedIds(notifiedIds);
+        window.electronAPI.showNotification({
+          title: `Neue E-Mail: ${email.subject}`,
+          body: `Von: ${email.from}`
+        }).catch(() => {});
+      }
+    }
+
+    // 2. Upcoming appointments (within 30 minutes)
+    const allEvents = [...calEvents, ...upcomingEvents];
+    const nowMs = Date.now();
+    for (const ev of allEvents) {
+      if (ev.isAllDay) continue;
+      const startMs = new Date(ev.start).getTime();
+      const diffMin = (startMs - nowMs) / 60000;
+      if (diffMin > 0 && diffMin <= 30 && !notifiedEventsRef.current.has(ev.id)) {
+        notifiedEventsRef.current.add(ev.id);
+        const timeStr = new Date(ev.start).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+        window.electronAPI.showNotification({
+          title: `📅 Termin in ${Math.round(diffMin)} Minuten`,
+          body: `${ev.title}${ev.location ? ` · ${ev.location}` : ''} um ${timeStr}`
+        }).catch(() => {});
+      }
+    }
+  }, [getAllEmails, calEvents, upcomingEvents]);
+
+  // Listen to background sync events → check notifications
+  useEffect(() => {
+    const handler = () => checkNotifications();
+    window.addEventListener('coremail:bgSync', handler);
+    return () => window.removeEventListener('coremail:bgSync', handler);
+  }, [checkNotifications]);
+
+  // Also check every 10 minutes for upcoming appointments
+  useEffect(() => {
+    const id = setInterval(() => checkNotifications(), 10 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [checkNotifications]);
 
   // ── Build context string for AI ─────────────────────────────────────────
   const buildContext = useCallback(async () => {
@@ -169,25 +299,43 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
 
     const emailLines = emails.length > 0
       ? emails.map(e =>
-          `- [${e.seen ? 'gelesen' : 'UNGELESEN'}] ${e.date} | Von: ${e.from} | Betreff: "${e.subject}"${e.preview ? ` | Inhalt: ${e.preview}` : ''}`
+          `- [${e.seen ? 'gelesen' : 'UNGELESEN'}] ${e.date} | Konto: ${e.account} | Von: ${e.from}${e.to ? ` | An: ${e.to}` : ''} | Betreff: "${e.subject}"${e.preview ? ` | Inhalt: ${e.preview}` : ''}`
         ).join('\n')
       : 'Keine E-Mails im Cache.';
 
+    const fmtEvent = (ev) => {
+      const time = formatEventTime(ev);
+      const end  = ev.isAllDay ? '' : ` – ${new Date(ev.end).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
+      const loc  = ev.location ? ` | Ort: ${ev.location}` : '';
+      const org  = ev.organizer ? ` | Organisator: ${ev.organizer}` : '';
+      const prev = ev.preview   ? ` | Info: ${ev.preview.slice(0, 150)}` : '';
+      return `- ${time}${end}: ${ev.title}${loc}${org}${prev}`;
+    };
+
     const calLines = calEvents.length > 0
-      ? calEvents.map(ev => {
-          const time = formatEventTime(ev);
-          const end  = ev.isAllDay ? '' : ` – ${new Date(ev.end).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
-          const loc  = ev.location ? ` | Ort: ${ev.location}` : '';
-          const org  = ev.organizer ? ` | Organisator: ${ev.organizer}` : '';
-          const prev = ev.preview   ? ` | Info: ${ev.preview.slice(0, 100)}` : '';
-          return `- ${time}${end}: ${ev.title}${loc}${org}${prev}`;
-        }).join('\n')
+      ? calEvents.map(fmtEvent).join('\n')
       : 'Keine Termine heute.';
 
-    return { dateStr, timeStr, unreadCount, emailLines, calLines, emailCount: emails.length };
-  }, [calEvents, accountStats, getAllEmails]);
+    const upcomingLines = upcomingEvents.length > 0
+      ? upcomingEvents.slice(0, 15).map(ev => {
+          const day = new Date(ev.start).toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'short' });
+          return `- ${day} ${fmtEvent(ev).slice(2)}`;
+        }).join('\n')
+      : 'Keine weiteren Termine diese Woche.';
 
-  // ── AI daily brief via Ollama /api/chat streaming ─────────────────────
+    const watchLines = watchList.length > 0
+      ? watchList.map(w => `- "${w.text}"`).join('\n')
+      : 'Keine Einträge.';
+
+    return {
+      dateStr, timeStr, unreadCount,
+      emailLines, calLines, upcomingLines, watchLines,
+      emailCount: emails.length,
+      watchCount: watchList.length,
+    };
+  }, [calEvents, upcomingEvents, accountStats, getAllEmails, watchList]);
+
+  // ── AI daily brief via Ollama streaming ────────────────────────────────
   const generateBrief = useCallback(async () => {
     if (!isAvailable) return;
     if (abortRef.current) abortRef.current.abort();
@@ -197,30 +345,33 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     setAiBrief('');
 
     try {
-      const { dateStr, unreadCount, emailLines, calLines, emailCount } = await buildContext();
+      const { dateStr, timeStr, unreadCount, emailLines, calLines, upcomingLines, watchLines, emailCount, watchCount } = await buildContext();
 
       const messages = [
         {
           role: 'system',
           content:
-`Du bist mein persönlicher Tagesassistent. Deine wichtigste Aufgabe: mir einen klaren Überblick geben, was ich heute erledigen muss.
-Analysiere meine Termine und E-Mails und leite daraus konkrete Aufgaben und Prioritäten ab.
-Sprich mich direkt mit "du" an. Schreibe fliessend und klar — wie ein guter Assistent, nicht wie eine Maschine.
-Antworte immer auf Deutsch. Keine Aufzählungszeichen, keine Bullet-Points.
-Struktur: 1) Was steht heute an (Termine + daraus entstehende Aufgaben), 2) Was muss ich aufgrund der E-Mails tun, 3) Meine wichtigste Priorität für heute.`
+`Du bist mein persönlicher KI-Sekretär. Du hast vollständigen Zugriff auf meinen Kalender (heute + nächste 7 Tage) und meine letzten ${emailCount} E-Mails.
+Deine Aufgabe: Erstelle einen prägnanten Überblick über das Wichtigste — was erwartet mich, was muss ich tun, worauf soll ich achten.
+Sprich mich mit "du" an. Schreibe klar, direkt und hilfreich — wie ein erfahrener Sekretär.
+Antworte immer auf Deutsch. Keine langen Aufzählungen, keine Bullet-Points. Maximal 4 Absätze.
+Heutiges Datum: ${dateStr}, ${timeStr} Uhr.
+
+${watchCount > 0 ? `ICH ERWARTE FOLGENDE WICHTIGE E-MAILS/ANTWORTEN:\n${watchLines}\n→ Überprüfe die E-Mail-Liste und melde klar, ob diese eingetroffen sind oder noch ausstehen.` : ''}`
         },
         {
           role: 'user',
           content:
-`Heute ist ${dateStr}. Ich habe ${unreadCount} ungelesene E-Mail${unreadCount !== 1 ? 's' : ''} (${emailCount} E-Mails total im Cache).
-
-Meine heutigen Kalendereinträge:
+`HEUTIGE TERMINE:
 ${calLines}
 
-Meine letzten E-Mails (gelesen und ungelesen):
+TERMINE DIESE WOCHE (nächste 7 Tage):
+${upcomingLines}
+
+MEINE LETZTEN E-MAILS (${emailCount} total, ${unreadCount} ungelesen):
 ${emailLines}
 
-Was muss ich heute tun? Erstelle mein persönliches Tagesbriefing mit konkreten Aufgaben und Prioritäten. Maximal 4 kurze Absätze.`
+Erstelle meinen heutigen Überblick: Was steht heute und diese Woche an? Gibt es dringende Mails? ${watchCount > 0 ? 'Sind meine erwarteten Mails eingetroffen?' : ''} Was ist meine wichtigste Priorität?`
         }
       ];
 
@@ -258,7 +409,7 @@ Was muss ich heute tun? Erstelle mein persönliches Tagesbriefing mit konkreten 
     }
   }, [isAvailable, activeModel, buildContext]);
 
-  // Auto-generate once when Ollama + accounts + calendar are all ready.
+  // Auto-generate once when Ollama + accounts + calendar are ready
   useEffect(() => {
     if (!isAvailable || accounts.length === 0 || !calReady || briefDone.current) return;
     briefDone.current = true;
@@ -284,33 +435,33 @@ Was muss ich heute tun? Erstelle mein persönliches Tagesbriefing mit konkreten 
     chatAbortRef.current = new AbortController();
     setChatLoading(true);
 
-    // Placeholder for streaming assistant message
     const assistantId = Date.now() + 1;
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', ts: assistantId, streaming: true }]);
 
     try {
-      const { dateStr, timeStr, unreadCount, emailLines, calLines, emailCount } = await buildContext();
+      const { dateStr, timeStr, unreadCount, emailLines, calLines, upcomingLines, watchLines, emailCount, watchCount } = await buildContext();
 
-      // Build conversation history for context (last 10 messages, excluding the streaming placeholder)
       const history = chatMessages
         .filter(m => !m.streaming)
-        .slice(-10)
+        .slice(-12)
         .map(m => ({ role: m.role, content: m.content }));
 
       const systemPrompt =
-`Du bist mein persönlicher KI-Assistent direkt in meiner E-Mail-App CoreMail.
-Du hast VOLLSTÄNDIGEN Zugriff auf meinen Kalender und meine letzten ${emailCount} E-Mails (sowohl gelesene als auch ungelesene).
-Beantworte meine Fragen direkt, präzise und auf Deutsch.
-Sprich mich mit "du" an. Antworte kurz und auf den Punkt — kein Blabla.
-WICHTIG: Wenn ich nach einer Person oder einem Absender frage, durchsuche ALLE E-Mails im Abschnitt "MEINE LETZTEN E-MAILS" — nicht nur ungelesene.
-Wenn eine Person dort vorkommt, bestätige das. Sage nur dann, dass keine E-Mail vorhanden ist, wenn du sie wirklich nicht findest.
+`Du bist mein persönlicher KI-Sekretär direkt in meiner E-Mail-App CoreMail.
+Du hast VOLLSTÄNDIGEN Zugriff auf meinen Kalender (heute + nächste 7 Tage) und meine letzten ${emailCount} E-Mails (gelesen und ungelesen).
+Beantworte Fragen direkt, präzise und auf Deutsch. Sprich mich mit "du" an.
+WICHTIG: Wenn ich nach einer Person frage, durchsuche ALLE E-Mails — nicht nur ungelesene.
+Wenn ich frage ob ich auf eine Antwort warte: gleiche mit meinen Watch-Einträgen und der E-Mail-Liste ab.
 
-Heutiges Datum: ${dateStr}, Uhrzeit: ${timeStr}
-Ungelesene E-Mails: ${unreadCount} | E-Mails total im Cache: ${emailCount}
+Datum: ${dateStr}, ${timeStr} Uhr | Ungelesen: ${unreadCount} | Total: ${emailCount} E-Mails
 
-MEINE HEUTIGEN KALENDEREINTRÄGE:
+HEUTIGE TERMINE:
 ${calLines}
 
+TERMINE DIESE WOCHE:
+${upcomingLines}
+
+${watchCount > 0 ? `ICH ERWARTE DIESE E-MAILS/ANTWORTEN:\n${watchLines}\n` : ''}
 MEINE LETZTEN E-MAILS (gelesen und ungelesen, neueste zuerst):
 ${emailLines}`;
 
@@ -351,7 +502,6 @@ ${emailLines}`;
         }
       }
 
-      // Mark streaming done
       setChatMessages(prev => prev.map(m =>
         m.ts === assistantId ? { ...m, streaming: false } : m
       ));
@@ -366,12 +516,11 @@ ${emailLines}`;
   }, [chatInput, isAvailable, chatLoading, chatMessages, activeModel, buildContext]);
 
   const handleChatKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendChatMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
   };
-
+  const handleWatchKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addWatch(); }
+  };
   const clearChat = () => {
     setChatMessages([]);
     setChatError(null);
@@ -422,6 +571,18 @@ ${emailLines}`;
                     ? <><strong>{calEvents.length}</strong>&nbsp;Termin{calEvents.length !== 1 ? 'e' : ''} heute</>
                     : 'Keine Termine heute'}
                 </span>
+                {upcomingEvents.length > 0 && (
+                  <span className={`inline-flex items-center gap-1.5 text-sm text-purple-400`}>
+                    <Clock className="w-4 h-4" />
+                    <strong>{upcomingEvents.length}</strong>&nbsp;diese Woche
+                  </span>
+                )}
+                {watchList.length > 0 && (
+                  <span className={`inline-flex items-center gap-1.5 text-sm text-amber-400`}>
+                    <Eye className="w-4 h-4" />
+                    <strong>{watchList.length}</strong>&nbsp;beobachtet
+                  </span>
+                )}
                 <span className={`inline-flex items-center gap-1.5 text-sm ${c.textSecondary}`}>
                   <Inbox className="w-4 h-4" />
                   {accounts.length}&nbsp;Konto{accounts.length !== 1 ? 'en' : ''}
@@ -438,14 +599,15 @@ ${emailLines}`;
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
 
           {/* AI Brief — 3/5 */}
-          <div className={`lg:col-span-3 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col`}>
-            <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className={`lg:col-span-3 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col gap-4`}>
+            {/* Header */}
+            <div className="flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center">
                   <Brain className="w-4 h-4 text-cyan-400" />
                 </div>
                 <div>
-                  <h2 className={`text-sm font-semibold ${c.text}`}>KI-Tagesbriefing</h2>
+                  <h2 className={`text-sm font-semibold ${c.text}`}>KI-Tipps · Termine & wichtige Mails</h2>
                   <p className={`text-xs ${c.textSecondary}`}>
                     {isAvailable ? activeModel : 'Ollama nicht aktiv'}
                   </p>
@@ -463,6 +625,7 @@ ${emailLines}`;
               )}
             </div>
 
+            {/* Brief content */}
             <div className="flex-1">
               {!isAvailable && (
                 <div className={`flex items-start gap-3 p-4 rounded-xl ${c.bgTertiary}`}>
@@ -476,14 +639,12 @@ ${emailLines}`;
                   </div>
                 </div>
               )}
-
               {aiError && !aiLoading && (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                   <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
                   <p className="text-sm text-red-300">{aiError}</p>
                 </div>
               )}
-
               {aiLoading && !aiBrief && (
                 <div className="space-y-2.5 pt-1">
                   {[85, 70, 92, 62, 78].map((w, i) => (
@@ -491,7 +652,6 @@ ${emailLines}`;
                   ))}
                 </div>
               )}
-
               {aiBrief && (
                 <p className={`text-sm ${c.text} leading-relaxed whitespace-pre-wrap`}>
                   {aiBrief}
@@ -500,66 +660,126 @@ ${emailLines}`;
                   )}
                 </p>
               )}
-
               {isAvailable && !aiLoading && !aiBrief && !aiError && accounts.length === 0 && (
                 <p className={`text-sm ${c.textSecondary} italic`}>
                   Füge ein Konto hinzu, damit die KI deine Mails zusammenfassen kann.
                 </p>
               )}
             </div>
+
+            {/* Watch list section */}
+            <div className={`border-t ${c.border} pt-3`}>
+              <button
+                onClick={() => setShowWatches(v => !v)}
+                className={`flex items-center gap-2 text-xs font-medium ${c.textSecondary} hover:${c.text} transition-colors w-full`}
+              >
+                <Eye className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-amber-400">Erwarte ich</span>
+                {watchList.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-xs">{watchList.length}</span>
+                )}
+                <span className="ml-auto">
+                  {showWatches ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </span>
+              </button>
+
+              {showWatches && (
+                <div className="mt-3 space-y-2">
+                  <p className={`text-xs ${c.textSecondary}`}>
+                    Trage ein, worauf du wartest — Absender, Thema oder Stichwort. Die KI meldet, sobald es eintrifft.
+                  </p>
+                  {/* Existing watches */}
+                  {watchList.map(w => (
+                    <div key={w.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${c.bgTertiary} border ${c.border}`}>
+                      <Bell className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                      <span className={`text-xs flex-1 ${c.text}`}>{w.text}</span>
+                      <button
+                        onClick={() => removeWatch(w.id)}
+                        className={`p-0.5 rounded ${c.textSecondary} hover:text-red-400 transition-colors`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  {/* Add new watch */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={watchInput}
+                      onChange={e => setWatchInput(e.target.value)}
+                      onKeyDown={handleWatchKeyDown}
+                      placeholder="z.B. Angebot von Max Muster, Rechnung April…"
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs ${c.input} border focus:outline-none focus:ring-1 focus:ring-amber-500/50`}
+                    />
+                    <button
+                      onClick={addWatch}
+                      disabled={!watchInput.trim()}
+                      className="px-3 py-2 rounded-lg bg-amber-500/80 hover:bg-amber-500 disabled:opacity-40 text-white transition-colors flex-shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Calendar today — 2/5 */}
-          <div className={`lg:col-span-2 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col`}>
-            <div className="flex items-center justify-between mb-4 flex-shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center">
-                  <Calendar className="w-4 h-4 text-purple-400" />
+          {/* Calendar today + upcoming — 2/5 */}
+          <div className={`lg:col-span-2 rounded-2xl p-5 ${c.card} ${c.border} border flex flex-col gap-4`}>
+            {/* Today */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center">
+                    <Calendar className="w-4 h-4 text-purple-400" />
+                  </div>
+                  <h2 className={`text-sm font-semibold ${c.text}`}>Heute</h2>
                 </div>
-                <h2 className={`text-sm font-semibold ${c.text}`}>Heute</h2>
+                <button
+                  onClick={() => onNavigate('calendar')}
+                  className={`text-xs ${c.accent} hover:opacity-70 flex items-center gap-0.5 transition-opacity`}
+                >
+                  Alle <ChevronRight className="w-3 h-3" />
+                </button>
               </div>
-              <button
-                onClick={() => onNavigate('calendar')}
-                className={`text-xs ${c.accent} hover:opacity-70 flex items-center gap-0.5 transition-opacity`}
-              >
-                Alle <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
 
-            <div className="flex-1">
               {!hasMicrosoft && (
-                <div className="text-center py-8">
+                <div className="text-center py-6">
                   <Calendar className={`w-8 h-8 mx-auto mb-2 opacity-20 ${c.text}`} />
                   <p className={`text-xs ${c.textSecondary}`}>Nur für Microsoft 365-Konten</p>
                 </div>
               )}
               {hasMicrosoft && calLoading && (
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {[1, 2, 3].map(i => (
-                    <Skel key={i} className={c.bgTertiary} style={{ height: 48, width: '100%' }} />
+                    <Skel key={i} className={c.bgTertiary} style={{ height: 44, width: '100%' }} />
                   ))}
                 </div>
               )}
               {hasMicrosoft && !calLoading && calEvents.length === 0 && (
-                <div className="text-center py-8">
-                  <CheckCircle2 className="w-9 h-9 mx-auto mb-2 text-green-500 opacity-40" />
-                  <p className={`text-sm ${c.textSecondary}`}>Heute frei — keine Termine</p>
+                <div className="text-center py-6">
+                  <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-green-500 opacity-40" />
+                  <p className={`text-sm ${c.textSecondary}`}>Heute frei</p>
                 </div>
               )}
               {hasMicrosoft && !calLoading && calEvents.length > 0 && (
-                <div className="space-y-2 pr-1">
+                <div className="space-y-2">
                   {calEvents.map(ev => {
                     const isPast = !ev.isAllDay && new Date(ev.end) < now;
+                    const isSoon = !ev.isAllDay && !isPast && (new Date(ev.start) - now) < 30 * 60 * 1000;
                     return (
                       <div key={ev.id}
-                        className={`flex items-start gap-3 p-2.5 rounded-xl ${c.bgTertiary} transition-opacity ${isPast ? 'opacity-40' : ''}`}>
-                        <div className="flex-shrink-0 min-w-[48px] text-right pt-0.5">
-                          <span className="text-xs font-mono text-cyan-400 font-medium">
+                        className={`flex items-start gap-3 p-2.5 rounded-xl ${isSoon ? 'bg-amber-500/10 border border-amber-500/20' : c.bgTertiary} transition-opacity ${isPast ? 'opacity-40' : ''}`}>
+                        <div className="flex-shrink-0 min-w-[44px] text-right pt-0.5">
+                          <span className={`text-xs font-mono font-medium ${isSoon ? 'text-amber-400' : 'text-cyan-400'}`}>
                             {formatEventTime(ev)}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-medium truncate ${c.text}`}>{ev.title}</p>
+                          <p className={`text-xs font-medium truncate ${c.text}`}>
+                            {isSoon && <span className="text-amber-400 mr-1">⚡</span>}
+                            {ev.title}
+                          </p>
                           {ev.location && (
                             <p className={`text-xs ${c.textSecondary} truncate flex items-center gap-1 mt-0.5`}>
                               <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
@@ -573,6 +793,29 @@ ${emailLines}`;
                 </div>
               )}
             </div>
+
+            {/* Upcoming (next 7 days) */}
+            {hasMicrosoft && upcomingEvents.length > 0 && (
+              <div className={`border-t ${c.border} pt-3`}>
+                <p className={`text-xs font-medium ${c.textSecondary} mb-2 flex items-center gap-1.5`}>
+                  <Clock className="w-3.5 h-3.5" /> Diese Woche
+                </p>
+                <div className="space-y-1.5">
+                  {upcomingEvents.slice(0, 5).map(ev => {
+                    const day = new Date(ev.start).toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'short' });
+                    return (
+                      <div key={ev.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${c.bgTertiary}`}>
+                        <span className={`text-xs font-mono text-purple-400 flex-shrink-0 w-16`}>{day}</span>
+                        <span className={`text-xs truncate ${c.text}`}>{ev.title}</span>
+                      </div>
+                    );
+                  })}
+                  {upcomingEvents.length > 5 && (
+                    <p className={`text-xs ${c.textSecondary} text-center`}>+{upcomingEvents.length - 5} weitere</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -585,10 +828,10 @@ ${emailLines}`;
                 <Sparkles className="w-4 h-4 text-emerald-400" />
               </div>
               <div>
-                <h2 className={`text-sm font-semibold ${c.text}`}>KI-Assistent</h2>
+                <h2 className={`text-sm font-semibold ${c.text}`}>KI-Sekretär</h2>
                 <p className={`text-xs ${c.textSecondary}`}>
                   {isAvailable
-                    ? 'Frag mich zu deinen Terminen, Mails oder was auch immer'
+                    ? 'Frag mich zu Terminen, Mails, Prioritäten — ich kenne deinen vollen Kontext'
                     : 'Ollama nicht aktiv — starte mit: ollama serve'}
                 </p>
               </div>
@@ -614,16 +857,17 @@ ${emailLines}`;
               <div className="h-full flex flex-col items-center justify-center py-8 text-center">
                 <MessageSquare className={`w-10 h-10 mb-3 opacity-20 ${c.text}`} />
                 <p className={`text-sm ${c.textSecondary} mb-4`}>
-                  Stell mir eine Frage zu deinen Terminen oder Mails
+                  Ich kenne deine Termine und Mails — frag mich einfach
                 </p>
-                {/* Suggestion chips */}
                 {isAvailable && (
-                  <div className="flex flex-wrap gap-2 justify-center max-w-md">
+                  <div className="flex flex-wrap gap-2 justify-center max-w-lg">
                     {[
-                      'Welche Termine habe ich heute noch?',
-                      'Gibt es dringende E-Mails?',
-                      'Wann ist mein nächster Termin?',
-                      'Was muss ich heute noch erledigen?',
+                      'Was sind meine dringendsten Aufgaben heute?',
+                      'Warte ich auf eine wichtige Antwort?',
+                      'Welche Termine habe ich diese Woche?',
+                      'Gibt es ungelesene Mails die ich kennen muss?',
+                      'Bereite mich auf meinen nächsten Termin vor',
+                      'Schreib eine Zusammenfassung meines Tages',
                     ].map(suggestion => (
                       <button
                         key={suggestion}
