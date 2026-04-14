@@ -50,6 +50,7 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
   const [aiError, setAiError]           = useState(null);
   const [calEvents, setCalEvents]       = useState([]);
   const [calLoading, setCalLoading]     = useState(false);
+  const [calReady, setCalReady]         = useState(false); // true once calendar fetch attempted
   const abortRef   = useRef(null);
   const briefDone  = useRef(false);
 
@@ -94,9 +95,11 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
         console.error('[Dashboard] Calendar:', err);
       } finally {
         setCalLoading(false);
+        setCalReady(true);
       }
     };
     if (accounts.length > 0) load();
+    else setCalReady(true); // no M365 account — calendar won't load, proceed anyway
   }, [accounts]);
 
   // ── Collect recent unread emails from IndexedDB ─────────────────────────
@@ -131,31 +134,38 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
         : 'Keine ungelesenen E-Mails.';
 
       const calLines = calEvents.length > 0
-        ? calEvents.map(ev => `- ${formatEventTime(ev)}: ${ev.title}${ev.location ? ` (Ort: ${ev.location})` : ''}`).join('\n')
+        ? calEvents.map(ev => {
+            const time = formatEventTime(ev);
+            const end  = ev.isAllDay ? '' : ` – ${new Date(ev.end).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
+            const loc  = ev.location ? ` | Ort: ${ev.location}` : '';
+            const org  = ev.organizer ? ` | Organisator: ${ev.organizer}` : '';
+            const prev = ev.preview   ? ` | Info: ${ev.preview.slice(0, 100)}` : '';
+            return `- ${time}${end}: ${ev.title}${loc}${org}${prev}`;
+          }).join('\n')
         : 'Keine Termine heute.';
 
       const messages = [
         {
           role: 'system',
           content:
-`Du bist mein persönlicher Tagesassistent. Du bereitest mich jeden Morgen auf meinen Tag vor.
-Sprich mich direkt an (du/Sie-Form, bevorzugt "du").
-Schreibe fliessend, warm und klar — wie ein guter Assistent, nicht wie eine Maschine.
+`Du bist mein persönlicher Tagesassistent. Deine wichtigste Aufgabe: mir einen klaren Überblick geben, was ich heute erledigen muss.
+Analysiere meine Termine und E-Mails und leite daraus konkrete Aufgaben und Prioritäten ab.
+Sprich mich direkt mit "du" an. Schreibe fliessend und klar — wie ein guter Assistent, nicht wie eine Maschine.
 Antworte immer auf Deutsch. Keine Aufzählungszeichen, keine Bullet-Points.
-Strukturiere mit kurzen Absätzen: zuerst Termine, dann wichtige Mails, dann eine kurze persönliche Empfehlung für den Tag.`
+Struktur: 1) Was steht heute an (Termine + daraus entstehende Aufgaben), 2) Was muss ich aufgrund der E-Mails tun, 3) Meine wichtigste Priorität für heute.`
         },
         {
           role: 'user',
           content:
 `Heute ist ${dateStr}. Ich habe ${total} ungelesene E-Mail${total !== 1 ? 's' : ''}.
 
-Meine heutigen Termine:
+Meine heutigen Kalendereinträge:
 ${calLines}
 
 Meine ungelesenen E-Mails:
 ${emailLines}
 
-Erstelle mein persönliches Tagesbriefing. Maximal 4 kurze Absätze.`
+Was muss ich heute tun? Erstelle mein persönliches Tagesbriefing mit konkreten Aufgaben und Prioritäten. Maximal 4 kurze Absätze.`
         }
       ];
 
@@ -194,18 +204,18 @@ Erstelle mein persönliches Tagesbriefing. Maximal 4 kurze Absätze.`
     }
   }, [isAvailable, activeModel, accountStats, calEvents, getUnread]);
 
-  // Auto-generate once when Ollama + accounts are ready.
+  // Auto-generate once when Ollama + accounts + calendar are all ready.
+  // Waiting for calReady ensures the AI brief includes today's calendar events.
   // Skip if a cached brief for today already exists.
   useEffect(() => {
-    if (!isAvailable || accounts.length === 0 || briefDone.current) return;
+    if (!isAvailable || accounts.length === 0 || !calReady || briefDone.current) return;
     briefDone.current = true;
-    // Already have a valid brief for today → don't regenerate
     try {
       const cached = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY) || 'null');
       if (cached?.date === new Date().toDateString() && cached?.text) return;
     } catch { /* continue */ }
     generateBrief();
-  }, [isAvailable, accounts.length]); // eslint-disable-line
+  }, [isAvailable, accounts.length, calReady]); // eslint-disable-line
 
   // Abort only on component unmount
   useEffect(() => {
