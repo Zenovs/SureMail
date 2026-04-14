@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, shell, dialog, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -13,6 +13,15 @@ const nodemailer = require('nodemailer');
 const fetch = require('node-fetch');
 
 
+
+// ============ GLOBAL ERROR HANDLER (v4.9.4) ============
+// Prevent Electron's default "A JavaScript error occurred" dialog for recoverable errors
+process.on('uncaughtException', (error) => {
+  console.error('[CoreMail] Uncaught exception (handled):', error.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[CoreMail] Unhandled rejection (handled):', reason);
+});
 
 // ============ SANDBOX FIX (v3.0.9) ============
 // Required for AppImage on Ubuntu/GNOME where FUSE sandbox is not available
@@ -962,20 +971,21 @@ function getIconPathForTheme(themeName) {
 
 function updateWindowIcon(themeName) {
   if (!mainWindow) return false;
-  
+
   const iconPath = getIconPathForTheme(themeName);
-  
-  if (fs.existsSync(iconPath)) {
-    try {
-      mainWindow.setIcon(iconPath);
-      console.log(`[Theme] Icon updated to: ${themeName}`);
-      return true;
-    } catch (error) {
-      console.error(`[Theme] Failed to set icon: ${error.message}`);
+
+  try {
+    // Use nativeImage.createFromPath to safely load icon (supports asar paths)
+    const icon = nativeImage.createFromPath(iconPath);
+    if (icon.isEmpty()) {
+      console.warn(`[Theme] Icon is empty or not found: ${iconPath}`);
       return false;
     }
-  } else {
-    console.warn(`[Theme] Icon not found: ${iconPath}`);
+    mainWindow.setIcon(icon);
+    console.log(`[Theme] Icon updated to: ${themeName}`);
+    return true;
+  } catch (error) {
+    console.error(`[Theme] Failed to set icon: ${error.message}`);
     return false;
   }
 }
