@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe, Loader2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -455,7 +455,7 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             title={email.seen ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
           >
             {actionLoading === `read-${email.uid}` ? (
-              <span className="animate-spin text-xs">⏳</span>
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : email.seen ? (
               <Mail className="w-4 h-4" />
             ) : (
@@ -468,7 +468,7 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             title="Löschen"
           >
             {actionLoading === `delete-${email.uid}` ? (
-              <span className="animate-spin text-xs">⏳</span>
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Trash2 className="w-4 h-4" />
             )}

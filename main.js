@@ -1851,14 +1851,21 @@ ipcMain.handle('imap:deleteEmail', async (event, accountId, uid, folder = 'INBOX
   }
 
   let connection;
-  try {
-    const config = getImapConfigForAccount(account);
-    connection = await imapSimple.connect(config);
-    await connection.openBox(folder);
+  const DELETE_TIMEOUT_MS = 15000; // 15s max — prevents UI freeze on slow/broken servers
 
-    // Add \Deleted flag and expunge
-    await connection.addFlags(uid, ['\\Deleted'], { uid: true });
-    await connection.imap.expunge();
+  try {
+    await Promise.race([
+      (async () => {
+        const config = getImapConfigForAccount(account);
+        connection = await imapSimple.connect(config);
+        await connection.openBox(folder);
+        await connection.addFlags(uid, ['\\Deleted'], { uid: true });
+        await connection.imap.expunge();
+      })(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('IMAP delete timed out after 15s')), DELETE_TIMEOUT_MS)
+      )
+    ]);
 
     return { success: true, message: 'E-Mail gelöscht' };
   } catch (error) {

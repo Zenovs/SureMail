@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Trash2, Mail, MailOpen, Reply, ReplyAll, Forward, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Trash2, Mail, MailOpen, Reply, ReplyAll, Forward, ArrowLeft, Loader2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import { useOllama } from '../context/OllamaContext';
@@ -293,7 +293,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               title="Löschen"
             >
               {actionLoading === 'delete' ? (
-                <span className="animate-spin">⏳</span>
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <Trash2 className="w-5 h-5" />
               )}
