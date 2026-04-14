@@ -325,6 +325,7 @@ function AppContent() {
           <button onClick={() => setSyncErrorToast(null)} className="ml-auto opacity-60 hover:opacity-100">✕</button>
         </div>
       )}
+      <ErrorBoundary>
       <div className="flex flex-1 overflow-hidden min-h-0">
       <SidebarV2 currentView={currentView} onNavigate={setCurrentView} />
       <main className="flex-1 flex flex-col overflow-hidden min-h-0">
@@ -333,20 +334,21 @@ function AppContent() {
         </ErrorBoundary>
       </main>
       <ChatWidget />
-      
+
       {/* v1.13.0: Global Search Modal */}
       <GlobalSearch onSelectEmail={handleSelectEmailFromSearch} />
-      
+
       {/* Ollama Installer Modal */}
-      <OllamaInstaller 
+      <OllamaInstaller
         isOpen={showOllamaInstaller}
         onClose={() => setShowOllamaInstaller(false)}
         onInstallComplete={handleOllamaInstallComplete}
       />
-      
+
       {/* v1.16.0: Update Notification */}
       <UpdateNotification onOpenSettings={() => setCurrentView('settings')} />
       </div>
+      </ErrorBoundary>
     </div>
   );
 }

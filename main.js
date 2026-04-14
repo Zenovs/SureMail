@@ -14,15 +14,6 @@ const fetch = require('node-fetch');
 
 
 
-// ============ GLOBAL ERROR HANDLER (v4.9.4) ============
-// Prevent Electron's default "A JavaScript error occurred" dialog for recoverable errors
-process.on('uncaughtException', (error) => {
-  console.error('[CoreMail] Uncaught exception (handled):', error.message);
-});
-process.on('unhandledRejection', (reason) => {
-  console.error('[CoreMail] Unhandled rejection (handled):', reason);
-});
-
 // ============ SANDBOX FIX (v3.0.9) ============
 // Required for AppImage on Ubuntu/GNOME where FUSE sandbox is not available
 // Must be called before app.whenReady()
@@ -991,8 +982,13 @@ function updateWindowIcon(themeName) {
 }
 
 ipcMain.handle('theme:setIcon', async (event, themeName) => {
-  const success = updateWindowIcon(themeName);
-  return { success, theme: themeName };
+  try {
+    const success = updateWindowIcon(themeName);
+    return { success, theme: themeName };
+  } catch (error) {
+    console.error('[Theme] IPC handler error:', error.message);
+    return { success: false, error: error.message };
+  }
 });
 
 ipcMain.handle('theme:getAvailableIcons', async () => {
