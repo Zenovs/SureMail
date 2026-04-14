@@ -14,6 +14,23 @@ const fetch = require('node-fetch');
 
 
 
+// ============ EIO FIX (v5.0.6) ============
+// When launched without a terminal (desktop icon, autostart), stdout/stderr are
+// closed. Any console.log() call then throws "Error: write EIO" which Electron
+// catches as an uncaught exception and shows a native error dialog.
+// Fix: wrap all console methods to silently swallow EIO write errors.
+['log', 'warn', 'error', 'info', 'debug'].forEach((method) => {
+  const original = console[method].bind(console);
+  console[method] = (...args) => {
+    try {
+      original(...args);
+    } catch (e) {
+      if (e.code !== 'EIO') throw e;
+      // EIO = broken pipe / no terminal — silently ignore
+    }
+  };
+});
+
 // ============ SANDBOX FIX (v3.0.9) ============
 // Required for AppImage on Ubuntu/GNOME where FUSE sandbox is not available
 // Must be called before app.whenReady()
