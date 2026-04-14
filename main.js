@@ -309,28 +309,29 @@ function syncSystemIcons() {
         const pixIconPath = path.join(pixDir, 'coremail.png');
         await downloadFile(`${ICON_BASE}/icon-256.png`, pixIconPath);
 
-        // Rewrite .desktop file — env-Prefix setzt APPIMAGE_EXTRACT_AND_RUN=1 für GNOME-Kompatibilität
+        // Rewrite .desktop file — always create/update after version change
         const desktopDir = path.join(home, '.local/share/applications');
+        if (!fs.existsSync(desktopDir)) fs.mkdirSync(desktopDir, { recursive: true });
         const desktopFile = path.join(desktopDir, 'coremail.desktop');
         const appImagePath = path.join(home, '.local/bin/coremail-desktop');
-        if (fs.existsSync(desktopFile)) {
-          const desktopContent = [
-            '[Desktop Entry]',
-            'Version=1.0',
-            'Type=Application',
-            'Name=CoreMail Desktop',
-            'Comment=E-Mail Client für Linux',
-            `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ${appImagePath}`,
-            `Icon=${pixIconPath}`,
-            'Terminal=false',
-            'Categories=Network;Email;Office;',
-            'StartupNotify=true',
-            'StartupWMClass=coremail-desktop',
-            'Keywords=email;mail;imap;smtp;',
-            ''
-          ].join('\n');
-          fs.writeFileSync(desktopFile, desktopContent);
-        }
+        const desktopContent = [
+          '[Desktop Entry]',
+          'Version=1.0',
+          'Type=Application',
+          'Name=CoreMail Desktop',
+          'Comment=E-Mail Client für Linux',
+          // --no-sandbox is required on GNOME/Ubuntu without user namespaces
+          `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ${appImagePath} --no-sandbox`,
+          `Icon=${pixIconPath}`,
+          'Terminal=false',
+          'Categories=Network;Email;Office;',
+          'StartupNotify=true',
+          'StartupWMClass=coremail-desktop',
+          'Keywords=email;mail;imap;smtp;',
+          ''
+        ].join('\n');
+        fs.writeFileSync(desktopFile, desktopContent);
+        try { fs.chmodSync(desktopFile, 0o755); } catch (_) {}
 
         // Refresh caches
         execFile('gtk-update-icon-cache', ['-f', path.join(home, '.local/share/icons/hicolor')], () => {});
@@ -1038,8 +1039,42 @@ ipcMain.handle('update:install', async (event, filePath) => {
       return { success: false, error: 'Konnte AppImage nicht ersetzen: ' + replaceError.message };
     }
 
+    // Immediately refresh .desktop file + icon caches so the launcher icon
+    // works right after the update without needing a reinstall.
+    try {
+      const { execFile } = require('child_process');
+      const home = os.homedir();
+      const pixIconPath = path.join(home, '.local/share/pixmaps/coremail.png');
+      const desktopDir  = path.join(home, '.local/share/applications');
+      const desktopFile = path.join(desktopDir, 'coremail.desktop');
+      if (!fs.existsSync(desktopDir)) fs.mkdirSync(desktopDir, { recursive: true });
+      const desktopContent = [
+        '[Desktop Entry]',
+        'Version=1.0',
+        'Type=Application',
+        'Name=CoreMail Desktop',
+        'Comment=E-Mail Client für Linux',
+        `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ${installTarget} --no-sandbox`,
+        `Icon=${pixIconPath}`,
+        'Terminal=false',
+        'Categories=Network;Email;Office;',
+        'StartupNotify=true',
+        'StartupWMClass=coremail-desktop',
+        'Keywords=email;mail;imap;smtp;',
+        ''
+      ].join('\n');
+      fs.writeFileSync(desktopFile, desktopContent);
+      try { fs.chmodSync(desktopFile, 0o755); } catch (_) {}
+      execFile('gtk-update-icon-cache', ['-f', path.join(home, '.local/share/icons/hicolor')], () => {});
+      execFile('update-desktop-database', [desktopDir], () => {});
+      // Force syncSystemIcons to re-run on next start (reset stored version)
+      store.delete('iconsVersion');
+      console.log('[Update] .desktop file refreshed → launcher icon will work after restart');
+    } catch (desktopErr) {
+      console.warn('[Update] Could not refresh .desktop file:', desktopErr.message);
+    }
+
     // AppImage replaced — quit app cleanly so user can restart the new version
-    // (auto-launch is unreliable on Linux due to AppImage sandbox restrictions)
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('update:restart-required');
     }
