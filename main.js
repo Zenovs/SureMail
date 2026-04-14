@@ -530,59 +530,39 @@ function getNotificationIconPath() {
 // ============ UPDATE FUNCTIONS ============
 
 async function checkForUpdates(silent = false) {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'api.github.com',
-      path: `/repos/${GITHUB_REPO}/releases/latest`,
-      headers: {
-        'User-Agent': 'CoreMail-Desktop',
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    };
-
-    https.get(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const release = JSON.parse(data);
-          const latestVersion = release.tag_name?.replace('v', '') || '';
-          // Select AppImage matching the current architecture
-          const archSuffix = process.arch === 'arm64' ? 'arm64' : 'x86_64';
-          const appImageAsset = (release.assets || []).find(a =>
-            a.name &&
-            a.name.toLowerCase().endsWith('.appimage') &&
-            a.name.toLowerCase().includes(archSuffix.toLowerCase()) &&
-            a.browser_download_url
-          );
-          const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0 && !!appImageAsset;
-          const downloadUrl = appImageAsset ? appImageAsset.browser_download_url : null;
-
-          if (hasUpdate && !silent && mainWindow) {
-            mainWindow.webContents.send('update:available', {
-              version: latestVersion,
-              notes: release.body || '',
-              downloadUrl
-            });
-          }
-
-          resolve({
-            success: true,
-            currentVersion: APP_VERSION,
-            latestVersion,
-            hasUpdate,
-            releaseNotes: release.body || '',
-            downloadUrl,
-            publishedAt: release.published_at
-          });
-        } catch (e) {
-          resolve({ success: false, error: 'Fehler beim Parsen der Release-Info', currentVersion: APP_VERSION });
-        }
-      });
-    }).on('error', (e) => {
-      resolve({ success: false, error: e.message, currentVersion: APP_VERSION });
+  // 15-second hard timeout — raw https.get has no timeout and hangs indefinitely
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      headers: { 'User-Agent': 'CoreMail-Desktop', 'Accept': 'application/vnd.github.v3+json' },
+      signal: controller.signal
     });
-  });
+    clearTimeout(timer);
+
+    if (!resp.ok) throw new Error(`GitHub API HTTP ${resp.status}`);
+    const release = await resp.json();
+
+    const latestVersion = release.tag_name?.replace('v', '') || '';
+    const archSuffix = process.arch === 'arm64' ? 'arm64' : 'x86_64';
+    const appImageAsset = (release.assets || []).find(a =>
+      a.name?.toLowerCase().endsWith('.appimage') &&
+      a.name.toLowerCase().includes(archSuffix.toLowerCase()) &&
+      a.browser_download_url
+    );
+    const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0 && !!appImageAsset;
+    const downloadUrl = appImageAsset?.browser_download_url || null;
+
+    if (hasUpdate && !silent && mainWindow) {
+      mainWindow.webContents.send('update:available', { version: latestVersion, notes: release.body || '', downloadUrl });
+    }
+
+    return { success: true, currentVersion: APP_VERSION, latestVersion, hasUpdate, releaseNotes: release.body || '', downloadUrl, publishedAt: release.published_at };
+  } catch (e) {
+    clearTimeout(timer);
+    const msg = e.name === 'AbortError' ? 'Timeout — GitHub API nicht erreichbar (>15s)' : e.message;
+    return { success: false, error: msg, currentVersion: APP_VERSION };
+  }
 }
 
 function compareVersions(v1, v2) {
@@ -599,132 +579,73 @@ function compareVersions(v1, v2) {
 }
 
 async function downloadUpdate(downloadUrl) {
-  return new Promise((resolve, reject) => {
-    const downloadDir = app.getPath('downloads');
-    const filename = `CoreMail-Desktop-update.AppImage`;
-    const filePath = path.join(downloadDir, filename);
-    
-    // Remove existing file if present
-    try {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch (e) {
-      console.log('Could not remove existing file:', e.message);
+  const downloadDir = app.getPath('downloads');
+  const filename = 'CoreMail-Desktop-update.AppImage';
+  const filePath = path.join(downloadDir, filename);
+
+  // Remove existing partial download
+  try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch (e) {}
+
+  // 10-minute hard timeout for the whole download (node-fetch follows redirects automatically)
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10 * 60 * 1000);
+
+  let fileStream;
+  try {
+    const resp = await fetch(downloadUrl, {
+      headers: { 'User-Agent': 'CoreMail-Desktop', 'Accept': 'application/octet-stream' },
+      signal: controller.signal
+      // node-fetch v2 follows redirects automatically (default: redirect='follow')
+    });
+
+    if (!resp.ok) throw new Error(`HTTP-Fehler: ${resp.status}`);
+
+    const totalSize = parseInt(resp.headers.get('content-length') || '0', 10);
+    const hasValidSize = totalSize > 0;
+    let downloadedSize = 0;
+
+    fileStream = fs.createWriteStream(filePath);
+
+    // Stream body to file with progress reporting
+    await new Promise((resolve, reject) => {
+      resp.body.on('data', (chunk) => {
+        downloadedSize += chunk.length;
+        const progress = hasValidSize
+          ? Math.round((downloadedSize / totalSize) * 100)
+          : Math.min(99, Math.round(downloadedSize / (1024 * 1024)));
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('update:progress', {
+            progress, downloaded: downloadedSize,
+            total: hasValidSize ? totalSize : downloadedSize, hasValidSize
+          });
+        }
+      });
+      resp.body.on('error', reject);
+      fileStream.on('error', reject);
+      fileStream.on('finish', resolve);
+      resp.body.pipe(fileStream);
+    });
+
+    clearTimeout(timer);
+
+    const stats = fs.statSync(filePath);
+    if (stats.size < 1024 * 1024) { // AppImage must be at least 1 MB
+      fs.unlinkSync(filePath);
+      throw new Error('Download unvollständig — Datei zu klein');
     }
 
-    let redirectCount = 0;
-    const MAX_REDIRECTS = 10;
+    fs.chmodSync(filePath, 0o755);
+    console.log('[Update] Download abgeschlossen:', filePath, 'Grösse:', stats.size);
+    return { success: true, filePath, size: stats.size };
 
-    // Follow redirects with proper HTTP/HTTPS handling
-    const download = (url) => {
-      if (redirectCount++ > MAX_REDIRECTS) {
-        reject(new Error('Zu viele Weiterleitungen'));
-        return;
-      }
-
-      const protocol = url.startsWith('https') ? https : http;
-      
-      const request = protocol.get(url, {
-        headers: { 
-          'User-Agent': 'CoreMail-Desktop',
-          'Accept': 'application/octet-stream'
-        },
-        timeout: 30000
-      }, (response) => {
-        // Handle redirects
-        if (response.statusCode === 302 || response.statusCode === 301 || response.statusCode === 307) {
-          const redirectUrl = response.headers.location;
-          if (redirectUrl) {
-            // Handle relative URLs
-            const finalUrl = redirectUrl.startsWith('http') ? redirectUrl : new URL(redirectUrl, url).href;
-            download(finalUrl);
-            return;
-          }
-        }
-
-        // Check for HTTP errors
-        if (response.statusCode !== 200) {
-          reject(new Error(`HTTP-Fehler: ${response.statusCode}`));
-          return;
-        }
-
-        // Get total size - handle missing Content-Length
-        const totalSize = parseInt(response.headers['content-length'], 10);
-        const hasValidSize = !isNaN(totalSize) && totalSize > 0;
-        let downloadedSize = 0;
-        
-        const file = fs.createWriteStream(filePath);
-
-        response.on('data', (chunk) => {
-          downloadedSize += chunk.length;
-          
-          // Calculate progress - handle unknown size
-          let progress;
-          if (hasValidSize) {
-            progress = Math.round((downloadedSize / totalSize) * 100);
-          } else {
-            // Show downloaded MB instead of percentage
-            progress = Math.min(99, Math.round(downloadedSize / (1024 * 1024))); // MB downloaded as "progress"
-          }
-          
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('update:progress', { 
-              progress, 
-              downloaded: downloadedSize, 
-              total: hasValidSize ? totalSize : downloadedSize,
-              hasValidSize
-            });
-          }
-        });
-
-        response.pipe(file);
-
-        file.on('finish', () => {
-          file.close(() => {
-            // Verify file was downloaded
-            try {
-              const stats = fs.statSync(filePath);
-              if (stats.size < 1000) {
-                fs.unlinkSync(filePath);
-                reject(new Error('Download unvollständig - Datei zu klein'));
-                return;
-              }
-              
-              // Make executable
-              fs.chmodSync(filePath, 0o755);
-              console.log('Update downloaded successfully:', filePath, 'Size:', stats.size);
-              resolve({ success: true, filePath, size: stats.size });
-            } catch (e) {
-              reject(new Error('Datei konnte nicht verifiziert werden: ' + e.message));
-            }
-          });
-        });
-
-        file.on('error', (err) => {
-          fs.unlink(filePath, () => {});
-          reject(new Error('Schreibfehler: ' + err.message));
-        });
-
-        response.on('error', (err) => {
-          file.close();
-          fs.unlink(filePath, () => {});
-          reject(new Error('Download-Fehler: ' + err.message));
-        });
-      });
-
-      request.on('error', (err) => {
-        reject(new Error('Verbindungsfehler: ' + err.message));
-      });
-
-      request.on('timeout', () => {
-        request.destroy();
-        reject(new Error('Download-Timeout'));
-      });
-    };
-
-    download(downloadUrl);
-  });
+  } catch (e) {
+    clearTimeout(timer);
+    try { fileStream?.close?.(); } catch {}
+    try { if (fs.existsSync(filePath)) fs.unlinkSync(filePath); } catch {}
+    const msg = e.name === 'AbortError' ? 'Download-Timeout (10 Minuten überschritten)' : e.message;
+    console.error('[Update] Download-Fehler:', msg);
+    return { success: false, error: msg };
+  }
 }
 
 // ============ NOTIFICATION FUNCTIONS ============

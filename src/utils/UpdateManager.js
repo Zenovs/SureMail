@@ -284,34 +284,37 @@ class UpdateManagerClass {
     this.progress = 0;
     this.notify();
 
-    // Progress-Listener
-    const progressHandler = (data) => {
-      this.progress = data.progress;
-      this.notify();
-    };
-    
+    // Remove any previous progress listeners before adding a new one
+    window.electronAPI?.removeUpdateListeners?.();
+
     if (window.electronAPI?.onUpdateProgress) {
-      window.electronAPI.onUpdateProgress(progressHandler);
+      window.electronAPI.onUpdateProgress((data) => {
+        this.progress = data.progress;
+        this.notify();
+      });
     }
 
     try {
       const result = await window.electronAPI.downloadUpdate(this.updateInfo.downloadUrl);
-      
+
+      // Clean up progress listener after download
+      window.electronAPI?.removeUpdateListeners?.();
+
       if (result.success) {
         this.status = UpdateStatus.DOWNLOADED;
         this.downloadedPath = result.filePath;
         this.progress = 100;
-        
-        // Auto-Install wenn aktiviert
+
         const settings = loadUpdateSettings();
         if (settings.autoInstall) {
           setTimeout(() => this.installUpdate(), 1000);
         }
       } else {
         this.status = UpdateStatus.ERROR;
-        this.error = result.error;
+        this.error = result.error || 'Unbekannter Download-Fehler';
       }
     } catch (e) {
+      window.electronAPI?.removeUpdateListeners?.();
       this.status = UpdateStatus.ERROR;
       this.error = e.message;
     }
