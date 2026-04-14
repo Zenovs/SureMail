@@ -139,29 +139,39 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     else setCalReady(true);
   }, [accounts]);
 
-  // ── Collect recent unread emails from IndexedDB ─────────────────────────
-  const getUnread = useCallback(async () => {
+  // ── Collect ALL recent emails from IndexedDB (read + unread) ──────────
+  const getAllEmails = useCallback(async () => {
     const all = [];
-    for (const acc of accounts.slice(0, 4)) {
+    for (const acc of accounts) {
       const emails = await readCachedEmails(acc.id);
-      emails
-        .filter(e => !e.seen)
-        .slice(0, 4)
-        .forEach(e => all.push({ from: e.from, subject: e.subject, preview: (e.preview || '').slice(0, 80) }));
+      // Sort by date descending, take the 30 most recent per account
+      const sorted = [...emails].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      sorted.slice(0, 30).forEach(e => all.push({
+        account: acc.displayName || acc.name || acc.email || acc.id,
+        from: e.from || '',
+        to: e.to || '',
+        subject: e.subject || '',
+        preview: (e.preview || e.text || '').slice(0, 200),
+        date: e.date ? new Date(e.date).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '',
+        seen: !!e.seen,
+      }));
     }
-    return all.slice(0, 8);
+    // Sort all combined results by date, newest first
+    return all.slice(0, 60);
   }, [accounts]);
 
   // ── Build context string for AI ─────────────────────────────────────────
   const buildContext = useCallback(async () => {
-    const emails  = await getUnread();
-    const total   = Object.values(accountStats).reduce((s, x) => s + (x?.unread || 0), 0);
+    const emails  = await getAllEmails();
+    const unreadCount = Object.values(accountStats).reduce((s, x) => s + (x?.unread || 0), 0);
     const dateStr = new Date().toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const timeStr = new Date().toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
 
     const emailLines = emails.length > 0
-      ? emails.map(e => `- Von: ${e.from}, Betreff: "${e.subject}"${e.preview ? `, Inhalt: ${e.preview}` : ''}`).join('\n')
-      : 'Keine ungelesenen E-Mails.';
+      ? emails.map(e =>
+          `- [${e.seen ? 'gelesen' : 'UNGELESEN'}] ${e.date} | Von: ${e.from} | Betreff: "${e.subject}"${e.preview ? ` | Inhalt: ${e.preview}` : ''}`
+        ).join('\n')
+      : 'Keine E-Mails im Cache.';
 
     const calLines = calEvents.length > 0
       ? calEvents.map(ev => {
@@ -174,8 +184,8 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
         }).join('\n')
       : 'Keine Termine heute.';
 
-    return { dateStr, timeStr, total, emailLines, calLines };
-  }, [calEvents, accountStats, getUnread]);
+    return { dateStr, timeStr, unreadCount, emailLines, calLines, emailCount: emails.length };
+  }, [calEvents, accountStats, getAllEmails]);
 
   // ── AI daily brief via Ollama /api/chat streaming ─────────────────────
   const generateBrief = useCallback(async () => {
@@ -187,7 +197,7 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     setAiBrief('');
 
     try {
-      const { dateStr, total, emailLines, calLines } = await buildContext();
+      const { dateStr, unreadCount, emailLines, calLines, emailCount } = await buildContext();
 
       const messages = [
         {
@@ -202,12 +212,12 @@ Struktur: 1) Was steht heute an (Termine + daraus entstehende Aufgaben), 2) Was 
         {
           role: 'user',
           content:
-`Heute ist ${dateStr}. Ich habe ${total} ungelesene E-Mail${total !== 1 ? 's' : ''}.
+`Heute ist ${dateStr}. Ich habe ${unreadCount} ungelesene E-Mail${unreadCount !== 1 ? 's' : ''} (${emailCount} E-Mails total im Cache).
 
 Meine heutigen Kalendereinträge:
 ${calLines}
 
-Meine ungelesenen E-Mails:
+Meine letzten E-Mails (gelesen und ungelesen):
 ${emailLines}
 
 Was muss ich heute tun? Erstelle mein persönliches Tagesbriefing mit konkreten Aufgaben und Prioritäten. Maximal 4 kurze Absätze.`
@@ -279,7 +289,7 @@ Was muss ich heute tun? Erstelle mein persönliches Tagesbriefing mit konkreten 
     setChatMessages(prev => [...prev, { role: 'assistant', content: '', ts: assistantId, streaming: true }]);
 
     try {
-      const { dateStr, timeStr, total, emailLines, calLines } = await buildContext();
+      const { dateStr, timeStr, unreadCount, emailLines, calLines, emailCount } = await buildContext();
 
       // Build conversation history for context (last 10 messages, excluding the streaming placeholder)
       const history = chatMessages
@@ -289,19 +299,19 @@ Was muss ich heute tun? Erstelle mein persönliches Tagesbriefing mit konkreten 
 
       const systemPrompt =
 `Du bist mein persönlicher KI-Assistent direkt in meiner E-Mail-App CoreMail.
-Du hast Zugriff auf meinen heutigen Kalender und meine ungelesenen E-Mails.
+Du hast VOLLSTÄNDIGEN Zugriff auf meinen Kalender und meine letzten ${emailCount} E-Mails (sowohl gelesene als auch ungelesene).
 Beantworte meine Fragen direkt, präzise und auf Deutsch.
 Sprich mich mit "du" an. Antworte kurz und auf den Punkt — kein Blabla.
-Wenn ich nach Terminen oder Personen frage, schau in den Kalendereinträgen nach.
-Wenn ich nach E-Mails oder Absendern frage, schau in den E-Mail-Daten nach.
+WICHTIG: Wenn ich nach einer Person oder einem Absender frage, durchsuche ALLE E-Mails im Abschnitt "MEINE LETZTEN E-MAILS" — nicht nur ungelesene.
+Wenn eine Person dort vorkommt, bestätige das. Sage nur dann, dass keine E-Mail vorhanden ist, wenn du sie wirklich nicht findest.
 
 Heutiges Datum: ${dateStr}, Uhrzeit: ${timeStr}
-Ungelesene E-Mails gesamt: ${total}
+Ungelesene E-Mails: ${unreadCount} | E-Mails total im Cache: ${emailCount}
 
 MEINE HEUTIGEN KALENDEREINTRÄGE:
 ${calLines}
 
-MEINE UNGELESENEN E-MAILS:
+MEINE LETZTEN E-MAILS (gelesen und ungelesen, neueste zuerst):
 ${emailLines}`;
 
       const messages = [
