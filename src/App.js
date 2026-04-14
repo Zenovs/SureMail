@@ -40,7 +40,6 @@ import { DashboardProvider } from './context/DashboardContext';
 import { OllamaProvider, useOllama } from './context/OllamaContext';
 import { SearchProvider, useSearch } from './context/SearchContext';
 import SidebarV2 from './components/SidebarV2';
-import ChatWidget from './components/ChatWidget';
 import OllamaInstaller from './components/OllamaInstaller';
 import GlobalSearch from './components/GlobalSearch';
 import UpdateNotification from './components/UpdateNotification';
@@ -333,8 +332,6 @@ function AppContent() {
           {renderContent()}
         </ErrorBoundary>
       </main>
-      <ChatWidget />
-
       {/* v1.13.0: Global Search Modal */}
       <GlobalSearch onSelectEmail={handleSelectEmailFromSearch} />
 
