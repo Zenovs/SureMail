@@ -2479,7 +2479,7 @@ async function getGraphAccessToken(accountId) {
   }
 }
 
-async function graphRequest(accountId, method, apiPath, body, _retryCount = 0) {
+async function graphRequest(accountId, method, apiPath, body, extraHeaders = {}, _retryCount = 0) {
   const token = await getGraphAccessToken(accountId);
 
   const opts = {
@@ -2487,7 +2487,8 @@ async function graphRequest(accountId, method, apiPath, body, _retryCount = 0) {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      ...extraHeaders
     }
   };
   if (body !== undefined) opts.body = JSON.stringify(body);
@@ -2502,7 +2503,7 @@ async function graphRequest(accountId, method, apiPath, body, _retryCount = 0) {
     const backoff = retryAfter > 0 ? retryAfter * 1000 : Math.min(1000 * Math.pow(2, _retryCount), 16000);
     console.warn(`[Graph] ${resp.status} on ${apiPath} — retry ${_retryCount + 1}/3 after ${backoff}ms`);
     await new Promise(r => setTimeout(r, backoff));
-    return graphRequest(accountId, method, apiPath, body, _retryCount + 1);
+    return graphRequest(accountId, method, apiPath, body, extraHeaders, _retryCount + 1);
   }
 
   if (!resp.ok) {
@@ -3003,39 +3004,39 @@ ipcMain.handle('scheduled:cancel', async (event, id) => {
 
 // --- IPC: Kalender (v4.4.0) ---
 
-// Graph API calendarView returns UTC times WITHOUT 'Z' suffix.
-// JavaScript parses strings without timezone as *local* time → wrong display.
-// Fix: append 'Z' so the Date constructor treats it as UTC, then
-// toLocaleTimeString() converts correctly to the user's local timezone.
-function normalizeGraphDateTime(dt) {
-  if (!dt) return dt;
-  // All-day dates are "YYYY-MM-DD" — leave untouched
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) return dt;
-  // If no timezone designator present, append 'Z' (treat as UTC)
-  if (!dt.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(dt)) return dt + 'Z';
-  return dt;
-}
-
 ipcMain.handle('calendar:getEvents', async (event, accountId, { startDate, endDate } = {}) => {
   try {
     const start = startDate || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
     const end = endDate || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString();
+    // 'Prefer: outlook.timezone="UTC"' forces Graph API to return all datetimes in UTC
+    // so new Date(dt) always parses correctly regardless of the client's locale.
     const data = await graphRequest(accountId, 'GET',
-      `/me/calendarView?startDateTime=${encodeURIComponent(start)}&endDateTime=${encodeURIComponent(end)}&$select=id,subject,start,end,location,isAllDay,organizer,bodyPreview,showAs&$top=100&$orderby=start/dateTime`
+      `/me/calendarView?startDateTime=${encodeURIComponent(start)}&endDateTime=${encodeURIComponent(end)}&$select=id,subject,start,end,location,isAllDay,organizer,bodyPreview,showAs&$top=100&$orderby=start/dateTime`,
+      undefined,
+      { 'Prefer': 'outlook.timezone="UTC"' }
     );
-    const events = (data?.value || []).map(e => ({
-      id: e.id,
-      title: e.subject || '(Kein Titel)',
-      start: normalizeGraphDateTime(e.start?.dateTime || e.start?.date),
-      startTimeZone: e.start?.timeZone,
-      end: normalizeGraphDateTime(e.end?.dateTime || e.end?.date),
-      endTimeZone: e.end?.timeZone,
-      isAllDay: e.isAllDay || false,
-      location: e.location?.displayName || '',
-      organizer: e.organizer?.emailAddress?.name || e.organizer?.emailAddress?.address || '',
-      preview: e.bodyPreview || '',
-      showAs: e.showAs || 'busy',
-    }));
+    const events = (data?.value || []).map(e => {
+      // With Prefer UTC header, dateTime is UTC but may still lack 'Z'.
+      // Append 'Z' defensively so Date() always treats it as UTC.
+      const toUTC = (dt) => {
+        if (!dt) return dt;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) return dt; // all-day date — keep as-is
+        return dt.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dt) ? dt : dt + 'Z';
+      };
+      return {
+        id: e.id,
+        title: e.subject || '(Kein Titel)',
+        start: toUTC(e.start?.dateTime || e.start?.date),
+        startTimeZone: e.start?.timeZone,
+        end: toUTC(e.end?.dateTime || e.end?.date),
+        endTimeZone: e.end?.timeZone,
+        isAllDay: e.isAllDay || false,
+        location: e.location?.displayName || '',
+        organizer: e.organizer?.emailAddress?.name || e.organizer?.emailAddress?.address || '',
+        preview: e.bodyPreview || '',
+        showAs: e.showAs || 'busy',
+      };
+    });
     return { success: true, events };
   } catch (err) {
     return { success: false, error: err.message };
