@@ -529,6 +529,11 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       text: bodyText,
       html: bodyHtml,
       attachments: attachments.map(a => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
+      // Threading: pass original message-id so the reply is correctly threaded
+      ...(replyTo?.messageId && !isForward && {
+        inReplyTo:  replyTo.messageId,
+        references: replyTo.messageId,
+      }),
     };
     const activeAcc = accounts.find(a => a.id === selectedAccountId);
 

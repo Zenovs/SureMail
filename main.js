@@ -489,14 +489,29 @@ async function findSentFolderName(connection) {
 // v2.1.0: SMTP-Transporter für ein Konto erstellen (mit Anzeigename-Unterstützung)
 function getSmtpTransporterForAccount(account) {
   const smtp = account.smtp;
+  const port = parseInt(smtp.port) || 587;
+
+  // Auto-detect secure mode: port 465 = implicit TLS, 587/25 = STARTTLS
+  // If smtp.secure is explicitly set, respect it; otherwise derive from port.
+  let secure;
+  if (smtp.secure !== undefined && smtp.secure !== null) {
+    secure = smtp.secure !== false;
+  } else {
+    secure = port === 465;
+  }
+
   const transporter = nodemailer.createTransport({
     host: smtp.host,
-    port: parseInt(smtp.port),
-    secure: smtp.secure !== false,
+    port,
+    secure,
     auth: {
       user: smtp.username,
       pass: smtp.password
-    }
+    },
+    tls: { rejectUnauthorized: false },  // accept self-signed certs
+    connectionTimeout: 15000,            // 15s to connect
+    greetingTimeout:   10000,            // 10s for SMTP greeting
+    socketTimeout:     30000,            // 30s per socket operation
   });
 
   const email = smtp.fromEmail || smtp.username;
@@ -1822,36 +1837,49 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
       subject: emailData.subject,
       text: finalText,
       html: finalHtml,
-      attachments: emailData.attachments || []
+      attachments: emailData.attachments || [],
+      // Threading headers — set when replying/forwarding
+      ...(emailData.inReplyTo  && { inReplyTo:  emailData.inReplyTo }),
+      ...(emailData.references && { references: emailData.references }),
     };
 
     await transporter.sendMail(mailOptions);
 
-    // v2.8.4: Append sent email to IMAP Sent folder
-    try {
-      const streamTransport = nodemailer.createTransport({ streamTransport: true, newline: 'unix' });
-      const info = await streamTransport.sendMail(mailOptions);
-      const chunks = [];
-      await new Promise((resolve, reject) => {
-        info.message.on('data', c => chunks.push(c));
-        info.message.on('end', resolve);
-        info.message.on('error', reject);
-      });
-      const rawMessage = Buffer.concat(chunks);
-
-      const imapConfig = getImapConfigForAccount(account);
-      const imapConn = await imapSimple.connect(imapConfig);
-      const sentFolder = await findSentFolderName(imapConn);
-      if (sentFolder) {
+    // v2.8.4: Append sent email to IMAP Sent folder (non-blocking, 15s timeout)
+    const appendToSent = async () => {
+      let imapConn;
+      try {
+        const streamTransport = nodemailer.createTransport({ streamTransport: true, newline: 'unix' });
+        const info = await streamTransport.sendMail(mailOptions);
+        const chunks = [];
         await new Promise((resolve, reject) => {
-          imapConn.imap.append(rawMessage, { mailbox: sentFolder, flags: ['\\Seen'], date: new Date() },
-            err => err ? reject(err) : resolve());
+          info.message.on('data', c => chunks.push(c));
+          info.message.on('end', resolve);
+          info.message.on('error', reject);
         });
+        const rawMessage = Buffer.concat(chunks);
+
+        await Promise.race([
+          (async () => {
+            const imapConfig = getImapConfigForAccount(account);
+            imapConn = await imapSimple.connect(imapConfig);
+            const sentFolder = await findSentFolderName(imapConn);
+            if (sentFolder) {
+              await new Promise((resolve, reject) => {
+                imapConn.imap.append(rawMessage, { mailbox: sentFolder, flags: ['\\Seen'], date: new Date() },
+                  err => err ? reject(err) : resolve());
+              });
+            }
+          })(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('IMAP append timeout')), 15000))
+        ]);
+      } catch (appendErr) {
+        console.error('[Sent] Failed to save to Sent folder:', appendErr.message);
+      } finally {
+        if (imapConn) try { await imapConn.end(); } catch (_) {}
       }
-      imapConn.end();
-    } catch (appendErr) {
-      console.error('[Sent] Failed to save to Sent folder:', appendErr);
-    }
+    };
+    appendToSent(); // fire-and-forget — don't block the send response
 
     return { success: true, message: 'E-Mail erfolgreich gesendet!' };
   } catch (error) {
