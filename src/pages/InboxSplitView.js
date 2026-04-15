@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe, Loader2 } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe, Loader2, FolderPlus, Pencil } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -505,6 +505,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [folderError, setFolderError] = useState(null);
+  // Folder management modals
+  const [folderModal, setFolderModal] = useState(null); // { mode:'create'|'rename'|'delete', folder?: obj }
+  const [folderModalInput, setFolderModalInput] = useState('');
+  const [folderModalLoading, setFolderModalLoading] = useState(false);
+  const [folderModalError, setFolderModalError] = useState(null);
+  const [hoveredFolder, setHoveredFolder] = useState(null);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [hasMore, setHasMore] = useState(false);
@@ -1261,6 +1267,67 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setShowCheckboxes(false);
   }, []);
 
+  // ── Folder management ────────────────────────────────────────────────────────
+  const SYSTEM_FOLDERS = new Set(['INBOX', 'Sent', 'Drafts', 'Deleted', 'Junk', 'Archive', 'Trash', 'Spam']);
+
+  const openCreateFolder = () => {
+    setFolderModalInput('');
+    setFolderModalError(null);
+    setFolderModal({ mode: 'create' });
+  };
+  const openRenameFolder = (folder) => {
+    setFolderModalInput(folder.name);
+    setFolderModalError(null);
+    setFolderModal({ mode: 'rename', folder });
+  };
+  const openDeleteFolder = (folder) => {
+    setFolderModalError(null);
+    setFolderModal({ mode: 'delete', folder });
+  };
+
+  const submitFolderModal = async () => {
+    if (!window.electronAPI || !activeAccountId) return;
+    setFolderModalLoading(true);
+    setFolderModalError(null);
+    try {
+      const { mode, folder } = folderModal;
+      let result;
+      if (mode === 'create') {
+        const name = folderModalInput.trim();
+        if (!name) { setFolderModalError('Bitte einen Namen eingeben.'); setFolderModalLoading(false); return; }
+        result = isGraphAccount()
+          ? await window.electronAPI.createGraphFolder(activeAccountId, name, null)
+          : await window.electronAPI.createFolder(activeAccountId, name);
+      } else if (mode === 'rename') {
+        const name = folderModalInput.trim();
+        if (!name || name === folder.name) { setFolderModalError('Bitte einen neuen Namen eingeben.'); setFolderModalLoading(false); return; }
+        result = isGraphAccount()
+          ? await window.electronAPI.renameGraphFolder(activeAccountId, folder.path, name)
+          : await window.electronAPI.renameFolder(activeAccountId, folder.path, name);
+      } else if (mode === 'delete') {
+        result = isGraphAccount()
+          ? await window.electronAPI.deleteGraphFolder(activeAccountId, folder.path)
+          : await window.electronAPI.deleteFolder(activeAccountId, folder.path);
+      }
+      if (result?.success) {
+        setFolderModal(null);
+        folderCache.delete(`folders:${activeAccountId}`);
+        loadFolders(true);
+        if (mode === 'delete' && currentFolder === folder.path) setCurrentFolder('INBOX');
+      } else {
+        setFolderModalError(result?.error || 'Unbekannter Fehler');
+      }
+    } catch (e) {
+      setFolderModalError(e.message);
+    }
+    setFolderModalLoading(false);
+  };
+
+  const handleFolderModalKey = (e) => {
+    if (e.key === 'Enter') submitFolderModal();
+    if (e.key === 'Escape') setFolderModal(null);
+  };
+
   const handleBulkDelete = useCallback(async () => {
     if (!window.electronAPI || !activeAccountId || selectedUids.size === 0) return;
 
@@ -1754,13 +1821,22 @@ function InboxSplitView({ onFullView, onNavigate }) {
       >
         <div className={`p-3 ${c.border} border-b flex items-center justify-between`}>
           <h3 className={`font-medium ${c.text} text-sm`}>Ordner</h3>
-          <button
-            onClick={() => { folderCache.delete(`folders:${activeAccountId}`); loadFolders(true); }}
-            title="Ordner synchronisieren"
-            className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary}`}
-          >
-            <RefreshCw className={`w-4 h-4 ${loadingFolders ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={openCreateFolder}
+              title="Neuer Ordner"
+              className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary} hover:text-cyan-400`}
+            >
+              <FolderPlus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => { folderCache.delete(`folders:${activeAccountId}`); loadFolders(true); }}
+              title="Ordner synchronisieren"
+              className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary}`}
+            >
+              <RefreshCw className={`w-4 h-4 ${loadingFolders ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
         {folderError && (
           <div className="px-3 py-2 text-xs text-red-400 bg-red-900/20 border-b border-red-500/20">
@@ -1769,7 +1845,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
         )}
         <div className="flex-1 overflow-y-auto py-2">
           {flatFolders.map(folder => (
-            <div key={folder.path}>
+            <div
+              key={folder.path}
+              onMouseEnter={() => setHoveredFolder(folder.path)}
+              onMouseLeave={() => setHoveredFolder(null)}
+              className="relative group/folder"
+            >
               <button
                 onClick={() => {
                   setCurrentFolder(folder.path);
@@ -1820,13 +1901,37 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 )}
                 {getFolderIcon(folder.type)}
                 <span className="truncate flex-1">{folder.name}</span>
-                {/* v1.11.0: Show unread count badge for inbox */}
+                {/* Unread count badge */}
                 {folder.path === 'INBOX' && unreadCount > 0 && (
                   <span className="px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium min-w-[20px] text-center">
                     {unreadCount}
                   </span>
                 )}
+                {folder.unread > 0 && folder.path !== 'INBOX' && (
+                  <span className="px-1.5 py-0.5 bg-blue-500/80 text-white text-xs rounded-full font-medium min-w-[20px] text-center">
+                    {folder.unread}
+                  </span>
+                )}
               </button>
+              {/* Edit / Delete buttons — only for custom (non-system) folders */}
+              {hoveredFolder === folder.path && !SYSTEM_FOLDERS.has(folder.path) && (
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 z-10">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openRenameFolder(folder); }}
+                    title="Umbenennen"
+                    className="p-1 rounded hover:bg-white/15 text-gray-400 hover:text-cyan-400 transition-colors"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openDeleteFolder(folder); }}
+                    title="Löschen"
+                    className="p-1 rounded hover:bg-white/15 text-gray-400 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
               
               {/* v2.4.0: Virtual Inbox Subfolders */}
               {folder.path === 'INBOX' && inboxExpanded && (
@@ -1891,6 +1996,85 @@ function InboxSplitView({ onFullView, onNavigate }) {
           className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 transition-colors ${isResizingFolder ? 'bg-cyan-500' : ''}`}
           title="Ziehen zum Ändern der Breite"
         />
+
+        {/* ── Folder Modal (create / rename / delete) ── */}
+        {folderModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setFolderModal(null)}>
+            <div
+              className={`w-80 rounded-2xl p-6 ${c.card} border ${c.border} shadow-2xl`}
+              onClick={e => e.stopPropagation()}
+            >
+              {folderModal.mode === 'create' && (
+                <>
+                  <h3 className={`text-base font-semibold ${c.text} mb-4 flex items-center gap-2`}>
+                    <FolderPlus className="w-5 h-5 text-cyan-400" /> Neuer Ordner
+                  </h3>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={folderModalInput}
+                    onChange={e => setFolderModalInput(e.target.value)}
+                    onKeyDown={handleFolderModalKey}
+                    placeholder="Ordnername…"
+                    className={`w-full px-3 py-2 rounded-lg text-sm ${c.input} border ${c.border} focus:outline-none focus:ring-1 focus:ring-cyan-500/50 mb-3`}
+                  />
+                </>
+              )}
+              {folderModal.mode === 'rename' && (
+                <>
+                  <h3 className={`text-base font-semibold ${c.text} mb-4 flex items-center gap-2`}>
+                    <Pencil className="w-5 h-5 text-cyan-400" /> Ordner umbenennen
+                  </h3>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={folderModalInput}
+                    onChange={e => setFolderModalInput(e.target.value)}
+                    onKeyDown={handleFolderModalKey}
+                    placeholder="Neuer Name…"
+                    className={`w-full px-3 py-2 rounded-lg text-sm ${c.input} border ${c.border} focus:outline-none focus:ring-1 focus:ring-cyan-500/50 mb-3`}
+                  />
+                </>
+              )}
+              {folderModal.mode === 'delete' && (
+                <>
+                  <h3 className={`text-base font-semibold ${c.text} mb-2 flex items-center gap-2`}>
+                    <Trash2 className="w-5 h-5 text-red-400" /> Ordner löschen
+                  </h3>
+                  <p className={`text-sm ${c.textSecondary} mb-4`}>
+                    Ordner <strong className={c.text}>"{folderModal.folder.name}"</strong> dauerhaft löschen?
+                    Alle enthaltenen E-Mails werden ebenfalls gelöscht.
+                  </p>
+                </>
+              )}
+              {folderModalError && (
+                <p className="text-xs text-red-400 mb-3 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {folderModalError}
+                </p>
+              )}
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setFolderModal(null)}
+                  className={`px-4 py-2 rounded-lg text-sm ${c.bgTertiary} ${c.text} ${c.hover} border ${c.border}`}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={submitFolderModal}
+                  disabled={folderModalLoading}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 ${
+                    folderModal.mode === 'delete'
+                      ? 'bg-red-600 hover:bg-red-500 text-white'
+                      : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                  }`}
+                >
+                  {folderModalLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {folderModal.mode === 'create' ? 'Erstellen' : folderModal.mode === 'rename' ? 'Umbenennen' : 'Löschen'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Email List - v1.12.2: Resizable, v2.3.0: Multi-Select */}

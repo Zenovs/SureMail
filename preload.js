@@ -75,6 +75,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   moveEmail: (accountId, uid, sourceFolder, destFolder) => ipcRenderer.invoke('imap:moveEmail', accountId, uid, sourceFolder, destFolder),
   listFolders: (accountId) => ipcRenderer.invoke('imap:listFolders', accountId),
   fetchEmailsFromFolder: (accountId, folder, options) => ipcRenderer.invoke('imap:fetchEmailsFromFolder', accountId, folder, options),
+  createFolder: (accountId, folderName) => ipcRenderer.invoke('imap:createFolder', accountId, folderName),
+  renameFolder: (accountId, oldName, newName) => ipcRenderer.invoke('imap:renameFolder', accountId, oldName, newName),
+  deleteFolder: (accountId, folderName) => ipcRenderer.invoke('imap:deleteFolder', accountId, folderName),
   
   // SMTP
   testSmtp: (settings) => ipcRenderer.invoke('smtp:test', settings),
@@ -105,6 +108,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   markGraphAsRead: (accountId, messageId, isRead) => ipcRenderer.invoke('graph:markAsRead', accountId, messageId, isRead),
   moveGraphEmail: (accountId, messageId, destFolderId) => ipcRenderer.invoke('graph:moveEmail', accountId, messageId, destFolderId),
   listGraphFolders: (accountId) => ipcRenderer.invoke('graph:listFolders', accountId),
+  createGraphFolder: (accountId, folderName, parentId) => ipcRenderer.invoke('graph:createFolder', accountId, folderName, parentId),
+  renameGraphFolder: (accountId, folderId, newName) => ipcRenderer.invoke('graph:renameFolder', accountId, folderId, newName),
+  deleteGraphFolder: (accountId, folderId) => ipcRenderer.invoke('graph:deleteFolder', accountId, folderId),
 
   // Logbuch (v3.0.12)
   logAdd: (type, title, detail) => ipcRenderer.invoke('log:add', { type, title, detail }),

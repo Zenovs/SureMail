@@ -2024,6 +2024,100 @@ ipcMain.handle('imap:listFolders', async (event, accountId) => {
   }
 });
 
+// ── Folder management (create / rename / delete) ─────────────────────────────
+
+ipcMain.handle('imap:createFolder', async (event, accountId, folderName) => {
+  const account = getAccountById(accountId);
+  if (!account) return { success: false, error: 'Konto nicht gefunden' };
+  let connection;
+  try {
+    const config = getImapConfigForAccount(account);
+    connection = await imapSimple.connect(config);
+    await new Promise((resolve, reject) =>
+      connection.imap.addBox(folderName, (err) => err ? reject(err) : resolve())
+    );
+    return { success: true };
+  } catch (e) {
+    console.error('[IMAP] createFolder:', e.message);
+    return { success: false, error: e.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
+  }
+});
+
+ipcMain.handle('imap:renameFolder', async (event, accountId, oldName, newName) => {
+  const account = getAccountById(accountId);
+  if (!account) return { success: false, error: 'Konto nicht gefunden' };
+  let connection;
+  try {
+    const config = getImapConfigForAccount(account);
+    connection = await imapSimple.connect(config);
+    await new Promise((resolve, reject) =>
+      connection.imap.renameBox(oldName, newName, (err) => err ? reject(err) : resolve())
+    );
+    return { success: true };
+  } catch (e) {
+    console.error('[IMAP] renameFolder:', e.message);
+    return { success: false, error: e.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
+  }
+});
+
+ipcMain.handle('imap:deleteFolder', async (event, accountId, folderName) => {
+  const account = getAccountById(accountId);
+  if (!account) return { success: false, error: 'Konto nicht gefunden' };
+  let connection;
+  try {
+    const config = getImapConfigForAccount(account);
+    connection = await imapSimple.connect(config);
+    await new Promise((resolve, reject) =>
+      connection.imap.delBox(folderName, (err) => err ? reject(err) : resolve())
+    );
+    return { success: true };
+  } catch (e) {
+    console.error('[IMAP] deleteFolder:', e.message);
+    return { success: false, error: e.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
+  }
+});
+
+// ── Graph folder management ───────────────────────────────────────────────────
+
+ipcMain.handle('graph:createFolder', async (event, accountId, folderName, parentId) => {
+  try {
+    const endpoint = parentId
+      ? `/me/mailFolders/${parentId}/childFolders`
+      : `/me/mailFolders`;
+    const result = await graphRequest(accountId, 'POST', endpoint, { displayName: folderName });
+    return { success: true, folder: result };
+  } catch (e) {
+    console.error('[Graph] createFolder:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('graph:renameFolder', async (event, accountId, folderId, newName) => {
+  try {
+    await graphRequest(accountId, 'PATCH', `/me/mailFolders/${folderId}`, { displayName: newName });
+    return { success: true };
+  } catch (e) {
+    console.error('[Graph] renameFolder:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('graph:deleteFolder', async (event, accountId, folderId) => {
+  try {
+    await graphRequest(accountId, 'DELETE', `/me/mailFolders/${folderId}`);
+    return { success: true };
+  } catch (e) {
+    console.error('[Graph] deleteFolder:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
 // Fetch emails from specific folder
 // v1.10.0: OAuth2 support
 // v2.3.1: Fixed to load ALL emails by default (limit = 0 means no limit)
