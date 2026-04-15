@@ -9,11 +9,12 @@ import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useOllama } from '../context/OllamaContext';
 
-const OLLAMA_BASE_URL  = 'http://localhost:11434';
-const BRIEF_CACHE_KEY  = 'coremail:dashboard-brief';
-const CHAT_HISTORY_KEY = 'coremail:dashboard-chat';
-const WATCH_LIST_KEY   = 'coremail:watch-list';   // [{id, text, addedAt}]
-const NOTIFIED_KEY     = 'coremail:notified-ids';  // set of already-notified email UIDs
+const OLLAMA_BASE_URL   = 'http://localhost:11434';
+const BRIEF_CACHE_KEY   = 'coremail:dashboard-brief';
+const CHAT_HISTORY_KEY  = 'coremail:dashboard-chat';
+const WATCH_LIST_KEY    = 'coremail:watch-list';
+const NOTIFIED_KEY      = 'coremail:notified-ids';
+const BRIEF_TTL_MS      = 60 * 60 * 1000; // 1 hour
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatEventTime(ev) {
@@ -136,21 +137,28 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     }
   }, [chatMessages, chatLoading]);
 
-  // ── Restore cached brief ────────────────────────────────────────────────
-  const today = new Date().toDateString();
+  // ── Restore cached brief (1h TTL) ──────────────────────────────────────
   const [aiBrief, setAiBriefState] = useState(() => {
     try {
       const cached = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY) || 'null');
-      return (cached?.date === today && cached?.text) ? cached.text : '';
+      return (cached?.ts && Date.now() - cached.ts < BRIEF_TTL_MS && cached?.text) ? cached.text : '';
     } catch { return ''; }
+  });
+  const [briefLastUpdated, setBriefLastUpdated] = useState(() => {
+    try {
+      const cached = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY) || 'null');
+      return cached?.ts || null;
+    } catch { return null; }
   });
   const setAiBrief = useCallback((text) => {
     setAiBriefState(text);
     if (text) {
-      try { localStorage.setItem(BRIEF_CACHE_KEY, JSON.stringify({ text, date: today })); }
+      const ts = Date.now();
+      setBriefLastUpdated(ts);
+      try { localStorage.setItem(BRIEF_CACHE_KEY, JSON.stringify({ text, ts })); }
       catch { /* quota */ }
     }
-  }, [today]);
+  }, []);
 
   // ── Live clock ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -345,19 +353,24 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     setAiBrief('');
 
     try {
-      const { dateStr, timeStr, unreadCount, emailLines, calLines, upcomingLines, watchLines, emailCount, watchCount } = await buildContext();
+      const { dateStr, timeStr, unreadCount, calLines, upcomingLines, watchLines, watchCount } = await buildContext();
+
+      // Only unread emails for the brief — keeps it short and relevant
+      const unreadEmails = (await getAllEmails()).filter(e => !e.seen);
+      const unreadLines = unreadEmails.length > 0
+        ? unreadEmails.slice(0, 10).map(e => `- ${e.date} | Von: ${e.from} | "${e.subject}"${e.preview ? ` — ${e.preview.slice(0, 120)}` : ''}`).join('\n')
+        : 'Keine ungelesenen E-Mails.';
 
       const messages = [
         {
           role: 'system',
           content:
-`Du bist mein persönlicher KI-Sekretär. Du hast vollständigen Zugriff auf meinen Kalender (heute + nächste 7 Tage) und meine letzten ${emailCount} E-Mails.
-Deine Aufgabe: Erstelle einen prägnanten Überblick über das Wichtigste — was erwartet mich, was muss ich tun, worauf soll ich achten.
-Sprich mich mit "du" an. Schreibe klar, direkt und hilfreich — wie ein erfahrener Sekretär.
-Antworte immer auf Deutsch. Keine langen Aufzählungen, keine Bullet-Points. Maximal 4 Absätze.
-Heutiges Datum: ${dateStr}, ${timeStr} Uhr.
-
-${watchCount > 0 ? `ICH ERWARTE FOLGENDE WICHTIGE E-MAILS/ANTWORTEN:\n${watchLines}\n→ Überprüfe die E-Mail-Liste und melde klar, ob diese eingetroffen sind oder noch ausstehen.` : ''}`
+`Du bist mein KI-Sekretär. Fasse in maximal 3 kurzen Absätzen zusammen:
+1. Nächste Termine (heute + diese Woche) — nur die relevantesten, mit Uhrzeit
+2. Ungelesene E-Mails — nur die wichtigsten, kurz
+3. ${watchCount > 0 ? 'Status meiner erwarteten Mails (eingetroffen oder ausstehend)' : 'Meine wichtigste Priorität jetzt'}
+Sprich mich mit "du" an. Kein Fliesstext, keine langen Erklärungen. Datum: ${dateStr}, ${timeStr} Uhr.
+${watchCount > 0 ? `\nICH ERWARTE: ${watchLines}` : ''}`
         },
         {
           role: 'user',
@@ -365,13 +378,11 @@ ${watchCount > 0 ? `ICH ERWARTE FOLGENDE WICHTIGE E-MAILS/ANTWORTEN:\n${watchLin
 `HEUTIGE TERMINE:
 ${calLines}
 
-TERMINE DIESE WOCHE (nächste 7 Tage):
+NÄCHSTE TERMINE (diese Woche):
 ${upcomingLines}
 
-MEINE LETZTEN E-MAILS (${emailCount} total, ${unreadCount} ungelesen):
-${emailLines}
-
-Erstelle meinen heutigen Überblick: Was steht heute und diese Woche an? Gibt es dringende Mails? ${watchCount > 0 ? 'Sind meine erwarteten Mails eingetroffen?' : ''} Was ist meine wichtigste Priorität?`
+UNGELESENE E-MAILS (${unreadCount} total):
+${unreadLines}`
         }
       ];
 
@@ -409,16 +420,25 @@ Erstelle meinen heutigen Überblick: Was steht heute und diese Woche an? Gibt es
     }
   }, [isAvailable, activeModel, buildContext]);
 
-  // Auto-generate once when Ollama + accounts + calendar are ready
+  // Auto-generate on load (skip if cache is fresh < 1h)
   useEffect(() => {
     if (!isAvailable || accounts.length === 0 || !calReady || briefDone.current) return;
     briefDone.current = true;
     try {
       const cached = JSON.parse(localStorage.getItem(BRIEF_CACHE_KEY) || 'null');
-      if (cached?.date === new Date().toDateString() && cached?.text) return;
+      if (cached?.ts && Date.now() - cached.ts < BRIEF_TTL_MS && cached?.text) return;
     } catch { /* continue */ }
     generateBrief();
   }, [isAvailable, accounts.length, calReady]); // eslint-disable-line
+
+  // Auto-refresh every hour
+  useEffect(() => {
+    if (!isAvailable) return;
+    const id = setInterval(() => {
+      if (!document.hidden) generateBrief();
+    }, BRIEF_TTL_MS);
+    return () => clearInterval(id);
+  }, [isAvailable, generateBrief]);
 
   // ── AI Chat ─────────────────────────────────────────────────────────────
   const sendChatMessage = useCallback(async () => {
@@ -610,6 +630,11 @@ ${emailLines}`;
                   <h2 className={`text-sm font-semibold ${c.text}`}>KI-Tipps · Termine & wichtige Mails</h2>
                   <p className={`text-xs ${c.textSecondary}`}>
                     {isAvailable ? activeModel : 'Ollama nicht aktiv'}
+                    {briefLastUpdated && !aiLoading && (
+                      <span className="ml-2 opacity-60">
+                        · {new Date(briefLastUpdated).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
