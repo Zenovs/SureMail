@@ -2778,15 +2778,45 @@ ipcMain.handle('graph:sendEmail', async (event, accountId, emailData) => {
         return { emailAddress: { address: addr.trim() } };
       });
 
+    // Attachments: Graph /sendMail supports up to 3 MB per file.
+    // Files are loaded as base64 in the renderer (FileReader.readAsDataURL → split(',')[1]).
+    const GRAPH_ATTACH_LIMIT = 3 * 1024 * 1024; // 3 MB in bytes
+    const rawAttachments = emailData.attachments || [];
+    const oversized = rawAttachments.filter(a => {
+      // base64 string length × 0.75 ≈ byte size
+      const approxBytes = (a.content?.length || 0) * 0.75;
+      return approxBytes > GRAPH_ATTACH_LIMIT;
+    });
+    if (oversized.length > 0) {
+      return {
+        success: false,
+        error: `Anhang zu gross für Microsoft 365 (max. 3 MB pro Datei): ${oversized.map(a => a.filename).join(', ')}. Bitte die Datei zuerst in OneDrive hochladen und den Link teilen.`
+      };
+    }
+
+    const graphAttachments = rawAttachments.map(a => ({
+      '@odata.type': '#microsoft.graph.fileAttachment',
+      name: a.filename,
+      contentType: a.contentType || 'application/octet-stream',
+      contentBytes: a.content, // already base64
+    }));
+
+    // Threading headers for replies
+    const internetMessageHeaders = [];
+    if (emailData.inReplyTo)  internetMessageHeaders.push({ name: 'In-Reply-To', value: emailData.inReplyTo });
+    if (emailData.references) internetMessageHeaders.push({ name: 'References',  value: emailData.references });
+
     const message = {
       subject: emailData.subject || '(Kein Betreff)',
       body: {
         contentType: emailData.html ? 'html' : 'text',
         content: emailData.html || emailData.text || ''
       },
-      toRecipients: parseAddrs(emailData.to),
-      ccRecipients: parseAddrs(emailData.cc),
-      bccRecipients: parseAddrs(emailData.bcc)
+      toRecipients:  parseAddrs(emailData.to),
+      ccRecipients:  parseAddrs(emailData.cc),
+      bccRecipients: parseAddrs(emailData.bcc),
+      ...(graphAttachments.length > 0 && { attachments: graphAttachments }),
+      ...(internetMessageHeaders.length > 0 && { internetMessageHeaders }),
     };
 
     await graphRequest(accountId, 'POST', '/me/sendMail', { message, saveToSentItems: true });
