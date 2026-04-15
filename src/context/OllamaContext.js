@@ -13,6 +13,8 @@ export const OllamaProvider = ({ children }) => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(null);
+  // Lite-Modus: KI-Funktionen deaktivieren
+  const [isAiEnabled, setIsAiEnabledState] = useState(() => localStorage.getItem('settings.aiEnabled') !== 'false');
   // v1.8.0: Email context for AI access
   const [emailContext, setEmailContext] = useState(null);
 
@@ -32,8 +34,22 @@ export const OllamaProvider = ({ children }) => {
     loadSettings();
   }, []);
 
+  const setAiEnabled = useCallback((enabled) => {
+    localStorage.setItem('settings.aiEnabled', enabled ? 'true' : 'false');
+    setIsAiEnabledState(enabled);
+    if (!enabled) {
+      setIsAvailable(false);
+      setIsChecking(false);
+    }
+  }, []);
+
   // Check Ollama availability
   const checkOllama = useCallback(async () => {
+    if (localStorage.getItem('settings.aiEnabled') === 'false') {
+      setIsAvailable(false);
+      setIsChecking(false);
+      return false;
+    }
     setIsChecking(true);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
@@ -611,9 +627,11 @@ Bitte beantworte die Anfrage des Benutzers basierend auf diesen E-Mails. Wenn de
     isGenerating,
     downloadProgress,
     emailContext, // v1.8.0
-    
+    isAiEnabled,
+
     // Actions
     checkOllama,
+    setAiEnabled,
     sendMessage,
     sendMessageStreaming,
     generate,

@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { id: 'calendar',  label: 'Kalender',    Icon: Calendar         },
 ];
 
-function SidebarV2({ currentView, onNavigate }) {
+function SidebarV2({ currentView, onNavigate, hideDashboard = false }) {
   const { currentTheme } = useTheme();
   const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId } = useAccounts();
   const accountStats = useAccountStats();
@@ -169,7 +169,7 @@ function SidebarV2({ currentView, onNavigate }) {
 
       {/* Main Navigation */}
       <nav className="p-3 space-y-0.5">
-        {NAV_ITEMS.map(item => {
+        {NAV_ITEMS.filter(item => !(item.id === 'dashboard' && hideDashboard)).map(item => {
           const isActive = currentView === item.id;
           const { Icon } = item;
           return (

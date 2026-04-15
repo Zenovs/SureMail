@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Settings, Mail, Shield, Users, Type, MessageCircle,
   PanelLeft, Tag, Bell, PenLine, FolderDown, Languages, RefreshCw,
-  Palette, Info
+  Palette, Info, Zap
 } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
+import { useOllama } from '../context/OllamaContext';
 import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
 import SignatureEditor from './SignatureEditor';
@@ -19,10 +20,17 @@ import TranslationSettings from './TranslationSettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
+  const { isAiEnabled, setAiEnabled } = useOllama();
   const c = currentTheme.colors;
   const [activeTab, setActiveTab] = useState('general');
   const [downloadPath, setDownloadPath] = useState('');
-  const [appVersion, setAppVersion] = useState('...');
+  const [appVersion, setAppVersion] = useState('');
+  const [hideDashboard, setHideDashboardState] = useState(() => localStorage.getItem('settings.hideDashboard') === 'true');
+
+  const toggleHideDashboard = (val) => {
+    localStorage.setItem('settings.hideDashboard', val ? 'true' : 'false');
+    setHideDashboardState(val);
+  };
 
   useEffect(() => {
     loadDownloadPath();
@@ -199,6 +207,54 @@ function SettingsV2() {
                   <span className={c.text}>20.x</span>
                 </div>
               </div>
+            </div>
+
+            {/* Lite-Modus */}
+            <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
+              <h3 className={`text-lg font-semibold ${c.text} mb-1 flex items-center gap-2`}>
+                <Zap className="w-4 h-4 text-yellow-400" /> Lite-Modus
+              </h3>
+              <p className={`text-sm ${c.textSecondary} mb-5`}>
+                Für ressourcenarme Geräte (z.B. Raspberry Pi). Deaktiviert ressourcenintensive Funktionen.
+              </p>
+              <div className="space-y-4">
+                {/* KI deaktivieren */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className={`text-sm font-medium ${c.text}`}>KI-Funktionen deaktivieren</p>
+                    <p className={`text-xs ${c.textSecondary} mt-0.5`}>
+                      Deaktiviert Ollama-Verbindung, KI-Zusammenfassung, Textverbesserung und den KI-Chat.
+                      Spart CPU, RAM und Netzwerkanfragen.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setAiEnabled(!isAiEnabled)}
+                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${isAiEnabled ? 'bg-cyan-600' : 'bg-gray-600'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${isAiEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+                {/* Dashboard ausblenden */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className={`text-sm font-medium ${c.text}`}>Dashboard ausblenden</p>
+                    <p className={`text-xs ${c.textSecondary} mt-0.5`}>
+                      Startet CoreMail direkt im Posteingang. Entfernt das Dashboard aus der Navigation.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => toggleHideDashboard(!hideDashboard)}
+                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${hideDashboard ? 'bg-cyan-600' : 'bg-gray-600'}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${hideDashboard ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              </div>
+              {(hideDashboard || !isAiEnabled) && (
+                <p className={`mt-4 text-xs ${c.textSecondary} border-t ${c.border} pt-3`}>
+                  Änderungen wirken sich vollständig nach einem Neustart von CoreMail aus.
+                </p>
+              )}
             </div>
 
             {/* Hinweise */}

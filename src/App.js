@@ -89,7 +89,10 @@ function AppContent() {
   const { setActiveAccountId, accounts, updateAccountStats } = useAccounts();
   const { isAvailable, isChecking, checkOllama, setCurrentEmailContext } = useOllama();
   const { openSearch, toggleSearch } = useSearch();
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [hideDashboard] = useState(() => localStorage.getItem('settings.hideDashboard') === 'true');
+  const [currentView, setCurrentView] = useState(() =>
+    localStorage.getItem('settings.hideDashboard') === 'true' ? 'inbox' : 'dashboard'
+  );
   const [fullViewEmail, setFullViewEmail] = useState(null);
   const [currentFolder, setCurrentFolder] = useState('INBOX');
   const [composeData, setComposeData] = useState(null); // v1.8.0: For reply/forward
@@ -265,17 +268,25 @@ function AppContent() {
     setCurrentView('emailView');
   }, [setActiveAccountId, setCurrentEmailContext, setCurrentView, setCurrentFolder, setFullViewEmail]);
 
+  const handleNavigate = useCallback((view) => {
+    if (view === 'dashboard' && hideDashboard) {
+      setCurrentView('inbox');
+    } else {
+      setCurrentView(view);
+    }
+  }, [hideDashboard]);
+
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':
         return (
-          <Dashboard 
-            onNavigate={setCurrentView} 
+          <Dashboard
+            onNavigate={handleNavigate}
             onSelectAccount={setActiveAccountId}
           />
         );
       case 'inbox':
-        return <InboxSplitView onFullView={handleFullView} onNavigate={setCurrentView} />;
+        return <InboxSplitView onFullView={handleFullView} onNavigate={handleNavigate} />;
       case 'compose':
         return (
           <ComposeEmail 
@@ -303,7 +314,9 @@ function AppContent() {
           />
         );
       default:
-        return <Dashboard onNavigate={setCurrentView} onSelectAccount={setActiveAccountId} />;
+        return hideDashboard
+          ? <InboxSplitView onFullView={handleFullView} onNavigate={handleNavigate} />
+          : <Dashboard onNavigate={handleNavigate} onSelectAccount={setActiveAccountId} />;
     }
   };
 
@@ -326,7 +339,7 @@ function AppContent() {
       )}
       <ErrorBoundary>
       <div className="flex flex-1 overflow-hidden min-h-0">
-      <SidebarV2 currentView={currentView} onNavigate={setCurrentView} />
+      <SidebarV2 currentView={currentView} onNavigate={handleNavigate} hideDashboard={hideDashboard} />
       <main className="flex-1 flex flex-col overflow-hidden min-h-0">
         <ErrorBoundary>
           {renderContent()}

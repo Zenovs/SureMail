@@ -66,7 +66,8 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
   const { currentTheme } = useTheme();
   const { accounts, setActiveAccountId } = useAccounts();
   const accountStats = useAccountStats();
-  const { isAvailable, activeModel } = useOllama();
+  const { isAvailable, isAiEnabled, activeModel } = useOllama();
+  const showAi = isAiEnabled && isAvailable;
   const c = currentTheme.colors;
 
   const [now, setNow]                   = useState(new Date());
@@ -629,7 +630,7 @@ ${emailLines}`;
                 <div>
                   <h2 className={`text-sm font-semibold ${c.text}`}>KI-Tipps · Termine & wichtige Mails</h2>
                   <p className={`text-xs ${c.textSecondary}`}>
-                    {isAvailable ? activeModel : 'Ollama nicht aktiv'}
+                    {showAi ? activeModel : (!isAiEnabled ? 'KI deaktiviert' : 'Ollama nicht aktiv')}
                     {briefLastUpdated && !aiLoading && (
                       <span className="ml-2 opacity-60">
                         · {new Date(briefLastUpdated).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}
@@ -638,7 +639,7 @@ ${emailLines}`;
                   </p>
                 </div>
               </div>
-              {isAvailable && (
+              {showAi && (
                 <button
                   onClick={generateBrief}
                   disabled={aiLoading}
@@ -652,15 +653,24 @@ ${emailLines}`;
 
             {/* Brief content */}
             <div className="flex-1">
-              {!isAvailable && (
+              {!showAi && (
                 <div className={`flex items-start gap-3 p-4 rounded-xl ${c.bgTertiary}`}>
                   <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className={`text-sm font-medium ${c.text} mb-0.5`}>Ollama nicht erreichbar</p>
-                    <p className={`text-xs ${c.textSecondary}`}>
-                      Starte Ollama:{' '}
-                      <code className="font-mono text-cyan-400">ollama serve</code>
-                    </p>
+                    {!isAiEnabled ? (
+                      <>
+                        <p className={`text-sm font-medium ${c.text} mb-0.5`}>KI-Funktionen deaktiviert</p>
+                        <p className={`text-xs ${c.textSecondary}`}>Aktiviere den KI-Assistenten unter Einstellungen → Allgemein</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className={`text-sm font-medium ${c.text} mb-0.5`}>Ollama nicht erreichbar</p>
+                        <p className={`text-xs ${c.textSecondary}`}>
+                          Starte Ollama:{' '}
+                          <code className="font-mono text-cyan-400">ollama serve</code>
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -685,7 +695,7 @@ ${emailLines}`;
                   )}
                 </p>
               )}
-              {isAvailable && !aiLoading && !aiBrief && !aiError && accounts.length === 0 && (
+              {showAi && !aiLoading && !aiBrief && !aiError && accounts.length === 0 && (
                 <p className={`text-sm ${c.textSecondary} italic`}>
                   Füge ein Konto hinzu, damit die KI deine Mails zusammenfassen kann.
                 </p>
@@ -855,9 +865,9 @@ ${emailLines}`;
               <div>
                 <h2 className={`text-sm font-semibold ${c.text}`}>KI-Sekretär</h2>
                 <p className={`text-xs ${c.textSecondary}`}>
-                  {isAvailable
+                  {showAi
                     ? 'Frag mich zu Terminen, Mails, Prioritäten — ich kenne deinen vollen Kontext'
-                    : 'Ollama nicht aktiv — starte mit: ollama serve'}
+                    : (!isAiEnabled ? 'KI deaktiviert — aktivierbar unter Einstellungen' : 'Ollama nicht aktiv — starte mit: ollama serve')}
                 </p>
               </div>
             </div>
@@ -884,7 +894,7 @@ ${emailLines}`;
                 <p className={`text-sm ${c.textSecondary} mb-4`}>
                   Ich kenne deine Termine und Mails — frag mich einfach
                 </p>
-                {isAvailable && (
+                {showAi && (
                   <div className="flex flex-wrap gap-2 justify-center max-w-lg">
                     {[
                       'Was sind meine dringendsten Aufgaben heute?',
@@ -960,8 +970,8 @@ ${emailLines}`;
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={handleChatKeyDown}
-                placeholder={isAvailable ? 'Frag mich etwas… (Enter zum Senden, Shift+Enter für Zeilenumbruch)' : 'Ollama nicht aktiv'}
-                disabled={!isAvailable || chatLoading}
+                placeholder={showAi ? 'Frag mich etwas… (Enter zum Senden, Shift+Enter für Zeilenumbruch)' : (!isAiEnabled ? 'KI deaktiviert' : 'Ollama nicht aktiv')}
+                disabled={!showAi || chatLoading}
                 rows={1}
                 className={`flex-1 px-4 py-2.5 rounded-xl text-sm resize-none ${c.input} border disabled:opacity-40 focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all`}
                 style={{ maxHeight: 120, minHeight: 42 }}
@@ -972,7 +982,7 @@ ${emailLines}`;
               />
               <button
                 onClick={sendChatMessage}
-                disabled={!isAvailable || chatLoading || !chatInput.trim()}
+                disabled={!showAi || chatLoading || !chatInput.trim()}
                 className="w-10 h-10 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0"
               >
                 <Send className="w-4 h-4 text-white" />

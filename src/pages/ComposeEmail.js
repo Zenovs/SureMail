@@ -205,7 +205,8 @@ function EmailTagInput({ label, tags, onChange, placeholder, c, isLarge = false 
 function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, accounts } = useAccounts();
-  const { isAvailable: aiAvailable, suggestReply, improveText } = useOllama();
+  const { isAvailable: aiAvailable, isAiEnabled, suggestReply, improveText } = useOllama();
+  const showAi = isAiEnabled && aiAvailable;
   const c = currentTheme.colors;
 
   // Normalise: App.js passes composeData, some callers pass replyTo directly
@@ -629,7 +630,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
             >
               🧩 Vorlagen
             </button>
-            {aiAvailable && (
+            {showAi && (
               <button
                 onClick={() => setShowAiPanel(!showAiPanel)}
                 className={`px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1 ${
@@ -989,7 +990,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
         </div>
 
         {/* KI-Panel */}
-        {showAiPanel && aiAvailable && (
+        {showAiPanel && showAi && (
           <div className={`w-72 ${c.bgSecondary} ${c.border} border-l flex flex-col flex-shrink-0`}>
             <div className={`p-4 border-b ${c.border} flex items-center justify-between`}>
               <h3 className={`font-semibold ${c.text} flex items-center gap-2 text-sm`}>

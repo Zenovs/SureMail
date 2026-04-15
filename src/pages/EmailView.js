@@ -9,7 +9,8 @@ import EmailHtmlFrame from '../components/EmailHtmlFrame';
 const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolder = 'INBOX' }) => {
   const { currentTheme } = useTheme();
   const { activeAccountId } = useAccounts();
-  const { isAvailable: aiAvailable, summarizeEmail, isGenerating: aiGenerating } = useOllama();
+  const { isAvailable: aiAvailable, isAiEnabled, summarizeEmail, isGenerating: aiGenerating } = useOllama();
+  const showAi = isAiEnabled && aiAvailable;
   const [fullEmail, setFullEmail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -347,7 +348,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
             <div className={`w-px h-6 ${c.border} mx-2`} />
 
             {/* AI Summarize */}
-            {aiAvailable && (
+            {showAi && (
               <button
                 onClick={handleSummarize}
                 disabled={summarizing}
