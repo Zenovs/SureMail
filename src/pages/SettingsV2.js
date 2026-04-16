@@ -221,10 +221,11 @@ function SettingsV2() {
                 {/* KI deaktivieren */}
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className={`text-sm font-medium ${c.text}`}>KI-Funktionen deaktivieren</p>
-                    <p className={`text-xs ${c.textSecondary} mt-0.5`}>
-                      Deaktiviert Ollama-Verbindung, KI-Zusammenfassung, Textverbesserung und den KI-Chat.
-                      Spart CPU, RAM und Netzwerkanfragen.
+                    <p className={`text-sm font-medium ${c.text}`}>KI-Funktionen</p>
+                    <p className={`text-xs mt-0.5 ${isAiEnabled ? 'text-cyan-400' : c.textSecondary}`}>
+                      {isAiEnabled
+                        ? 'KI-Funktion ist nun aktiviert'
+                        : 'KI-Funktion ist nun deaktiviert'}
                     </p>
                   </div>
                   <button
@@ -237,9 +238,11 @@ function SettingsV2() {
                 {/* Dashboard ausblenden */}
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className={`text-sm font-medium ${c.text}`}>Dashboard ausblenden</p>
-                    <p className={`text-xs ${c.textSecondary} mt-0.5`}>
-                      Startet CoreMail direkt im Posteingang. Entfernt das Dashboard aus der Navigation.
+                    <p className={`text-sm font-medium ${c.text}`}>Dashboard</p>
+                    <p className={`text-xs mt-0.5 ${!hideDashboard ? 'text-cyan-400' : c.textSecondary}`}>
+                      {hideDashboard
+                        ? 'Dein Dashboard ist nun deaktiviert'
+                        : 'Dein Dashboard ist nun aktiviert'}
                     </p>
                   </div>
                   <button
