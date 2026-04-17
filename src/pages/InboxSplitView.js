@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe, Loader2, FolderPlus, Pencil } from 'lucide-react';
+import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe, Loader2, FolderPlus, Pencil, Paperclip } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -557,6 +557,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
   const [replyMode, setReplyMode] = useState(null); // null | 'reply' | 'replyAll'
   const [replySending, setReplySending] = useState(false);
   const [replyError, setReplyError] = useState(null);
+  const [replyAttachments, setReplyAttachments] = useState([]);
+  const replyFileInputRef = useRef(null);
 
   // Toast for IndexedDB quota warning
   const [showQuotaWarning, setShowQuotaWarning] = useState(false);
@@ -1439,8 +1441,27 @@ function InboxSplitView({ onFullView, onNavigate }) {
     setReplyMode(null);
     setReplyError(null);
     setAttachProgress({});
+    setReplyAttachments([]);
     if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
   }, [selectedEmail?.uid]);
+
+  // Read files into base64 for inline reply
+  const addReplyFiles = useCallback((files) => {
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result.split(',')[1];
+        setReplyAttachments(prev => [...prev, {
+          id: `${file.name}-${Date.now()}`,
+          filename: file.name,
+          contentType: file.type || 'application/octet-stream',
+          content: base64,
+          size: file.size,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  }, []);
 
   // v2.9.3: Send inline reply
   const handleSendReply = useCallback(async () => {
@@ -1469,7 +1490,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       subject: selectedEmail.subject?.startsWith('Re:') ? selectedEmail.subject : `Re: ${selectedEmail.subject || ''}`,
       text: replyEditorRef.current.innerText || '',
       html: fullHtml,
-      attachments: [],
+      attachments: replyAttachments.map(a => ({ filename: a.filename, content: a.content, contentType: a.contentType })),
     };
 
     try {
@@ -1481,6 +1502,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       }
       if (result?.success) {
         setReplyMode(null);
+        setReplyAttachments([]);
         if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
       } else {
         setReplyError(result?.error || 'Senden fehlgeschlagen');
@@ -1489,7 +1511,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
       setReplyError(e.message);
     }
     setReplySending(false);
-  }, [selectedEmail, replyMode, activeAccountId, accounts]);
+  }, [selectedEmail, replyMode, activeAccountId, accounts, replyAttachments]);
 
   // v3.0.2: Save single attachment via Electron API, then open if requested
   const saveAttachment = useCallback(async (att, index, andOpen = false) => {
@@ -2440,7 +2462,46 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     >
                       ✕
                     </button>
+                    <div className={`w-px h-4 ${c.border} border-l mx-1`} />
+                    <button
+                      onClick={() => replyFileInputRef.current?.click()}
+                      title="Anhang hinzufügen"
+                      className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${replyAttachments.length > 0 ? 'text-cyan-400' : c.textSecondary} hover:text-cyan-400`}
+                    >
+                      <Paperclip className="w-3.5 h-3.5" />
+                    </button>
+                    <input
+                      ref={replyFileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={e => { addReplyFiles(e.target.files); e.target.value = ''; }}
+                    />
+                    {replyAttachments.length > 0 && (
+                      <span className={`ml-1 text-xs ${c.textSecondary}`}>
+                        📎 {replyAttachments.length}
+                      </span>
+                    )}
                   </div>
+
+                  {/* Reply attachments list */}
+                  {replyAttachments.length > 0 && (
+                    <div className={`px-3 py-2 border-b ${c.border} flex flex-wrap gap-1.5`}>
+                      {replyAttachments.map(att => (
+                        <div key={att.id} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg ${c.bgTertiary} border ${c.border} text-xs`}>
+                          <span className={c.textSecondary}>📎</span>
+                          <span className={`${c.text} max-w-[120px] truncate`}>{att.filename}</span>
+                          <span className={c.textSecondary}>({(att.size / 1024).toFixed(0)} KB)</span>
+                          <button
+                            onClick={() => setReplyAttachments(prev => prev.filter(a => a.id !== att.id))}
+                            className={`${c.textSecondary} hover:text-red-400 transition-colors`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Reply editor — paste handler strips HTML to prevent XSS */}
                   <div

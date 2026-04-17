@@ -3,7 +3,8 @@ import {
   RefreshCw, Mail, Calendar, Send, Inbox, Brain,
   AlertCircle, CheckCircle2, ChevronRight, Settings, MapPin,
   MessageSquare, User, Sparkles, Trash2, Bell,
-  Plus, X, Eye, Clock, ChevronDown, ChevronUp
+  Plus, X, Eye, Clock, ChevronDown, ChevronUp,
+  Bot, Play
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
@@ -14,6 +15,8 @@ const BRIEF_CACHE_KEY   = 'coremail:dashboard-brief';
 const CHAT_HISTORY_KEY  = 'coremail:dashboard-chat';
 const WATCH_LIST_KEY    = 'coremail:watch-list';
 const NOTIFIED_KEY      = 'coremail:notified-ids';
+const AUTO_RULES_KEY    = 'coremail:auto-rules';
+const AUTO_PROCESSED_KEY = 'coremail:auto-processed';
 const BRIEF_TTL_MS      = 60 * 60 * 1000; // 1 hour
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -60,6 +63,23 @@ function saveNotifiedIds(set) {
     localStorage.setItem(NOTIFIED_KEY, JSON.stringify(arr));
   } catch { /* quota */ }
 }
+function loadAutoRules() {
+  try { return JSON.parse(localStorage.getItem(AUTO_RULES_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveAutoRules(list) {
+  try { localStorage.setItem(AUTO_RULES_KEY, JSON.stringify(list)); } catch { /* quota */ }
+}
+function loadProcessedIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(AUTO_PROCESSED_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function saveProcessedIds(set) {
+  try {
+    const arr = [...set].slice(-1000);
+    localStorage.setItem(AUTO_PROCESSED_KEY, JSON.stringify(arr));
+  } catch { /* quota */ }
+}
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard({ onNavigate, onSelectAccount }) {
@@ -84,6 +104,13 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
   const [watchList, setWatchListState]  = useState(loadWatchList);
   const [watchInput, setWatchInput]     = useState('');
   const [showWatches, setShowWatches]   = useState(false);
+
+  // ── Auto-rules ─────────────────────────────────────────────────────────────
+  const [autoRules, setAutoRulesState]  = useState(loadAutoRules);
+  const [ruleInput, setRuleInput]       = useState('');
+  const [showRules, setShowRules]       = useState(false);
+  const [rulesRunning, setRulesRunning] = useState(false);
+  const [rulesLog, setRulesLog]         = useState('');
   const notifiedIdsRef = useRef(loadNotifiedIds());
   const notifiedEventsRef = useRef(new Set()); // event IDs notified this session
 
@@ -103,6 +130,123 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
   const removeWatch = useCallback((id) => {
     setWatchList(watchList.filter(w => w.id !== id));
   }, [watchList, setWatchList]);
+
+  // ── Auto-rules callbacks ────────────────────────────────────────────────────
+  const setAutoRules = useCallback((list) => {
+    setAutoRulesState(list);
+    saveAutoRules(list);
+  }, []);
+
+  const addRule = useCallback(() => {
+    const text = ruleInput.trim();
+    if (!text) return;
+    setAutoRules([...autoRules, { id: Date.now().toString(), text, enabled: true, addedAt: new Date().toISOString() }]);
+    setRuleInput('');
+  }, [ruleInput, autoRules, setAutoRules]);
+
+  const removeRule = useCallback((id) => {
+    setAutoRules(autoRules.filter(r => r.id !== id));
+  }, [autoRules, setAutoRules]);
+
+  const toggleRule = useCallback((id) => {
+    setAutoRules(autoRules.map(r => r.id === id ? { ...r, enabled: r.enabled === false } : r));
+  }, [autoRules, setAutoRules]);
+
+  const runAutoRules = useCallback(async () => {
+    if (!showAi) return;
+    const enabledRules = autoRules.filter(r => r.enabled !== false);
+    if (enabledRules.length === 0) return;
+
+    const allEmails = await getAllEmails();
+    const processed = loadProcessedIds();
+    const newEmails = allEmails.filter(e => !processed.has(`${e.accountId}:${e.uid}`));
+
+    // Mark all as processed regardless — avoids re-checking on next sync
+    allEmails.forEach(e => processed.add(`${e.accountId}:${e.uid}`));
+    saveProcessedIds(processed);
+
+    if (newEmails.length === 0) return;
+
+    setRulesRunning(true);
+    setRulesLog('');
+    try {
+      const rulesText = enabledRules.map((r, i) => `${i + 1}. ${r.text}`).join('\n');
+      const emailsText = newEmails.slice(0, 30).map(e => {
+        const acc = accounts.find(a => a.id === e.accountId);
+        const accountType = acc?.type === 'microsoft' ? 'graph' : 'imap';
+        return `uid:"${e.uid}" accountId:"${e.accountId}" accountType:"${accountType}" from:"${e.from}" subject:"${e.subject}" preview:"${(e.preview || '').slice(0, 80)}"`;
+      }).join('\n');
+
+      const messages = [
+        {
+          role: 'system',
+          content: `Du bist ein E-Mail-Automatisierungs-Assistent. Wende die Regeln auf die E-Mails an.
+Antworte NUR mit einem JSON-Array, kein anderer Text, keine Erklärungen, kein Markdown.
+Mögliche Aktionen:
+- move: { "action":"move", "uid":"...", "accountId":"...", "accountType":"imap|graph", "destFolder":"Ordnername" }
+- markRead: { "action":"markRead", "uid":"...", "accountId":"...", "accountType":"imap|graph" }
+Wenn keine Regel zutrifft: []`
+        },
+        {
+          role: 'user',
+          content: `REGELN:\n${rulesText}\n\nE-MAILS:\n${emailsText}\n\nJSON-Array mit Aktionen:`
+        }
+      ];
+
+      const resp = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: activeModel, messages, stream: false })
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      const content = data.message?.content || '[]';
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) { setRulesLog(`Keine Aktionen (${newEmails.length} geprüft)`); return; }
+      const actions = JSON.parse(jsonMatch[0]);
+      if (!Array.isArray(actions) || actions.length === 0) {
+        setRulesLog(`Keine Aktionen (${newEmails.length} geprüft)`);
+        return;
+      }
+
+      let done = 0;
+      for (const act of actions) {
+        try {
+          const { action, uid, accountId, accountType, destFolder } = act;
+          if (action === 'move' && destFolder) {
+            if (accountType === 'graph') {
+              const res = await window.electronAPI.listGraphFolders(accountId);
+              const folder = (res?.folders || []).find(f => f.name.toLowerCase() === destFolder.toLowerCase());
+              if (folder) { await window.electronAPI.moveGraphEmail(accountId, uid, folder.id); done++; }
+            } else {
+              await window.electronAPI.moveEmail(accountId, uid, 'INBOX', destFolder);
+              done++;
+            }
+          } else if (action === 'markRead') {
+            if (accountType === 'graph') {
+              await window.electronAPI.markGraphAsRead(accountId, uid, true);
+            } else {
+              await window.electronAPI.markAsRead(accountId, uid, true, 'INBOX');
+            }
+            done++;
+          }
+        } catch (e) { console.error('[AutoRules] action failed:', e); }
+      }
+      setRulesLog(`${done} Aktion${done !== 1 ? 'en' : ''} ausgeführt`);
+    } catch (err) {
+      console.error('[AutoRules]', err);
+      setRulesLog(`Fehler: ${err.message}`);
+    } finally {
+      setRulesRunning(false);
+    }
+  }, [showAi, autoRules, getAllEmails, accounts, activeModel]);
+
+  // Run auto-rules on every background sync
+  useEffect(() => {
+    const handler = () => runAutoRules();
+    window.addEventListener('coremail:bgSync', handler);
+    return () => window.removeEventListener('coremail:bgSync', handler);
+  }, [runAutoRules]);
 
   // ── Chat state ──────────────────────────────────────────────────────────────
   const [chatMessages, setChatMessages] = useState(() => {
@@ -542,6 +686,9 @@ ${emailLines}`;
   const handleWatchKeyDown = (e) => {
     if (e.key === 'Enter') { e.preventDefault(); addWatch(); }
   };
+  const handleRuleKeyDown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addRule(); }
+  };
   const clearChat = () => {
     setChatMessages([]);
     setChatError(null);
@@ -754,6 +901,89 @@ ${emailLines}`;
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── KI-Automatik-Regeln ───────────────────────────────────── */}
+            <div className={`border-t ${c.border} pt-3`}>
+              <button
+                onClick={() => setShowRules(v => !v)}
+                className={`flex items-center gap-2 text-xs font-medium ${c.textSecondary} transition-colors w-full`}
+              >
+                <Bot className="w-3.5 h-3.5 text-violet-400" />
+                <span className="text-violet-400">KI-Automatik</span>
+                {autoRules.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-400 text-xs">
+                    {autoRules.filter(r => r.enabled !== false).length}/{autoRules.length}
+                  </span>
+                )}
+                {rulesRunning && <RefreshCw className="w-3 h-3 text-violet-400 animate-spin ml-1" />}
+                {rulesLog && !rulesRunning && (
+                  <span className="ml-1 text-xs text-green-400 truncate max-w-[140px]">{rulesLog}</span>
+                )}
+                <span className="ml-auto flex items-center gap-2">
+                  {showAi && autoRules.filter(r => r.enabled !== false).length > 0 && (
+                    <span
+                      role="button"
+                      onClick={e => { e.stopPropagation(); runAutoRules(); }}
+                      className={`p-0.5 rounded text-violet-400 hover:text-violet-300 transition-colors ${rulesRunning ? 'opacity-40 pointer-events-none' : ''}`}
+                      title="Regeln jetzt ausführen"
+                    >
+                      <Play className="w-3 h-3" />
+                    </span>
+                  )}
+                  {showRules ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </span>
+              </button>
+
+              {showRules && (
+                <div className="mt-3 space-y-2">
+                  <p className={`text-xs ${c.textSecondary}`}>
+                    Regeln in natürlicher Sprache — die KI führt sie bei jedem Sync automatisch aus.
+                  </p>
+                  {autoRules.map(r => (
+                    <div key={r.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${c.bgTertiary} border ${r.enabled !== false ? 'border-violet-500/25' : c.border}`}>
+                      <button
+                        onClick={() => toggleRule(r.id)}
+                        title={r.enabled !== false ? 'Deaktivieren' : 'Aktivieren'}
+                        className={`flex-shrink-0 w-3.5 h-3.5 rounded border transition-colors flex items-center justify-center ${
+                          r.enabled !== false ? 'bg-violet-500 border-violet-500' : `${c.bgTertiary} border-gray-500`
+                        }`}
+                      >
+                        {r.enabled !== false && <span className="text-white text-[8px] leading-none">✓</span>}
+                      </button>
+                      <span className={`text-xs flex-1 ${r.enabled !== false ? c.text : c.textSecondary}`}>{r.text}</span>
+                      <button
+                        onClick={() => removeRule(r.id)}
+                        className={`p-0.5 rounded ${c.textSecondary} hover:text-red-400 transition-colors`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={ruleInput}
+                      onChange={e => setRuleInput(e.target.value)}
+                      onKeyDown={handleRuleKeyDown}
+                      placeholder='z.B. Verschiebe Mails von @xyz.ch in Ordner "xyz"'
+                      className={`flex-1 px-3 py-2 rounded-lg text-xs ${c.input} border focus:outline-none focus:ring-1 focus:ring-violet-500/50`}
+                    />
+                    <button
+                      onClick={addRule}
+                      disabled={!ruleInput.trim()}
+                      className="px-3 py-2 rounded-lg bg-violet-500/80 hover:bg-violet-500 disabled:opacity-40 text-white transition-colors flex-shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {!showAi && (
+                    <p className={`text-xs ${c.textSecondary} italic`}>
+                      KI (Ollama) muss aktiv sein um Regeln auszuführen.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
