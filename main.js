@@ -2602,7 +2602,7 @@ async function graphRequest(accountId, method, apiPath, body, extraHeaders = {},
 
   const resp = await fetch(`https://graph.microsoft.com/v1.0${apiPath}`, opts);
 
-  if (resp.status === 204) return null; // No content (DELETE/PATCH)
+  if (resp.status === 204 || resp.status === 202) return null; // No content
 
   // Retry on 429 (rate limit) or 503 (service unavailable), up to 3 times
   if ((resp.status === 429 || resp.status === 503) && _retryCount < 3) {
@@ -2617,7 +2617,9 @@ async function graphRequest(accountId, method, apiPath, body, extraHeaders = {},
     const errText = await resp.text().catch(() => '');
     throw new Error(`Graph ${resp.status}: ${errText.slice(0, 200)}`);
   }
-  return resp.json();
+  const text = await resp.text();
+  if (!text) return null;
+  return JSON.parse(text);
 }
 
 function normalizeGraphEmail(msg) {
