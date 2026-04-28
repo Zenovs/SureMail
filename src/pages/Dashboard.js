@@ -131,6 +131,28 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     setWatchList(watchList.filter(w => w.id !== id));
   }, [watchList, setWatchList]);
 
+  // ── Collect ALL recent emails from IndexedDB ────────────────────────────
+  const getAllEmails = useCallback(async () => {
+    const all = [];
+    for (const acc of accounts) {
+      const emails = await readCachedEmails(acc.id);
+      const sorted = [...emails].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      sorted.slice(0, 50).forEach(e => all.push({
+        uid: e.uid || '',
+        account: acc.displayName || acc.name || acc.email || acc.id,
+        accountId: acc.id,
+        from: e.from || '',
+        to: e.to || '',
+        subject: e.subject || '',
+        preview: (e.preview || e.text || '').slice(0, 500),
+        date: e.date ? new Date(e.date).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '',
+        rawDate: e.date || null,
+        seen: !!e.seen,
+      }));
+    }
+    return all.sort((a, b) => new Date(b.rawDate || 0) - new Date(a.rawDate || 0)).slice(0, 150);
+  }, [accounts]);
+
   // ── Auto-rules callbacks ────────────────────────────────────────────────────
   const setAutoRules = useCallback((list) => {
     setAutoRulesState(list);
@@ -345,28 +367,6 @@ Wenn keine Regel zutrifft: []`
     };
     if (accounts.length > 0) load();
     else setCalReady(true);
-  }, [accounts]);
-
-  // ── Collect ALL recent emails from IndexedDB ────────────────────────────
-  const getAllEmails = useCallback(async () => {
-    const all = [];
-    for (const acc of accounts) {
-      const emails = await readCachedEmails(acc.id);
-      const sorted = [...emails].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-      sorted.slice(0, 50).forEach(e => all.push({
-        uid: e.uid || '',
-        account: acc.displayName || acc.name || acc.email || acc.id,
-        accountId: acc.id,
-        from: e.from || '',
-        to: e.to || '',
-        subject: e.subject || '',
-        preview: (e.preview || e.text || '').slice(0, 500),
-        date: e.date ? new Date(e.date).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '',
-        rawDate: e.date || null,
-        seen: !!e.seen,
-      }));
-    }
-    return all.sort((a, b) => new Date(b.rawDate || 0) - new Date(a.rawDate || 0)).slice(0, 150);
   }, [accounts]);
 
   // ── Proactive notifications ─────────────────────────────────────────────
