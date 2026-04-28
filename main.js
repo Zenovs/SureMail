@@ -1978,6 +1978,12 @@ ipcMain.handle('imap:moveEmail', async (event, accountId, uid, sourceFolder, des
   try {
     const config = getImapConfigForAccount(account);
     connection = await imapSimple.connect(config);
+
+    // Create destination folder if it doesn't exist
+    try {
+      await connection.imap.addBox(destFolder);
+    } catch (_) { /* already exists — ignore */ }
+
     await connection.openBox(sourceFolder);
 
     // Copy to destination folder

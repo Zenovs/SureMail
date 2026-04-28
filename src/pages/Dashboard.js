@@ -164,6 +164,8 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     if (!text) return;
     setAutoRules([...autoRules, { id: Date.now().toString(), text, enabled: true, addedAt: new Date().toISOString() }]);
     setRuleInput('');
+    // Clear processed IDs so existing emails are re-evaluated with the new rule
+    try { localStorage.removeItem(AUTO_PROCESSED_KEY); } catch { /* ignore */ }
   }, [ruleInput, autoRules, setAutoRules]);
 
   const removeRule = useCallback((id) => {
@@ -183,16 +185,22 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
     const processed = loadProcessedIds();
     const newEmails = allEmails.filter(e => !processed.has(`${e.accountId}:${e.uid}`));
 
-    // Mark all as processed regardless — avoids re-checking on next sync
-    allEmails.forEach(e => processed.add(`${e.accountId}:${e.uid}`));
-    saveProcessedIds(processed);
-
     if (newEmails.length === 0) return;
 
     setRulesRunning(true);
     setRulesLog('');
     try {
       const rulesText = enabledRules.map((r, i) => `${i + 1}. ${r.text}`).join('\n');
+
+      // Include account email so AI can match account-specific rules
+      const accountsInfo = accounts.map(a => {
+        const email = a.type === 'microsoft'
+          ? (a.microsoft?.email || a.name)
+          : (a.smtp?.fromEmail || a.smtp?.username || a.name);
+        const type = a.type === 'microsoft' ? 'graph' : 'imap';
+        return `id:"${a.id}" email:"${email}" type:${type}`;
+      }).join('\n');
+
       const emailsText = newEmails.slice(0, 30).map(e => {
         const acc = accounts.find(a => a.id === e.accountId);
         const accountType = acc?.type === 'microsoft' ? 'graph' : 'imap';
@@ -211,7 +219,7 @@ Wenn keine Regel zutrifft: []`
         },
         {
           role: 'user',
-          content: `REGELN:\n${rulesText}\n\nE-MAILS:\n${emailsText}\n\nJSON-Array mit Aktionen:`
+          content: `KONTEN:\n${accountsInfo}\n\nREGELN:\n${rulesText}\n\nE-MAILS:\n${emailsText}\n\nJSON-Array mit Aktionen:`
         }
       ];
 
@@ -232,6 +240,7 @@ Wenn keine Regel zutrifft: []`
       }
 
       let done = 0;
+      const successfulUids = new Set();
       for (const act of actions) {
         try {
           const { action, uid, accountId, accountType, destFolder } = act;
@@ -239,10 +248,17 @@ Wenn keine Regel zutrifft: []`
             if (accountType === 'graph') {
               const res = await window.electronAPI.listGraphFolders(accountId);
               const folder = (res?.folders || []).find(f => f.name.toLowerCase() === destFolder.toLowerCase());
-              if (folder) { await window.electronAPI.moveGraphEmail(accountId, uid, folder.id); done++; }
+              if (folder) {
+                const r = await window.electronAPI.moveGraphEmail(accountId, uid, folder.id);
+                if (r?.success) { done++; successfulUids.add(`${accountId}:${uid}`); }
+                else console.warn('[AutoRules] graph move failed:', r?.error);
+              } else {
+                console.warn('[AutoRules] graph folder not found:', destFolder);
+              }
             } else {
-              await window.electronAPI.moveEmail(accountId, uid, 'INBOX', destFolder);
-              done++;
+              const r = await window.electronAPI.moveEmail(accountId, uid, 'INBOX', destFolder);
+              if (r?.success) { done++; successfulUids.add(`${accountId}:${uid}`); }
+              else console.warn('[AutoRules] imap move failed:', r?.error);
             }
           } else if (action === 'markRead') {
             if (accountType === 'graph') {
@@ -251,10 +267,19 @@ Wenn keine Regel zutrifft: []`
               await window.electronAPI.markAsRead(accountId, uid, true, 'INBOX');
             }
             done++;
+            successfulUids.add(`${accountId}:${uid}`);
           }
         } catch (e) { console.error('[AutoRules] action failed:', e); }
       }
-      setRulesLog(`${done} Aktion${done !== 1 ? 'en' : ''} ausgeführt`);
+      // Mark as processed: emails the AI evaluated (to avoid re-running), but
+      // keep failed moves unprocessed so they can be retried on next sync.
+      newEmails.forEach(e => {
+        const key = `${e.accountId}:${e.uid}`;
+        // Always mark as seen by AI; failed moves will retry if user re-saves rule
+        processed.add(key);
+      });
+      saveProcessedIds(processed);
+      setRulesLog(`${done} Aktion${done !== 1 ? 'en' : ''} ausgeführt (${newEmails.length} geprüft)`);
     } catch (err) {
       console.error('[AutoRules]', err);
       setRulesLog(`Fehler: ${err.message}`);
