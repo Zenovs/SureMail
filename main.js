@@ -1784,7 +1784,7 @@ ipcMain.handle('smtp:send', async (event, emailData) => {
       subject: emailData.subject,
       text: emailData.text,
       html: emailData.html,
-      attachments: emailData.attachments || []
+      attachments: (emailData.attachments || []).map(a => ({ ...a, encoding: 'base64' }))
     };
 
     await transporter.sendMail(mailOptions);
@@ -1837,7 +1837,7 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
       subject: emailData.subject,
       text: finalText,
       html: finalHtml,
-      attachments: emailData.attachments || [],
+      attachments: (emailData.attachments || []).map(a => ({ ...a, encoding: 'base64' })),
       // Threading headers — set when replying/forwarding
       ...(emailData.inReplyTo  && { inReplyTo:  emailData.inReplyTo }),
       ...(emailData.references && { references: emailData.references }),
@@ -3085,7 +3085,7 @@ async function processScheduledEmails() {
         fromName: email.fromName,
         to: email.to, cc: email.cc, bcc: email.bcc,
         subject: email.subject, text: email.text, html: email.html,
-        attachments: email.attachments || [],
+        attachments: (email.attachments || []).map(a => ({ ...a, encoding: 'base64' })),
       };
       let result;
       if (email.accountType === 'microsoft') {
@@ -3109,7 +3109,7 @@ async function processScheduledEmails() {
             secure: account.smtp?.port === 465,
             auth: { user: account.smtp?.username, pass: account.smtp?.password },
           });
-          await transporter.sendMail({ from: `"${emailData.fromName || ''}" <${account.smtp?.username}>`, to: emailData.to, cc: emailData.cc, bcc: emailData.bcc, subject: emailData.subject, text: emailData.text, html: emailData.html });
+          await transporter.sendMail({ from: `"${emailData.fromName || ''}" <${account.smtp?.username}>`, to: emailData.to, cc: emailData.cc, bcc: emailData.bcc, subject: emailData.subject, text: emailData.text, html: emailData.html, attachments: (email.attachments || []).map(a => ({ ...a, encoding: 'base64' })) });
           result = { success: true };
         }
       }
