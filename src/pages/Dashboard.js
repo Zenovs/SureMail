@@ -149,12 +149,12 @@ export default function Dashboard({ onNavigate, onSelectAccount }) {
   }, [autoRules, setAutoRules]);
 
   const toggleRule = useCallback((id) => {
-    setAutoRules(autoRules.map(r => r.id === id ? { ...r, enabled: r.enabled === false } : r));
+    setAutoRules(autoRules.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
   }, [autoRules, setAutoRules]);
 
   const runAutoRules = useCallback(async () => {
     if (!showAi) return;
-    const enabledRules = autoRules.filter(r => r.enabled !== false);
+    const enabledRules = autoRules.filter(r => r.enabled);
     if (enabledRules.length === 0) return;
 
     const allEmails = await getAllEmails();
@@ -915,7 +915,7 @@ ${emailLines}`;
                 <span className="text-violet-400">KI-Automatik</span>
                 {autoRules.length > 0 && (
                   <span className="ml-1 px-1.5 py-0.5 rounded-full bg-violet-500/20 text-violet-400 text-xs">
-                    {autoRules.filter(r => r.enabled !== false).length}/{autoRules.length}
+                    {autoRules.filter(r => r.enabled).length}/{autoRules.length}
                   </span>
                 )}
                 {rulesRunning && <RefreshCw className="w-3 h-3 text-violet-400 animate-spin ml-1" />}
@@ -923,7 +923,7 @@ ${emailLines}`;
                   <span className="ml-1 text-xs text-green-400 truncate max-w-[140px]">{rulesLog}</span>
                 )}
                 <span className="ml-auto flex items-center gap-2">
-                  {showAi && autoRules.filter(r => r.enabled !== false).length > 0 && (
+                  {showAi && autoRules.filter(r => r.enabled).length > 0 && (
                     <span
                       role="button"
                       onClick={e => { e.stopPropagation(); runAutoRules(); }}
@@ -943,17 +943,17 @@ ${emailLines}`;
                     Regeln in natürlicher Sprache — die KI führt sie bei jedem Sync automatisch aus.
                   </p>
                   {autoRules.map(r => (
-                    <div key={r.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${c.bgTertiary} border ${r.enabled !== false ? 'border-violet-500/25' : c.border}`}>
+                    <div key={r.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${c.bgTertiary} border ${r.enabled ? 'border-violet-500/25' : c.border}`}>
                       <button
                         onClick={() => toggleRule(r.id)}
-                        title={r.enabled !== false ? 'Deaktivieren' : 'Aktivieren'}
+                        title={r.enabled ? 'Deaktivieren' : 'Aktivieren'}
                         className={`flex-shrink-0 w-3.5 h-3.5 rounded border transition-colors flex items-center justify-center ${
-                          r.enabled !== false ? 'bg-violet-500 border-violet-500' : `${c.bgTertiary} border-gray-500`
+                          r.enabled ? 'bg-violet-500 border-violet-500' : `${c.bgTertiary} border-gray-500`
                         }`}
                       >
-                        {r.enabled !== false && <span className="text-white text-[8px] leading-none">✓</span>}
+                        {r.enabled && <span className="text-white text-[8px] leading-none">✓</span>}
                       </button>
-                      <span className={`text-xs flex-1 ${r.enabled !== false ? c.text : c.textSecondary}`}>{r.text}</span>
+                      <span className={`text-xs flex-1 ${r.enabled ? c.text : c.textSecondary}`}>{r.text}</span>
                       <button
                         onClick={() => removeRule(r.id)}
                         className={`p-0.5 rounded ${c.textSecondary} hover:text-red-400 transition-colors`}

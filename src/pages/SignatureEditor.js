@@ -10,7 +10,7 @@ function SignatureEditor() {
   const [signatures, setSignatures] = useState({});
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [saved, setSaved] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [editorMode, setEditorMode] = useState('visual'); // 'visual' | 'html' | 'preview'
   const [showPlaceholderHelp, setShowPlaceholderHelp] = useState(false);
   const editorRef = useRef(null);
 
@@ -68,6 +68,22 @@ function SignatureEditor() {
       const text = editorRef.current.innerText;
       updateSignature({ html, text });
     }
+  };
+
+  const handleHtmlCodeChange = (e) => {
+    const html = e.target.value;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    updateSignature({ html, text: tmp.innerText });
+    if (editorRef.current) editorRef.current.innerHTML = html;
+  };
+
+  const switchMode = (mode) => {
+    // Sync editor → html code before switching
+    if (editorMode === 'visual' && editorRef.current) {
+      updateContentFromEditor();
+    }
+    setEditorMode(mode);
   };
 
   const insertLink = () => {
@@ -257,27 +273,41 @@ function SignatureEditor() {
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className={`text-lg font-semibold ${c.text}`}>📝 Signatur bearbeiten</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPreviewMode(false)}
-                  className={`px-3 py-1 rounded transition-colors ${
-                    !previewMode ? `${c.accentBg} text-white` : `${c.bgTertiary} ${c.text}`
-                  }`}
-                >
-                  Bearbeiten
-                </button>
-                <button
-                  onClick={() => setPreviewMode(true)}
-                  className={`px-3 py-1 rounded transition-colors ${
-                    previewMode ? `${c.accentBg} text-white` : `${c.bgTertiary} ${c.text}`
-                  }`}
-                >
-                  Vorschau
-                </button>
+              <div className="flex gap-1">
+                {[
+                  { key: 'visual',   label: 'Bearbeiten' },
+                  { key: 'html',     label: 'HTML-Code'  },
+                  { key: 'preview',  label: 'Vorschau'   },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => switchMode(key)}
+                    className={`px-3 py-1 rounded text-sm transition-colors ${
+                      editorMode === key ? `${c.accentBg} text-white` : `${c.bgTertiary} ${c.text}`
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {!previewMode ? (
+            {editorMode === 'html' && (
+              <div>
+                <textarea
+                  value={currentSig.html || ''}
+                  onChange={handleHtmlCodeChange}
+                  spellCheck={false}
+                  className={`w-full min-h-[200px] p-4 font-mono text-sm ${c.input} border ${c.border} rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-y`}
+                  placeholder="<p>Hier HTML-Code eingeben oder einfügen...</p>"
+                />
+                <p className={`text-xs ${c.textSecondary} mt-1`}>
+                  Tipp: Füge direkt HTML ein — z.B. aus einem E-Mail-Signatur-Generator.
+                </p>
+              </div>
+            )}
+
+            {editorMode !== 'html' && editorMode !== 'preview' ? (
               <>
                 {/* Toolbar */}
                 <div className={`flex flex-wrap gap-1 p-2 ${c.bgSecondary} rounded-t-lg border ${c.border}`}>
@@ -399,11 +429,12 @@ function SignatureEditor() {
                   style={{ color: 'white' }}
                 />
               </>
-            ) : (
-              /* Preview */
-              <div className={`p-6 bg-white rounded-lg min-h-[200px]`}>
+            ) : null}
+
+            {editorMode === 'preview' && (
+              <div className="p-6 bg-white rounded-lg min-h-[200px]">
                 <p className="text-gray-500 text-sm mb-4">--- Signatur Vorschau ---</p>
-                <div 
+                <div
                   className="text-gray-800"
                   dangerouslySetInnerHTML={{ __html: currentSig.html || '<em>Keine Signatur</em>' }}
                 />
