@@ -268,6 +268,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   const [signatures,           setSignatures]           = useState({});
   const [useSignature,         setUseSignature]         = useState(true);
   const [showSignaturePreview, setShowSignaturePreview] = useState(false);
+  const sigInsertedRef = useRef(false); // track whether signature is in editor
 
   // --- KI ---
   const [showAiPanel,  setShowAiPanel]  = useState(false);
@@ -338,6 +339,29 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
 
   const currentSignature = signatures[selectedAccountId];
   const hasSignature = currentSignature?.enabled && currentSignature?.html;
+
+  // Insert / remove signature element directly in editor so user sees it while composing.
+  // We mark the element with data-coremail-sig so toggle and re-render can find it.
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const existingSig = editorRef.current.querySelector('[data-coremail-sig]');
+
+    if (useSignature && hasSignature) {
+      if (!existingSig) {
+        const el = document.createElement('div');
+        el.setAttribute('data-coremail-sig', '1');
+        el.innerHTML = `<hr style="margin:20px 0;border:none;border-top:1px solid #ddd">${currentSignature.html}`;
+        editorRef.current.appendChild(el);
+        sigInsertedRef.current = true;
+      } else {
+        // Update content when account changes
+        existingSig.innerHTML = `<hr style="margin:20px 0;border:none;border-top:1px solid #ddd">${currentSignature.html}`;
+      }
+    } else if (!useSignature && existingSig) {
+      existingSig.remove();
+      sigInsertedRef.current = false;
+    }
+  }, [hasSignature, useSignature, selectedAccountId]); // eslint-disable-line
 
   // ── Editor-Modus wechseln ───────────────────────────────────────────────────
   const switchMode = (mode) => {
@@ -515,12 +539,8 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
     if (!form.subject) { setError('Bitte Betreff ausfüllen'); return; }
     if (attachments.some(a => !a.loaded)) { setError('Bitte warten, bis alle Anhänge geladen sind'); return; }
 
-    let bodyHtml = getEditorHtml();
-    let bodyText = getEditorText();
-    if (useSignature && hasSignature) {
-      bodyHtml += `<br><br>${currentSignature.html}`;
-      bodyText += `\n\n${currentSignature.text || ''}`;
-    }
+    const bodyHtml = getEditorHtml(); // signature is already in the editor DOM
+    const bodyText = getEditorText();
     const emailData = {
       fromName: senderName,
       to: toTags.join(', '),
@@ -953,31 +973,15 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
 
             {/* Signatur */}
             {hasSignature && (
-              <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="useSignature"
-                      checked={useSignature}
-                      onChange={e => setUseSignature(e.target.checked)}
-                      className="w-4 h-4 rounded accent-cyan-500"
-                    />
-                    <label htmlFor="useSignature" className={`${c.text} cursor-pointer text-sm`}>✍️ Signatur anhängen</label>
-                  </div>
-                  <button
-                    onClick={() => setShowSignaturePreview(!showSignaturePreview)}
-                    className={`text-xs ${c.accent} hover:underline`}
-                  >
-                    {showSignaturePreview ? 'Verbergen' : 'Vorschau'}
-                  </button>
-                </div>
-                {showSignaturePreview && useSignature && (
-                  <div className="mt-3 pt-3 border-t border-gray-600">
-                    <div className="p-3 bg-white rounded text-gray-800 text-sm"
-                      dangerouslySetInnerHTML={{ __html: currentSignature.html }} />
-                  </div>
-                )}
+              <div className={`flex items-center gap-3 px-2`}>
+                <input
+                  type="checkbox"
+                  id="useSignature"
+                  checked={useSignature}
+                  onChange={e => setUseSignature(e.target.checked)}
+                  className="w-4 h-4 rounded accent-cyan-500"
+                />
+                <label htmlFor="useSignature" className={`${c.textSecondary} cursor-pointer text-xs`}>✍️ Signatur anhängen</label>
               </div>
             )}
 

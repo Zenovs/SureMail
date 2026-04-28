@@ -1804,18 +1804,9 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
     return { success: false, error: 'Konto nicht gefunden' };
   }
 
-  // Get signature if enabled
-  const signatures = store.get('signatures', {});
-  let finalHtml = emailData.html || `<p>${(emailData.text || '').replace(/\n/g, '</p><p>')}</p>`;
-  let finalText = emailData.text || '';
-  
-  if (emailData.useSignature !== false && signatures[accountId]) {
-    const sig = signatures[accountId];
-    if (sig.enabled && sig.html) {
-      finalHtml += `<br><br>${sig.html}`;
-      finalText += `\n\n${sig.text || ''}`;
-    }
-  }
+  // Signature is inserted by the frontend into the editor; use body as-is.
+  const finalHtml = emailData.html || `<p>${(emailData.text || '').replace(/\n/g, '</p><p>')}</p>`;
+  const finalText = emailData.text || '';
 
   try {
     // v1.10.0: Use OAuth2-aware SMTP transporter
