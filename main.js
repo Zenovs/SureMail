@@ -31,6 +31,44 @@ const fetch = require('node-fetch');
   };
 });
 
+// ============ SOCKET / IMAP ERROR HANDLER ============
+// Catches uncaught exceptions from IMAP socket errors (writeAfterFIN, ECONNRESET,
+// EPIPE) that bubble up from the connection pool when the server closes a kept-alive
+// connection. These are transient network events — log them, don't crash.
+const SILENT_ERRORS = new Set(['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED']);
+process.on('uncaughtException', (err) => {
+  const msg = err?.message || '';
+  if (
+    SILENT_ERRORS.has(err?.code) ||
+    msg.includes('socket has been ended') ||
+    msg.includes('write after end') ||
+    msg.includes('writeAfterFIN') ||
+    msg.includes('This socket is closed') ||
+    msg.includes('read ECONNRESET')
+  ) {
+    console.warn('[uncaughtException] IMAP/socket error (non-fatal):', msg);
+    return; // suppress — the pool will reconnect on next request
+  }
+  // Re-throw anything else so real bugs still surface
+  console.error('[uncaughtException] Fatal:', err);
+  throw err;
+});
+
+process.on('unhandledRejection', (reason) => {
+  const msg = reason?.message || String(reason);
+  if (
+    SILENT_ERRORS.has(reason?.code) ||
+    msg.includes('socket has been ended') ||
+    msg.includes('write after end') ||
+    msg.includes('writeAfterFIN') ||
+    msg.includes('This socket is closed')
+  ) {
+    console.warn('[unhandledRejection] IMAP/socket error (non-fatal):', msg);
+    return;
+  }
+  console.error('[unhandledRejection]:', reason);
+});
+
 // ============ SANDBOX FIX (v3.0.9) ============
 // Required for AppImage on Ubuntu/GNOME where FUSE sandbox is not available
 // Must be called before app.whenReady()
@@ -403,7 +441,6 @@ setInterval(() => {
 async function getPooledImapConnection(account) {
   const entry = imapPool.get(account.id);
   if (entry && !entry.busy) {
-    // Verify the connection is still alive via a lightweight STATUS check
     try {
       entry.busy = true;
       entry.lastUsed = Date.now();
@@ -412,9 +449,18 @@ async function getPooledImapConnection(account) {
       imapPool.delete(account.id);
     }
   }
-  // Create a new connection
+  // Create a new connection and attach an error listener so socket errors
+  // don't bubble up as uncaught exceptions — the pool will recreate on next use.
   const config = getImapConfigForAccount(account);
   const connection = await imapSimple.connect(config);
+  connection.imap.on('error', (err) => {
+    console.warn(`[IMAPPool] socket error for ${account.id}:`, err?.message);
+    imapPool.delete(account.id);
+  });
+  connection.imap.on('close', () => {
+    const e = imapPool.get(account.id);
+    if (e?.connection === connection) imapPool.delete(account.id);
+  });
   imapPool.set(account.id, { connection, busy: true, lastUsed: Date.now() });
   return connection;
 }
