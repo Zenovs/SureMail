@@ -1,6 +1,20 @@
 import React, { useState, useEffect, useCallback, Component, useRef } from 'react';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { AccountProvider, useAccounts } from './context/AccountContext';
+import { SidebarProvider } from './context/SidebarContext';
+import { SearchProvider, useSearch } from './context/SearchContext';
+import SidebarV2 from './components/SidebarV2';
+import GlobalSearch from './components/GlobalSearch';
+import UpdateNotification from './components/UpdateNotification';
+import InboxSplitView from './pages/InboxSplitView';
+import ComposeEmail from './pages/ComposeEmail';
+import SettingsV2 from './pages/SettingsV2';
+import Logbuch from './pages/Logbuch';
+import AccountManager from './pages/AccountManager';
+import EmailView from './pages/EmailView';
+import CalendarView from './pages/CalendarView';
+import { applySavedFont } from './pages/FontSettings';
 
-// v2.7.6: Global error boundary to catch render crashes (shows error instead of black window)
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -33,30 +47,9 @@ class ErrorBoundary extends Component {
     return this.props.children;
   }
 }
-import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { AccountProvider, useAccounts, useAccountStats } from './context/AccountContext';
-import { SidebarProvider } from './context/SidebarContext';
-import { DashboardProvider } from './context/DashboardContext';
-import { OllamaProvider, useOllama } from './context/OllamaContext';
-import { SearchProvider, useSearch } from './context/SearchContext';
-import SidebarV2 from './components/SidebarV2';
-import OllamaInstaller from './components/OllamaInstaller';
-import GlobalSearch from './components/GlobalSearch';
-import UpdateNotification from './components/UpdateNotification';
-import Dashboard from './pages/Dashboard';
-import InboxSplitView from './pages/InboxSplitView';
-import ComposeEmail from './pages/ComposeEmail';
-import SettingsV2 from './pages/SettingsV2';
-import Logbuch from './pages/Logbuch';
-import AccountManager from './pages/AccountManager';
-import EmailView from './pages/EmailView';
-import CalendarView from './pages/CalendarView';
-import { applySavedFont } from './pages/FontSettings';
 
-// v1.11.0: Apply saved font on app load
 applySavedFont();
 
-// v2.9.9: Shared IndexedDB save for background sync (same format as InboxSplitView)
 const bgSaveToIndexedDB = async (accountId, folder, emails) => {
   try {
     const request = indexedDB.open('CoreMailDB', 1);
@@ -87,22 +80,16 @@ const REFRESH_INTERVALS_APP = { '1': 60000, '5': 300000, '10': 600000, '15': 900
 function AppContent() {
   const { currentTheme } = useTheme();
   const { setActiveAccountId, accounts, updateAccountStats } = useAccounts();
-  const { isAvailable, isChecking, checkOllama, setCurrentEmailContext } = useOllama();
   const { openSearch, toggleSearch } = useSearch();
-  const [hideDashboard] = useState(() => localStorage.getItem('settings.hideDashboard') === 'true');
-  const [currentView, setCurrentView] = useState(() =>
-    localStorage.getItem('settings.hideDashboard') === 'true' ? 'inbox' : 'dashboard'
-  );
+  const [currentView, setCurrentView] = useState('inbox');
   const [fullViewEmail, setFullViewEmail] = useState(null);
   const [currentFolder, setCurrentFolder] = useState('INBOX');
-  const [composeData, setComposeData] = useState(null); // v1.8.0: For reply/forward
-  const [showOllamaInstaller, setShowOllamaInstaller] = useState(false);
+  const [composeData, setComposeData] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [syncErrorToast, setSyncErrorToast] = useState(null); // { accountName, message }
+  const [syncErrorToast, setSyncErrorToast] = useState(null);
   const syncErrorTimerRef = useRef(null);
   const c = currentTheme.colors;
 
-  // Offline/online detection
   useEffect(() => {
     const onOnline  = () => setIsOnline(true);
     const onOffline = () => setIsOnline(false);
@@ -114,7 +101,6 @@ function AppContent() {
     };
   }, []);
 
-  // v1.13.0: Global search keyboard shortcut (Ctrl+K or Cmd+K)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -126,12 +112,10 @@ function AppContent() {
         openSearch();
       }
     };
-    
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [toggleSearch, openSearch]);
 
-  // v2.9.9: Global background sync — runs for ALL accounts regardless of current view
   useEffect(() => {
     if (!accounts || accounts.length === 0) return;
 
@@ -142,9 +126,7 @@ function AppContent() {
 
     const syncAllAccounts = async () => {
       if (!window.electronAPI) return;
-      // Perf: skip sync when tab/window is hidden — saves CPU + IMAP connections
       if (document.hidden) return;
-      // Skip sync when offline
       if (!navigator.onLine) return;
 
       const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
@@ -161,7 +143,6 @@ function AppContent() {
             if (localStorageEnabled) {
               await bgSaveToIndexedDB(account.id, 'INBOX', result.emails);
             }
-            // Update unread badge in sidebar
             const unread = result.emails.filter(e => !e.seen).length;
             updateAccountStats(account.id, { unread, total: result.emails.length });
             window.dispatchEvent(new CustomEvent('coremail:bgSync', {
@@ -170,7 +151,6 @@ function AppContent() {
           }
         } catch (e) {
           console.error('[BGSync] Error for account', account.id, e);
-          // Show sync error toast (auto-dismiss after 5s)
           setSyncErrorToast({ accountName: account.name || account.id, message: e.message });
           if (syncErrorTimerRef.current) clearTimeout(syncErrorTimerRef.current);
           syncErrorTimerRef.current = setTimeout(() => setSyncErrorToast(null), 5000);
@@ -181,7 +161,6 @@ function AppContent() {
     const interval = getInterval();
     if (interval <= 0) return;
 
-    // Add random jitter (±10s) to spread concurrent syncs across users
     const jitter = Math.random() * 10000;
     console.log(`[BGSync] Starting background sync every ${interval / 1000}s (+${Math.round(jitter/1000)}s jitter) for ${accounts.length} account(s)`);
     let syncIntervalId = null;
@@ -196,53 +175,17 @@ function AppContent() {
     };
   }, [accounts]);
 
-  // Check if we should show the Ollama installer on first start
-  useEffect(() => {
-    const checkFirstStart = async () => {
-      // Wait for Ollama check to complete
-      if (isChecking) return;
-
-      // If Ollama is already available, don't show installer
-      if (isAvailable) return;
-
-      // Check if user has skipped installation before
-      if (window.electronAPI?.getAppSettings) {
-        const settings = await window.electronAPI.getAppSettings();
-        if (settings.ollamaInstallSkipped) return;
-        if (settings.ollamaInstallerShown) return;
-
-        // Show installer on first start
-        setShowOllamaInstaller(true);
-        
-        // Mark that we've shown the installer
-        await window.electronAPI.saveAppSettings({
-          ...settings,
-          ollamaInstallerShown: true
-        });
-      }
-    };
-
-    checkFirstStart();
-  }, [isAvailable, isChecking]);
-
-  const handleOllamaInstallComplete = () => {
-    checkOllama();
-  };
-
   const handleFullView = (email, folder = 'INBOX') => {
     setFullViewEmail(email);
     setCurrentFolder(folder);
-    setCurrentEmailContext(email); // v1.8.0: Set email context for AI
     setCurrentView('emailView');
   };
 
   const handleBackFromEmail = () => {
     setFullViewEmail(null);
-    setCurrentEmailContext(null); // v1.8.0: Clear email context
     setCurrentView('inbox');
   };
 
-  // v1.8.0: Handle reply, reply all, forward
   const handleReply = (email, options = {}) => {
     setComposeData({
       type: options.forward ? 'forward' : (options.replyAll ? 'replyAll' : 'reply'),
@@ -259,38 +202,21 @@ function AppContent() {
     handleReply(email, { forward: true });
   };
 
-  // v1.13.0: Handle email selection from search
   const handleSelectEmailFromSearch = useCallback((email) => {
     setActiveAccountId(email.accountId);
     setFullViewEmail(email);
     setCurrentFolder(email.folder || 'INBOX');
-    setCurrentEmailContext(email);
     setCurrentView('emailView');
-  }, [setActiveAccountId, setCurrentEmailContext, setCurrentView, setCurrentFolder, setFullViewEmail]);
-
-  const handleNavigate = useCallback((view) => {
-    if (view === 'dashboard' && hideDashboard) {
-      setCurrentView('inbox');
-    } else {
-      setCurrentView(view);
-    }
-  }, [hideDashboard]);
+  }, [setActiveAccountId]);
 
   const renderContent = () => {
     switch (currentView) {
-      case 'dashboard':
-        return (
-          <Dashboard
-            onNavigate={handleNavigate}
-            onSelectAccount={setActiveAccountId}
-          />
-        );
       case 'inbox':
-        return <InboxSplitView onFullView={handleFullView} onNavigate={handleNavigate} />;
+        return <InboxSplitView onFullView={handleFullView} onNavigate={setCurrentView} />;
       case 'compose':
         return (
-          <ComposeEmail 
-            onBack={() => { setComposeData(null); setCurrentView('inbox'); }} 
+          <ComposeEmail
+            onBack={() => { setComposeData(null); setCurrentView('inbox'); }}
             composeData={composeData}
           />
         );
@@ -304,7 +230,7 @@ function AppContent() {
         return <CalendarView />;
       case 'emailView':
         return (
-          <EmailView 
+          <EmailView
             email={fullViewEmail}
             onBack={handleBackFromEmail}
             onReply={handleReply}
@@ -314,22 +240,18 @@ function AppContent() {
           />
         );
       default:
-        return hideDashboard
-          ? <InboxSplitView onFullView={handleFullView} onNavigate={handleNavigate} />
-          : <Dashboard onNavigate={handleNavigate} onSelectAccount={setActiveAccountId} />;
+        return <InboxSplitView onFullView={handleFullView} onNavigate={setCurrentView} />;
     }
   };
 
   return (
     <div className={`flex flex-col h-screen ${c.bg}`}>
-      {/* Offline banner */}
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600/90 text-white text-sm font-medium flex-shrink-0 z-50">
           <span>📡</span>
           <span>Keine Internetverbindung — E-Mails werden offline angezeigt</span>
         </div>
       )}
-      {/* Sync error toast */}
       {syncErrorToast && (
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-red-900/90 border border-red-500/40 text-red-200 text-sm rounded-xl shadow-lg max-w-sm">
           <span>⚠️</span>
@@ -339,23 +261,13 @@ function AppContent() {
       )}
       <ErrorBoundary>
       <div className="flex flex-1 overflow-hidden min-h-0">
-      <SidebarV2 currentView={currentView} onNavigate={handleNavigate} hideDashboard={hideDashboard} />
+      <SidebarV2 currentView={currentView} onNavigate={setCurrentView} />
       <main className="flex-1 flex flex-col overflow-hidden min-h-0">
         <ErrorBoundary>
           {renderContent()}
         </ErrorBoundary>
       </main>
-      {/* v1.13.0: Global Search Modal */}
       <GlobalSearch onSelectEmail={handleSelectEmailFromSearch} />
-
-      {/* Ollama Installer Modal */}
-      <OllamaInstaller
-        isOpen={showOllamaInstaller}
-        onClose={() => setShowOllamaInstaller(false)}
-        onInstallComplete={handleOllamaInstallComplete}
-      />
-
-      {/* v1.16.0: Update Notification */}
       <UpdateNotification onOpenSettings={() => setCurrentView('settings')} />
       </div>
       </ErrorBoundary>
@@ -368,13 +280,9 @@ function App() {
     <ThemeProvider>
       <AccountProvider>
         <SidebarProvider>
-          <DashboardProvider>
-            <OllamaProvider>
-              <SearchProvider>
-                <AppContent />
-              </SearchProvider>
-            </OllamaProvider>
-          </DashboardProvider>
+          <SearchProvider>
+            <AppContent />
+          </SearchProvider>
         </SidebarProvider>
       </AccountProvider>
     </ThemeProvider>

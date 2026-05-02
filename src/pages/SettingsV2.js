@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Settings, Mail, Shield, Users, Type, MessageCircle,
+  Settings, Mail, Shield, Users, Type,
   PanelLeft, Tag, Bell, PenLine, FolderDown, Languages, RefreshCw,
-  Palette, Info, Zap
+  Palette, Info
 } from 'lucide-react';
 import { useTheme, themes } from '../context/ThemeContext';
-import { useOllama } from '../context/OllamaContext';
 import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
 import SignatureEditor from './SignatureEditor';
 import SidebarSettings from './SidebarSettings';
-import OllamaSettings from './OllamaSettings';
 import CategorySettings from './CategorySettings';
 import EmailSettings from './EmailSettings';
 import FontSettings from './FontSettings';
@@ -20,17 +18,10 @@ import TranslationSettings from './TranslationSettings';
 
 function SettingsV2() {
   const { theme, currentTheme, changeTheme } = useTheme();
-  const { isAiEnabled, setAiEnabled } = useOllama();
   const c = currentTheme.colors;
   const [activeTab, setActiveTab] = useState('general');
   const [downloadPath, setDownloadPath] = useState('');
   const [appVersion, setAppVersion] = useState('');
-  const [hideDashboard, setHideDashboardState] = useState(() => localStorage.getItem('settings.hideDashboard') === 'true');
-
-  const toggleHideDashboard = (val) => {
-    localStorage.setItem('settings.hideDashboard', val ? 'true' : 'false');
-    setHideDashboardState(val);
-  };
 
   useEffect(() => {
     loadDownloadPath();
@@ -68,7 +59,6 @@ function SettingsV2() {
     { id: 'spamfilter',    name: 'Spam-Filter',         Icon: Shield        },
     { id: 'senders',       name: 'Absender',            Icon: Users         },
     { id: 'font',          name: 'Schriftart',          Icon: Type          },
-    { id: 'ai',            name: 'KI-Assistent',        Icon: MessageCircle },
     { id: 'sidebar',       name: 'Sidebar',             Icon: PanelLeft     },
     { id: 'categories',    name: 'Kategorien',          Icon: Tag           },
     { id: 'notifications', name: 'Benachrichtigungen',  Icon: Bell          },
@@ -209,57 +199,6 @@ function SettingsV2() {
               </div>
             </div>
 
-            {/* Lite-Modus */}
-            <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-1 flex items-center gap-2`}>
-                <Zap className="w-4 h-4 text-yellow-400" /> Lite-Modus
-              </h3>
-              <p className={`text-sm ${c.textSecondary} mb-5`}>
-                Für ressourcenarme Geräte (z.B. Raspberry Pi). Deaktiviert ressourcenintensive Funktionen.
-              </p>
-              <div className="space-y-4">
-                {/* KI deaktivieren */}
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className={`text-sm font-medium ${c.text}`}>KI-Funktionen</p>
-                    <p className={`text-xs mt-0.5 ${isAiEnabled ? 'text-cyan-400' : c.textSecondary}`}>
-                      {isAiEnabled
-                        ? 'KI-Funktion ist nun aktiviert'
-                        : 'KI-Funktion ist nun deaktiviert'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setAiEnabled(!isAiEnabled)}
-                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${isAiEnabled ? 'bg-cyan-600' : 'bg-gray-600'}`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${isAiEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-                {/* Dashboard ausblenden */}
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className={`text-sm font-medium ${c.text}`}>Dashboard</p>
-                    <p className={`text-xs mt-0.5 ${!hideDashboard ? 'text-cyan-400' : c.textSecondary}`}>
-                      {hideDashboard
-                        ? 'Dein Dashboard ist nun deaktiviert'
-                        : 'Dein Dashboard ist nun aktiviert'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => toggleHideDashboard(!hideDashboard)}
-                    className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${hideDashboard ? 'bg-cyan-600' : 'bg-gray-600'}`}
-                  >
-                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${hideDashboard ? 'translate-x-6' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-              </div>
-              {(hideDashboard || !isAiEnabled) && (
-                <p className={`mt-4 text-xs ${c.textSecondary} border-t ${c.border} pt-3`}>
-                  Änderungen wirken sich vollständig nach einem Neustart von CoreMail aus.
-                </p>
-              )}
-            </div>
-
             {/* Hinweise */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
               <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Info className="w-4 h-4 text-cyan-400" /> Hinweise</h3>
@@ -285,10 +224,7 @@ function SettingsV2() {
       
       case 'font':
         return <FontSettings />;
-      
-      case 'ai':
-        return <OllamaSettings />;
-      
+
       case 'sidebar':
         return <SidebarSettings />;
       

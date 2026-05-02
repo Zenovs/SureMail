@@ -29,14 +29,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('update:restart-required');
   },
   
-  // Ollama Installation (v1.6.0)
-  checkOllamaInstalled: () => ipcRenderer.invoke('ollama:checkInstalled'),
-  installOllama: () => ipcRenderer.invoke('ollama:install'),
-  startOllamaService: () => ipcRenderer.invoke('ollama:startService'),
-  downloadOllamaModel: (modelName) => ipcRenderer.invoke('ollama:downloadModel', modelName),
-  onOllamaProgress: (callback) => ipcRenderer.on('ollama:progress', (event, data) => callback(data)),
-  removeOllamaProgressListener: () => ipcRenderer.removeAllListeners('ollama:progress'),
-  
   // Notifications (v1.2)
   showNotification: (data) => ipcRenderer.invoke('notification:show', data),
   setBadgeCount: (count) => ipcRenderer.invoke('notification:setBadge', count),

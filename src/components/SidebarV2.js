@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Search, LayoutDashboard, Inbox, PenLine, Calendar,
+  Search, Inbox, PenLine, Calendar,
   Users, Settings, BookOpen
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -10,13 +10,12 @@ import { useSearch } from '../context/SearchContext';
 import { getCategoryIcon } from '../pages/CategorySettings';
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard',   Icon: LayoutDashboard },
-  { id: 'inbox',     label: 'Posteingang', Icon: Inbox            },
-  { id: 'compose',   label: 'Verfassen',   Icon: PenLine          },
-  { id: 'calendar',  label: 'Kalender',    Icon: Calendar         },
+  { id: 'inbox',    label: 'Posteingang', Icon: Inbox    },
+  { id: 'compose',  label: 'Verfassen',   Icon: PenLine  },
+  { id: 'calendar', label: 'Kalender',    Icon: Calendar },
 ];
 
-function SidebarV2({ currentView, onNavigate, hideDashboard = false }) {
+function SidebarV2({ currentView, onNavigate }) {
   const { currentTheme } = useTheme();
   const { categories, getAccountsByCategory, activeAccountId, setActiveAccountId } = useAccounts();
   const accountStats = useAccountStats();
@@ -169,7 +168,7 @@ function SidebarV2({ currentView, onNavigate, hideDashboard = false }) {
 
       {/* Main Navigation */}
       <nav className="p-3 space-y-0.5">
-        {NAV_ITEMS.filter(item => !(item.id === 'dashboard' && hideDashboard)).map(item => {
+        {NAV_ITEMS.map(item => {
           const isActive = currentView === item.id;
           const { Icon } = item;
           return (

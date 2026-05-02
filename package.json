@@ -1,7 +1,7 @@
 {
   "name": "coremail-desktop",
-  "version": "5.2.3",
-  "description": "CoreMail Desktop - Lightweight IMAP/SMTP email client for Linux with Microsoft 365 OAuth2, dark themes and local AI assistant (Ollama)",
+  "version": "6.0.0",
+  "description": "CoreMail Desktop - Lightweight IMAP/SMTP email client for Linux with Microsoft 365 OAuth2 and dark themes",
   "author": "Dario Zenhäusern",
   "license": "MIT",
   "repository": {
@@ -20,8 +20,6 @@
     "outlook",
     "graph-api",
     "oauth2",
-    "ollama",
-    "ai",
     "dark-theme",
     "raspberry-pi",
     "appimage",

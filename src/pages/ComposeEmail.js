@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
-import { useOllama } from '../context/OllamaContext';
 
 // ─── HTML-Vorlagen ───────────────────────────────────────────────────────────
 const HTML_TEMPLATES = [
@@ -205,8 +203,6 @@ function EmailTagInput({ label, tags, onChange, placeholder, c, isLarge = false 
 function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, accounts } = useAccounts();
-  const { isAvailable: aiAvailable, isAiEnabled, suggestReply, improveText } = useOllama();
-  const showAi = isAiEnabled && aiAvailable;
   const c = currentTheme.colors;
 
   // Normalise: App.js passes composeData, some callers pass replyTo directly
@@ -269,11 +265,6 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   const [useSignature,         setUseSignature]         = useState(true);
   const [showSignaturePreview, setShowSignaturePreview] = useState(false);
   const sigInsertedRef = useRef(false); // track whether signature is in editor
-
-  // --- KI ---
-  const [showAiPanel,  setShowAiPanel]  = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState('');
-  const [aiLoading,    setAiLoading]    = useState(false);
 
   // ── Initialisierung ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -496,36 +487,6 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
 
   const getTotalSize = () => attachments.reduce((s, a) => s + a.size, 0);
 
-  // ── KI ───────────────────────────────────────────────────────────────────────
-  const handleAiSuggestReply = async () => {
-    if (!replyTo || aiLoading) return;
-    setAiLoading(true); setAiSuggestion('');
-    const emailContent = replyTo.text || replyTo.html?.replace(/<[^>]*>/g, '') || '';
-    const s = await suggestReply(emailContent, replyTo.subject, replyTo.from);
-    setAiSuggestion(s || 'Fehler: Konnte keinen Vorschlag generieren.');
-    setAiLoading(false);
-  };
-
-  const handleAiImprove = async (instruction) => {
-    const text = getEditorText();
-    if (!text.trim() || aiLoading) return;
-    setAiLoading(true); setAiSuggestion('');
-    const improved = await improveText(text, instruction);
-    setAiSuggestion(improved || 'Fehler: Text konnte nicht verbessert werden.');
-    setAiLoading(false);
-  };
-
-  const applyAiSuggestion = () => {
-    if (!aiSuggestion) return;
-    const html = aiSuggestion.replace(/\n/g, '<br>');
-    if (editorMode === 'html') {
-      setHtmlSource(html);
-    } else if (editorRef.current) {
-      editorRef.current.innerHTML = html;
-    }
-    setAiSuggestion(''); setShowAiPanel(false);
-  };
-
   // ── Undo Send ────────────────────────────────────────────────────────────────
   const cancelSend = () => {
     undoCancelledRef.current = true;
@@ -650,16 +611,6 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
             >
               🧩 Vorlagen
             </button>
-            {showAi && (
-              <button
-                onClick={() => setShowAiPanel(!showAiPanel)}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1 ${
-                  showAiPanel ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                }`}
-              >
-                <MessageCircle className="w-3.5 h-3.5" /> KI
-              </button>
-            )}
             {/* Zeitversetzt senden */}
             <div className="relative">
               <button
@@ -993,62 +944,6 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
           </div>
         </div>
 
-        {/* KI-Panel */}
-        {showAiPanel && showAi && (
-          <div className={`w-72 ${c.bgSecondary} ${c.border} border-l flex flex-col flex-shrink-0`}>
-            <div className={`p-4 border-b ${c.border} flex items-center justify-between`}>
-              <h3 className={`font-semibold ${c.text} flex items-center gap-2 text-sm`}>
-                <MessageCircle className="w-4 h-4" /> KI-Assistent
-              </h3>
-              <button onClick={() => setShowAiPanel(false)} className={`${c.textSecondary} hover:${c.text} text-sm`}>✕</button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              <div className="space-y-2">
-                {replyTo && (
-                  <button onClick={handleAiSuggestReply} disabled={aiLoading}
-                    className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 ${aiLoading ? 'opacity-50 cursor-not-allowed' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}>
-                    💬 Antwort vorschlagen
-                  </button>
-                )}
-                {[
-                  ['✨ Verbessern', 'Verbessere und mache professioneller'],
-                  ['📝 Kürzen', 'Kürze den Text und mache ihn prägnanter'],
-                  ['💼 Förmlicher', 'Mache den Text förmlicher und geschäftlicher'],
-                  ['😊 Freundlicher', 'Mache den Text freundlicher und lockerer'],
-                ].map(([label, instruction]) => (
-                  <button key={label} onClick={() => handleAiImprove(instruction)} disabled={aiLoading}
-                    className={`w-full px-3 py-2 rounded-lg text-left text-sm flex items-center gap-2 ${aiLoading ? 'opacity-50 cursor-not-allowed' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {aiLoading && (
-                <div className="flex items-center gap-2 text-purple-400 justify-center py-2">
-                  <span className="animate-spin text-sm">⏳</span>
-                  <span className="text-xs">KI denkt nach...</span>
-                </div>
-              )}
-              {aiSuggestion && (
-                <div className="space-y-2">
-                  <p className={`text-xs ${c.textSecondary}`}>Vorschlag:</p>
-                  <div className={`p-3 rounded-lg ${c.bg} border ${c.border} max-h-48 overflow-y-auto`}>
-                    <p className={`text-xs ${c.text} whitespace-pre-wrap`}>{aiSuggestion}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={applyAiSuggestion}
-                      className="flex-1 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-medium">
-                      ✓ Übernehmen
-                    </button>
-                    <button onClick={() => setAiSuggestion('')}
-                      className={`px-3 py-1.5 ${c.bgTertiary} ${c.text} rounded-lg text-xs`}>
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Vorlagen-Panel (Overlay) */}
