@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  TrashCan, Email, Reply, ReplyAll, Forward, ArrowLeft, InProgress,
+  TrashCan, Email, Reply, ReplyAll, SendAlt, ArrowLeft, InProgress,
   WarningFilled, WarningAlt, Close, Checkmark, Attachment, Download, FolderOpen, View,
   Image, DocumentPdf, DocumentBlank, Music, Video, Box
 } from '@carbon/icons-react';
@@ -319,7 +319,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.accent}`}
               title="Weiterleiten"
             >
-              <Forward size={20} />
+              <SendAlt size={20} />
             </button>
 
           </div>

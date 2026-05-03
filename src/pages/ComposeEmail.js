@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import {
-  TextBold, TextItalic, TextUnderline, Strikethrough,
+  TextBold, TextItalic, TextUnderline, TextStrikethrough,
   ListNumbered, ListBulleted,
   TextAlignLeft, TextAlignCenter, TextAlignRight,
   TextClearFormat,
@@ -88,7 +88,7 @@ const TOOLBAR = [
     { cmd: 'bold',         Icon: TextBold,          title: 'Fett (Ctrl+B)' },
     { cmd: 'italic',       Icon: TextItalic,        title: 'Kursiv (Ctrl+I)' },
     { cmd: 'underline',    Icon: TextUnderline,     title: 'Unterstrichen (Ctrl+U)' },
-    { cmd: 'strikeThrough',Icon: Strikethrough,     title: 'Durchgestrichen' },
+    { cmd: 'strikeThrough',Icon: TextStrikethrough, title: 'Durchgestrichen' },
   ],
   [
     { cmd: 'insertOrderedList',   Icon: ListNumbered, title: 'Nummerierte Liste' },
