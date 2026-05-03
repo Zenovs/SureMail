@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CoreMail Desktop — Schlanker Linux-E-Mail-Client</title>
-  <meta name="description" content="Open-Source-E-Mail-Client für Linux mit IMAP/SMTP- und Microsoft 365-Unterstützung. Schlank, schnell, ohne Cloud-Tracking." />
+  <title>CoreMail Desktop — Schlanker E-Mail-Client für Linux, Windows, macOS</title>
+  <meta name="description" content="Open-Source-E-Mail-Client für Linux, Windows und macOS mit IMAP/SMTP- und Microsoft 365-Unterstützung. Schlank, schnell, ohne Cloud-Tracking." />
   <meta property="og:title" content="CoreMail Desktop" />
   <meta property="og:description" content="Schlanker Linux-E-Mail-Client mit IMAP/SMTP + Microsoft 365." />
   <meta property="og:type" content="website" />
@@ -125,19 +125,51 @@
     .copy-btn:hover { color: var(--text-1); border-color: var(--cyan); }
     .copy-btn.copied { color: var(--green); border-color: var(--green); }
 
+    /* OS-Tabs */
+    .os-toggle {
+      display: flex; gap: 4px; background: var(--bg-0);
+      padding: 4px; border-radius: 10px; border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .os-btn {
+      flex: 1; background: transparent; border: none; color: var(--text-2);
+      padding: 10px 14px; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-family: inherit; font-weight: 500;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.15s;
+    }
+    .os-btn.active {
+      background: var(--cyan); color: white;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.30);
+    }
+    .os-btn:hover:not(.active) { color: var(--text-1); background: rgba(255,255,255,0.04); }
+
+    .os-panel { animation: fadeIn 0.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    .panel-intro {
+      font-size: 14px; color: var(--text-2);
+      margin-bottom: 18px; line-height: 1.55;
+    }
+
+    .download-row-single { grid-template-columns: 1fr; }
+    .dl-suffix {
+      font-size: 11px; color: var(--text-3); font-weight: 400;
+      margin-left: 6px;
+    }
+
     .arch-toggle {
       display: inline-flex; gap: 4px; background: var(--bg-0);
       padding: 4px; border-radius: 8px; border: 1px solid var(--border);
       margin-bottom: 14px;
     }
-    .arch-btn {
+    .arch-btn, .mac-arch-btn {
       background: transparent; border: none; color: var(--text-2);
       padding: 6px 14px; border-radius: 6px; cursor: pointer;
       font-size: 13px; font-family: inherit; font-weight: 500;
       transition: all 0.15s;
     }
-    .arch-btn.active { background: var(--cyan); color: white; }
-    .arch-btn:hover:not(.active) { color: var(--text-1); }
+    .arch-btn.active, .mac-arch-btn.active { background: var(--cyan); color: white; }
+    .arch-btn:hover:not(.active), .mac-arch-btn:hover:not(.active) { color: var(--text-1); }
     .auto-detected {
       font-size: 11px; color: var(--text-3); margin-top: 10px; margin-left: 4px;
     }
@@ -317,16 +349,16 @@
   </svg>
   <h1>Dein E-Mail-Client.<br /><span class="accent">Schlank. Frei. Lokal.</span></h1>
   <p>
-    CoreMail Desktop ist ein Open-Source-E-Mail-Client für Linux —
+    CoreMail Desktop ist ein Open-Source-E-Mail-Client für Linux, Windows und macOS —
     IMAP/SMTP, Microsoft 365 via Graph API, 11&nbsp;Themes, kein Tracking, keine Cloud.
   </p>
   <div class="hero-badges">
     <span class="badge badge-cyan">
       <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>
-      <span id="hero-version">v6.1.0</span>
+      <span id="hero-version">v6.3.0</span>
     </span>
     <span class="badge">MIT License</span>
-    <span class="badge">Linux x64 / arm64</span>
+    <span class="badge">Linux · Windows · macOS</span>
     <span class="badge">Raspberry Pi 4/5</span>
   </div>
 </header>
@@ -336,43 +368,112 @@
   <div class="install-card">
     <div class="install-label">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10v2H3zm0 12h10v2H3zm5-8L3 8l5 3V9l3 1V6L8 7z"/></svg>
-      Empfohlen
-    </div>
-    <h2 class="install-title">Installation per Terminal</h2>
-
-    <div class="arch-toggle" role="tablist">
-      <button class="arch-btn active" data-arch="x64" role="tab">x64 — PC / Laptop</button>
-      <button class="arch-btn" data-arch="arm64" role="tab">arm64 — Raspberry Pi</button>
+      Download
     </div>
 
-    <div class="terminal">
-      <span class="terminal-prompt">$</span>
-      <span class="terminal-cmd" id="install-cmd">curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --x64</span>
-      <button class="copy-btn" id="copy-btn">Kopieren</button>
+    <div class="os-toggle" role="tablist">
+      <button class="os-btn" data-os="linux" role="tab">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0c-.5 0-1 .3-1 1.4 0 .8.6 1.5 1 1.5s1-.7 1-1.5C9 .3 8.5 0 8 0zm-2 4c-.5 0-1 .8-1 1.5s.5 1 1 1 1-.3 1-1-.5-1.5-1-1.5zm4 0c-.5 0-1 .8-1 1.5s.5 1 1 1 1-.3 1-1-.5-1.5-1-1.5zm-2 4c-2.5 0-4 2-4 4 0 0 1 4 4 4s4-4 4-4c0-2-1.5-4-4-4z"/></svg>
+        Linux
+      </button>
+      <button class="os-btn" data-os="windows" role="tab">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 1.5l6.5-.9V7H0V1.5zM7.5.5l8-1.1V7h-8V.5zM0 8h6.5v6.4L0 13.5V8zm7.5 0h8v7.6l-8-1.1V8z"/></svg>
+        Windows
+      </button>
+      <button class="os-btn" data-os="macos" role="tab">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.2 8.4c0-1.5 1.2-2.2 1.3-2.3-.7-1-1.8-1.2-2.2-1.2-.9-.1-1.8.5-2.3.5-.5 0-1.2-.5-2-.5-1 0-2 .6-2.5 1.5-1.1 1.8-.3 4.5.7 5.9.5.7 1.1 1.5 1.9 1.5.8 0 1-.5 1.9-.5s1.1.5 1.9.5c.8 0 1.3-.7 1.9-1.5.6-.8.8-1.6.8-1.7 0 0-1.4-.5-1.4-2.1zM9.7 3.6c.4-.5.7-1.2.6-1.9-.6.1-1.3.4-1.7.9-.4.4-.7 1.2-.6 1.8.7 0 1.4-.4 1.7-.8z"/></svg>
+        macOS
+      </button>
     </div>
-    <p class="auto-detected" id="auto-detected"></p>
 
-    <div class="or-divider">oder direkt herunterladen</div>
+    <!-- Linux Panel -->
+    <div class="os-panel" data-os-panel="linux">
+      <p class="panel-intro">
+        <strong>Empfohlen</strong>: One-Liner im Terminal — installiert AppImage,
+        Desktop-Eintrag und Icons automatisch.
+      </p>
 
-    <div class="download-row">
-      <a class="download-btn" id="dl-x64" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
-        <span class="download-btn-label">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 11L3 6h3V1h4v5h3l-5 5zm-6 3v1h12v-1H2z"/></svg>
-          x64 AppImage
-        </span>
-        <span class="download-btn-meta" id="dl-x64-size">ca. 135 MB</span>
-      </a>
-      <a class="download-btn" id="dl-arm64" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
-        <span class="download-btn-label">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 11L3 6h3V1h4v5h3l-5 5zm-6 3v1h12v-1H2z"/></svg>
-          arm64 AppImage
-        </span>
-        <span class="download-btn-meta" id="dl-arm64-size">ca. 135 MB</span>
-      </a>
+      <div class="arch-toggle">
+        <button class="arch-btn active" data-arch="x64">x64 — PC / Laptop</button>
+        <button class="arch-btn" data-arch="arm64">arm64 — Raspberry Pi</button>
+      </div>
+
+      <div class="terminal">
+        <span class="terminal-prompt">$</span>
+        <span class="terminal-cmd" id="install-cmd">curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --x64</span>
+        <button class="copy-btn" id="copy-btn">Kopieren</button>
+      </div>
+      <p class="auto-detected" id="auto-detected"></p>
+
+      <div class="or-divider">oder direkt herunterladen</div>
+
+      <div class="download-row">
+        <a class="download-btn" id="dl-linux-appimage" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
+          <span class="download-btn-label">AppImage <span class="dl-suffix">universal</span></span>
+          <span class="download-btn-meta" id="dl-linux-appimage-size">— MB</span>
+        </a>
+        <a class="download-btn" id="dl-linux-deb" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
+          <span class="download-btn-label">.deb <span class="dl-suffix">Debian / Ubuntu</span></span>
+          <span class="download-btn-meta" id="dl-linux-deb-size">— MB</span>
+        </a>
+        <a class="download-btn" id="dl-linux-rpm" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
+          <span class="download-btn-label">.rpm <span class="dl-suffix">Fedora / RHEL</span></span>
+          <span class="download-btn-meta" id="dl-linux-rpm-size">— MB</span>
+        </a>
+      </div>
+      <p class="auto-detected">
+        Architektur wird oben gewählt. Nach .AppImage-Download: <code>chmod +x</code> &amp; ausführen.
+      </p>
     </div>
-    <p class="auto-detected">
-      Direkt-Download startet ohne Skript — danach: <code>chmod +x</code> &amp; ausführen.
-    </p>
+
+    <!-- Windows Panel -->
+    <div class="os-panel" data-os-panel="windows" hidden>
+      <p class="panel-intro">
+        Setup-Programm (NSIS) — fragt nach Installations-Ordner und legt Start-Menü-Einträge an.
+      </p>
+
+      <div class="download-row download-row-single">
+        <a class="download-btn recommended" id="dl-win-x64" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
+          <span class="download-btn-label">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 11L3 6h3V1h4v5h3l-5 5zm-6 3v1h12v-1H2z"/></svg>
+            CoreMail-Desktop-Setup.exe
+          </span>
+          <span class="download-btn-meta" id="dl-win-x64-size">— MB · x64</span>
+        </a>
+      </div>
+      <p class="auto-detected">
+        ⚠️ Build ist <strong>unsigniert</strong>: SmartScreen warnt → „Weitere Informationen" → „Trotzdem ausführen".
+        <a href="https://github.com/Zenovs/coremail/blob/initial-code/docs/UNSIGNED-BUILDS.md" target="_blank" rel="noopener">Anleitung</a>
+      </p>
+    </div>
+
+    <!-- macOS Panel -->
+    <div class="os-panel" data-os-panel="macos" hidden>
+      <p class="panel-intro">
+        DMG mit Drag-and-Drop in den Programme-Ordner. Wähle deine Mac-Architektur:
+      </p>
+
+      <div class="arch-toggle">
+        <button class="mac-arch-btn active" data-mac-arch="arm64">Apple Silicon (M1+)</button>
+        <button class="mac-arch-btn" data-mac-arch="x64">Intel</button>
+      </div>
+
+      <div class="download-row download-row-single">
+        <a class="download-btn recommended" id="dl-mac" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
+          <span class="download-btn-label">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 11L3 6h3V1h4v5h3l-5 5zm-6 3v1h12v-1H2z"/></svg>
+            <span id="dl-mac-name">CoreMail Desktop.dmg</span>
+          </span>
+          <span class="download-btn-meta" id="dl-mac-size">— MB</span>
+        </a>
+      </div>
+      <p class="auto-detected">
+        ⚠️ Build ist <strong>unsigniert</strong>: Gatekeeper blockiert beim ersten Start.
+        Workaround: Systemeinstellungen → Datenschutz &amp; Sicherheit → „Dennoch öffnen".
+        <a href="https://github.com/Zenovs/coremail/blob/initial-code/docs/UNSIGNED-BUILDS.md" target="_blank" rel="noopener">Anleitung</a>
+      </p>
+    </div>
+
   </div>
 </section>
 
@@ -474,10 +575,10 @@
   <h2 class="section-title">Systemanforderungen</h2>
   <p class="section-subtitle">Läuft auch auf sehr ressourcenarmen Geräten.</p>
   <dl class="sysreq-grid">
-    <div class="sysreq-item"><dt>Betriebssystem</dt><dd>Linux x64 / arm64</dd></div>
-    <div class="sysreq-item"><dt>Speicher</dt><dd>~200 MB</dd></div>
-    <div class="sysreq-item"><dt>Arbeitsspeicher</dt><dd>min. 512 MB</dd></div>
-    <div class="sysreq-item"><dt>CPU</dt><dd>Beliebig — auch Pi 4/5</dd></div>
+    <div class="sysreq-item"><dt>Linux</dt><dd>x64 / arm64 · AppImage, deb, rpm</dd></div>
+    <div class="sysreq-item"><dt>Windows</dt><dd>10 / 11 · x64</dd></div>
+    <div class="sysreq-item"><dt>macOS</dt><dd>11+ · Intel &amp; Apple Silicon</dd></div>
+    <div class="sysreq-item"><dt>Speicher</dt><dd>~200 MB Disk · 512 MB RAM</dd></div>
   </dl>
 </section>
 
@@ -500,51 +601,99 @@
 <script>
 (() => {
   const REPO = 'Zenovs/coremail';
-  const FALLBACK_VERSION = '6.1.0';
+  const FALLBACK_VERSION = '6.3.0';
 
+  // Elements
   const cmdEl = document.getElementById('install-cmd');
   const copyBtn = document.getElementById('copy-btn');
   const toast = document.getElementById('toast');
-  const archBtns = document.querySelectorAll('.arch-btn');
   const autoDetectedEl = document.getElementById('auto-detected');
-  const dlX64 = document.getElementById('dl-x64');
-  const dlArm64 = document.getElementById('dl-arm64');
-  const dlX64Size = document.getElementById('dl-x64-size');
-  const dlArm64Size = document.getElementById('dl-arm64-size');
   const heroVersion = document.getElementById('hero-version');
   const navVersion = document.getElementById('nav-version');
 
-  // 1) Architecture detection from UA
-  const ua = (navigator.userAgent || '').toLowerCase();
-  const isArm = /aarch64|arm64|armv8/.test(ua);
-  const detectedArch = isArm ? 'arm64' : 'x64';
-  let currentArch = detectedArch;
+  const osButtons = document.querySelectorAll('.os-btn');
+  const osPanels = document.querySelectorAll('.os-panel');
+  const archBtns = document.querySelectorAll('#install-cmd ~ * .arch-btn, [data-os-panel="linux"] .arch-btn');
+  const macArchBtns = document.querySelectorAll('.mac-arch-btn');
 
-  // Highlight detected arch
-  archBtns.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.arch === detectedArch);
-  });
-  autoDetectedEl.textContent = `Erkannt: ${detectedArch === 'arm64' ? 'arm64 (ARM-Prozessor)' : 'x64 (Intel/AMD)'}. Falls falsch — oben umstellen.`;
-  if (detectedArch === 'arm64') {
-    dlArm64.classList.add('recommended');
-  } else {
-    dlX64.classList.add('recommended');
+  // Linux download elements
+  const dlLinuxAppImage = document.getElementById('dl-linux-appimage');
+  const dlLinuxDeb = document.getElementById('dl-linux-deb');
+  const dlLinuxRpm = document.getElementById('dl-linux-rpm');
+  const dlLinuxAppImageSize = document.getElementById('dl-linux-appimage-size');
+  const dlLinuxDebSize = document.getElementById('dl-linux-deb-size');
+  const dlLinuxRpmSize = document.getElementById('dl-linux-rpm-size');
+
+  // Windows
+  const dlWinX64 = document.getElementById('dl-win-x64');
+  const dlWinX64Size = document.getElementById('dl-win-x64-size');
+
+  // macOS
+  const dlMac = document.getElementById('dl-mac');
+  const dlMacSize = document.getElementById('dl-mac-size');
+  const dlMacName = document.getElementById('dl-mac-name');
+
+  // ───── 1) OS-Detection aus UserAgent ─────
+  const ua = (navigator.userAgent || '').toLowerCase();
+  const platform = (navigator.platform || '').toLowerCase();
+  let detectedOS = 'linux';
+  if (/win/.test(platform) || /windows/.test(ua)) detectedOS = 'windows';
+  else if (/mac/.test(platform) || /macintosh|mac os x/.test(ua)) detectedOS = 'macos';
+  // mobile fallback: meist auf Linux landen — Touch-Devices haben sowieso keinen Desktop-Sinn
+
+  // ───── 2) Architektur (Linux: arm64 erkennen, macOS: M1/M2 erkennen) ─────
+  const isArm = /aarch64|arm64|armv8/.test(ua);
+  // macOS-Erkennung Apple Silicon: schwer ohne Server-Hint, aber: navigator.userAgentData.getHighEntropyValues('architecture') wenn verfügbar
+  let detectedLinuxArch = isArm ? 'arm64' : 'x64';
+  let detectedMacArch = 'arm64'; // Default zu Apple Silicon (neuere Macs)
+  if (/intel/i.test(navigator.userAgent)) detectedMacArch = 'x64';
+
+  // ───── 3) OS-Tab-Switching ─────
+  function selectOS(os) {
+    osButtons.forEach(b => b.classList.toggle('active', b.dataset.os === os));
+    osPanels.forEach(p => {
+      const isMatch = p.dataset.osPanel === os;
+      if (isMatch) p.removeAttribute('hidden');
+      else p.setAttribute('hidden', '');
+    });
   }
+  osButtons.forEach(b => b.addEventListener('click', () => selectOS(b.dataset.os)));
+  selectOS(detectedOS);
+
+  // ───── 4) Linux-Architektur-Toggle (Bash + Direct-Downloads) ─────
+  let currentLinuxArch = detectedLinuxArch;
 
   function buildCmd(arch) {
     return `curl -sSL https://raw.githubusercontent.com/${REPO}/initial-code/install.sh | bash -s -- --${arch}`;
   }
 
-  function setArch(arch) {
-    currentArch = arch;
+  function applyLinuxArch(arch) {
+    currentLinuxArch = arch;
     cmdEl.textContent = buildCmd(arch);
-    archBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.arch === arch));
+    document.querySelectorAll('[data-os-panel="linux"] .arch-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.arch === arch)
+    );
+    if (window._linuxAssets) updateLinuxDownloads(window._linuxAssets);
   }
-  setArch(detectedArch);
 
-  archBtns.forEach(btn => btn.addEventListener('click', () => setArch(btn.dataset.arch)));
+  document.querySelectorAll('[data-os-panel="linux"] .arch-btn').forEach(b => {
+    b.addEventListener('click', () => applyLinuxArch(b.dataset.arch));
+  });
 
-  // 2) Copy command
+  applyLinuxArch(detectedLinuxArch);
+  autoDetectedEl.textContent = `Erkannt: ${detectedLinuxArch === 'arm64' ? 'arm64 (ARM/Pi)' : 'x64 (Intel/AMD)'} — falls falsch, oben umstellen.`;
+
+  // ───── 5) macOS-Architektur-Toggle ─────
+  let currentMacArch = detectedMacArch;
+  function applyMacArch(arch) {
+    currentMacArch = arch;
+    macArchBtns.forEach(b => b.classList.toggle('active', b.dataset.macArch === arch));
+    if (window._macAssets) updateMacDownload(window._macAssets);
+  }
+  macArchBtns.forEach(b => b.addEventListener('click', () => applyMacArch(b.dataset.macArch)));
+  applyMacArch(detectedMacArch);
+
+  // ───── 6) Copy-Button ─────
   copyBtn.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(cmdEl.textContent);
@@ -557,7 +706,6 @@
         toast.classList.remove('show');
       }, 1800);
     } catch (e) {
-      // Fallback: select text
       const range = document.createRange();
       range.selectNode(cmdEl);
       window.getSelection().removeAllRanges();
@@ -565,7 +713,62 @@
     }
   });
 
-  // 3) Fetch latest release info from GitHub
+  // ───── 7) Asset-Helpers ─────
+  function findAsset(assets, predicate) { return assets.find(predicate); }
+  function fmtSize(bytes) { return `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
+
+  function updateLinuxDownloads(assets) {
+    const arch = currentLinuxArch; // 'x64' oder 'arm64'
+    // AppImage: Datei-Suffix ist x86_64 oder arm64
+    const appImage = findAsset(assets, a =>
+      /\.AppImage$/i.test(a.name) &&
+      (arch === 'x64' ? /x86[_-]?64/i.test(a.name) : /arm64/i.test(a.name))
+    );
+    const deb = findAsset(assets, a =>
+      /\.deb$/i.test(a.name) &&
+      (arch === 'x64' ? /(amd64|x86[_-]?64|x64)/i.test(a.name) : /arm64/i.test(a.name))
+    );
+    const rpm = findAsset(assets, a =>
+      /\.rpm$/i.test(a.name) &&
+      (arch === 'x64' ? /x86[_-]?64/i.test(a.name) : /(arm64|aarch64)/i.test(a.name))
+    );
+
+    if (appImage) {
+      dlLinuxAppImage.href = appImage.browser_download_url;
+      dlLinuxAppImageSize.textContent = fmtSize(appImage.size);
+    }
+    if (deb) {
+      dlLinuxDeb.href = deb.browser_download_url;
+      dlLinuxDebSize.textContent = fmtSize(deb.size);
+    }
+    if (rpm) {
+      dlLinuxRpm.href = rpm.browser_download_url;
+      dlLinuxRpmSize.textContent = fmtSize(rpm.size);
+    }
+  }
+
+  function updateWindowsDownload(assets) {
+    const exe = findAsset(assets, a => /\.exe$/i.test(a.name));
+    if (exe) {
+      dlWinX64.href = exe.browser_download_url;
+      dlWinX64Size.textContent = `${fmtSize(exe.size)} · x64`;
+    }
+  }
+
+  function updateMacDownload(assets) {
+    const arch = currentMacArch;
+    const dmg = findAsset(assets, a =>
+      /\.dmg$/i.test(a.name) &&
+      (arch === 'arm64' ? /arm64/i.test(a.name) : /(x64|x86[_-]?64|intel)/i.test(a.name))
+    );
+    if (dmg) {
+      dlMac.href = dmg.browser_download_url;
+      dlMacSize.textContent = `${fmtSize(dmg.size)} · ${arch === 'arm64' ? 'Apple Silicon' : 'Intel'}`;
+      dlMacName.textContent = dmg.name;
+    }
+  }
+
+  // ───── 8) Latest Release fetchen ─────
   fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
     .then(data => {
@@ -573,17 +776,13 @@
       heroVersion.textContent = `v${version}`;
       navVersion.textContent = `v${version}`;
 
-      const x64Asset = data.assets.find(a => /x86[_-]?64|x64/i.test(a.name));
-      const arm64Asset = data.assets.find(a => /arm64|aarch64/i.test(a.name));
+      const assets = data.assets || [];
+      window._linuxAssets = assets;
+      window._macAssets = assets;
 
-      if (x64Asset) {
-        dlX64.href = x64Asset.browser_download_url;
-        dlX64Size.textContent = `${(x64Asset.size / 1024 / 1024).toFixed(1)} MB`;
-      }
-      if (arm64Asset) {
-        dlArm64.href = arm64Asset.browser_download_url;
-        dlArm64Size.textContent = `${(arm64Asset.size / 1024 / 1024).toFixed(1)} MB`;
-      }
+      updateLinuxDownloads(assets);
+      updateWindowsDownload(assets);
+      updateMacDownload(assets);
     })
     .catch(() => {
       heroVersion.textContent = `v${FALLBACK_VERSION}`;
