@@ -268,10 +268,11 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   const dropZoneRef  = useRef(null);
 
   // --- Signatur ---
-  const [signatures,           setSignatures]           = useState({});
-  const [useSignature,         setUseSignature]         = useState(true);
-  const [showSignaturePreview, setShowSignaturePreview] = useState(false);
-  const sigInsertedRef = useRef(false); // track whether signature is in editor
+  const [signatures,            setSignatures]            = useState({});
+  const [useSignature,          setUseSignature]          = useState(true);
+  const [showSignaturePreview,  setShowSignaturePreview]  = useState(false);
+  const [selectedSignatureId,   setSelectedSignatureId]   = useState(null); // null = Default
+  const sigInsertedRef = useRef(false);
 
   // ── Initialisierung ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -335,8 +336,22 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
     }
   };
 
-  const currentSignature = signatures[selectedAccountId];
+  // Signatur des aktiven Kontos auswählen.
+  // Neues Format: signatures[accountId] = { enabled, defaultId, items: [...], html, text } (top-level html/text = Default).
+  // Altes Format: { enabled, html, text } — beides funktioniert dank top-level-Feldern.
+  const accSig = signatures[selectedAccountId] || null;
+  const sigItems = Array.isArray(accSig?.items) ? accSig.items : null;
+  // Effektive Signatur: explizit gewählte oder Default (top-level html)
+  const pickedItem = sigItems && selectedSignatureId
+    ? sigItems.find(i => i.id === selectedSignatureId)
+    : null;
+  const currentSignature = pickedItem
+    ? { enabled: !!accSig?.enabled, html: pickedItem.html, text: pickedItem.text, name: pickedItem.name }
+    : accSig;
   const hasSignature = currentSignature?.enabled && currentSignature?.html;
+
+  // Bei Account-Wechsel: ausgewählte Signatur-ID zurücksetzen (Default des neuen Kontos)
+  useEffect(() => { setSelectedSignatureId(null); }, [selectedAccountId]);
 
   // Insert / remove signature element directly in editor so user sees it while composing.
   // We mark the element with data-coremail-sig so toggle and re-render can find it.
@@ -359,7 +374,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       existingSig.remove();
       sigInsertedRef.current = false;
     }
-  }, [hasSignature, useSignature, selectedAccountId]); // eslint-disable-line
+  }, [hasSignature, useSignature, selectedAccountId, selectedSignatureId]); // eslint-disable-line
 
   // ── Editor-Modus wechseln ───────────────────────────────────────────────────
   const switchMode = (mode) => {
@@ -937,7 +952,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
 
             {/* Signatur */}
             {hasSignature && (
-              <div className={`flex items-center gap-3 px-2`}>
+              <div className={`flex items-center gap-3 px-2 flex-wrap`}>
                 <input
                   type="checkbox"
                   id="useSignature"
@@ -946,12 +961,27 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                   className="w-4 h-4 rounded accent-cyan-500"
                 />
                 <label htmlFor="useSignature" className={`${c.textSecondary} cursor-pointer text-xs flex items-center gap-1`}><PenFountain size={16} /> Signatur anhängen</label>
+                {/* Picker — nur anzeigen wenn mehr als eine Signatur konfiguriert */}
+                {sigItems && sigItems.length > 1 && useSignature && (
+                  <select
+                    value={selectedSignatureId || (accSig?.defaultId || '')}
+                    onChange={(e) => setSelectedSignatureId(e.target.value || null)}
+                    className={`text-xs px-2 py-1 ${c.bgTertiary} ${c.text} ${c.border} border rounded`}
+                    title="Signatur auswählen"
+                  >
+                    {sigItems.map(item => (
+                      <option key={item.id} value={item.id}>
+                        {item.name || 'Unbenannt'}{item.id === accSig?.defaultId ? ' (Standard)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
 
             {!hasSignature && (
               <p className={`text-xs ${c.textSecondary} text-center`}>
-                💡 Tipp: Unter Einstellungen → Signaturen kannst du eine E-Mail-Signatur erstellen.
+                Tipp: Unter Einstellungen → Signaturen kannst du E-Mail-Signaturen erstellen.
               </p>
             )}
           </div>
