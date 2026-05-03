@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.coremail.Desktop</id>
+  <name>CoreMail Desktop</name>
+  <summary>Schlanker Open-Source-E-Mail-Client für Linux</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer_name>powered by wireon</developer_name>
+
+  <description>
+    <p>
+      CoreMail Desktop ist ein freier, schlanker E-Mail-Client für Linux. Er
+      unterstützt beliebig viele IMAP/SMTP-Konten parallel sowie Microsoft 365
+      via Graph API mit OAuth2 — ohne App-Passwörter, ohne Cloud-Tracking.
+    </p>
+    <p>Funktionen:</p>
+    <ul>
+      <li>Mehrere Konten parallel (IMAP/SMTP + Microsoft 365)</li>
+      <li>Split-View mit Inline-Antwort</li>
+      <li>Lokaler Spam-Filter ohne Cloud</li>
+      <li>HTML-Vorlagen für Newsletter, Angebote, formelle Briefe</li>
+      <li>11 Themes (Dark, Light, Minimal, Glas, Retro, Foundations, …)</li>
+      <li>Carbon Design System Icons</li>
+      <li>Mehrere Signaturen pro Konto</li>
+      <li>Tracking-Pixel-Schutz, sandboxed HTML-Mail-Render</li>
+      <li>List-Unsubscribe-Button (RFC 8058)</li>
+      <li>Microsoft 365 Kalender-Integration</li>
+      <li>Mail-Übersetzung integriert</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">com.coremail.Desktop.desktop</launchable>
+
+  <url type="homepage">https://coremail.ch</url>
+  <url type="bugtracker">https://github.com/Zenovs/coremail/issues</url>
+  <url type="vcs-browser">https://github.com/Zenovs/coremail</url>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>CoreMail Desktop — Split-View mit Inline-Antwort</caption>
+      <image>https://raw.githubusercontent.com/Zenovs/coremail/initial-code/docs/screenshot-1.png</image>
+    </screenshot>
+  </screenshots>
+
+  <categories>
+    <category>Network</category>
+    <category>Email</category>
+    <category>Office</category>
+  </categories>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="6.3.0" date="2026-05-03">
+      <description>
+        <p>Neu: List-Unsubscribe-Button, Multi-Plattform-Builds (Linux deb/rpm, Windows, macOS), Volltext-Suche.</p>
+      </description>
+    </release>
+  </releases>
+</component>

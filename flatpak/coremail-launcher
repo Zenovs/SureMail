@@ -1,0 +1,4 @@
+#!/bin/bash
+# Flatpak-Launcher für CoreMail Desktop
+# Verwendet zypak für Chromium-Sandbox-Kompatibilität
+exec zypak-wrapper /app/coremail-desktop/coremail-desktop --no-sandbox "$@"

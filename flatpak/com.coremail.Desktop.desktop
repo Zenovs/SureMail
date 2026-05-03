@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=CoreMail Desktop
+GenericName=Email Client
+Comment=Schlanker Open-Source-E-Mail-Client für Linux
+Exec=coremail-desktop %U
+Icon=com.coremail.Desktop
+Terminal=false
+Type=Application
+Categories=Network;Email;Office;
+Keywords=email;mail;imap;smtp;outlook;microsoft365;
+StartupWMClass=coremail-desktop
+StartupNotify=true
+MimeType=x-scheme-handler/mailto;

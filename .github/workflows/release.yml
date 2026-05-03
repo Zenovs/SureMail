@@ -12,15 +12,12 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build:
+  # ─────────────── Linux: AppImage + deb + rpm (x64 & arm64) ───────────────
+  build-linux:
     runs-on: ubuntu-24.04
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -28,14 +25,9 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libarchive-tools \
-            squashfs-tools \
-            fakeroot \
-            rpm \
-            dpkg
+          sudo apt-get install -y libarchive-tools squashfs-tools fakeroot rpm dpkg
 
-      - name: Install dependencies
+      - name: Install npm dependencies
         run: npm install --prefer-offline
 
       - name: Build React
@@ -43,22 +35,115 @@ jobs:
         env:
           CI: false
 
-      - name: Build Electron AppImage (x64 + arm64)
-        run: ./node_modules/.bin/electron-builder --linux appimage --x64 --arm64 --publish never
+      - name: Build Linux packages (AppImage + deb + rpm, x64 + arm64)
+        run: ./node_modules/.bin/electron-builder --linux --x64 --arm64 --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: List dist folder
         run: ls -la dist/
 
-      # Security v6.2.0: SHA-256-Manifest erzeugen für In-App-Update-Verifikation.
-      # Die App lädt SHA256SUMS.txt zusätzlich zur AppImage und prüft den Hash
-      # gegen den im Manifest hinterlegten Wert. Stimmt er nicht, wird das Update verworfen.
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-linux
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+          retention-days: 1
+
+  # ─────────────── Windows: NSIS-Installer ───────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm install --prefer-offline
+
+      - name: Build React
+        run: npm run react-build
+        env:
+          CI: false
+
+      - name: Build Windows installer
+        run: ./node_modules/.bin/electron-builder --win --x64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-windows
+          path: dist/*.exe
+          retention-days: 1
+
+  # ─────────────── macOS: DMG (x64 + arm64) ───────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm install --prefer-offline
+
+      - name: Build React
+        run: npm run react-build
+        env:
+          CI: false
+
+      - name: Build macOS DMG
+        run: ./node_modules/.bin/electron-builder --mac --x64 --arm64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Code-Signing & Notarisierung sind hier OPT-IN.
+          # Für signierte/notarisierte Builds setze diese Secrets im Repo:
+          #   APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID, CSC_LINK, CSC_KEY_PASSWORD
+          # Ohne diese Secrets entstehen unsigned Builds (User muss Gatekeeper umgehen).
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-macos
+          path: dist/*.dmg
+          retention-days: 1
+
+  # ─────────────── Release: alle Artefakte zusammenführen + SHA256SUMS ───────────────
+  release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Flatten dist folder
+        run: |
+          mkdir -p dist
+          find artifacts -type f \( -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' -o -name '*.exe' -o -name '*.dmg' \) -exec mv {} dist/ \;
+          ls -la dist/
+
       - name: Generate SHA256SUMS manifest
         working-directory: dist
         run: |
-          sha256sum *.AppImage > SHA256SUMS.txt
-          echo "Generated manifest:"
+          sha256sum *.AppImage *.deb *.rpm *.exe *.dmg 2>/dev/null > SHA256SUMS.txt || true
+          # Filter Zeilen ohne match heraus
+          grep -v "No such" SHA256SUMS.txt > SHA256SUMS.txt.tmp || true
+          mv SHA256SUMS.txt.tmp SHA256SUMS.txt 2>/dev/null || true
+          echo "Manifest:"
           cat SHA256SUMS.txt
 
       - name: Get version from tag
@@ -72,32 +157,42 @@ jobs:
           body: |
             ## CoreMail Desktop v${{ steps.version.outputs.VERSION }}
 
-            ### Installation / Update
+            ### Schnell-Install
 
-            Das Script erkennt die Architektur automatisch (x64 / arm64):
-
+            **Linux** — Architektur wird automatisch erkannt:
             ```bash
             bash <(curl -s https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh)
             ```
 
-            ### Downloads
+            ### Alle Downloads
 
-            | Architektur | Datei |
-            |---|---|
-            | x64 (Standard-PC) | `CoreMail-Desktop-${{ steps.version.outputs.VERSION }}-x64.AppImage` |
-            | arm64 (Raspberry Pi 4/5) | `CoreMail-Desktop-${{ steps.version.outputs.VERSION }}-arm64.AppImage` |
+            | Plattform | Format | Architektur |
+            |---|---|---|
+            | Linux | `.AppImage` (universal) | x64, arm64 |
+            | Linux (Debian/Ubuntu) | `.deb` | x64, arm64 |
+            | Linux (Fedora/RHEL) | `.rpm` | x64, arm64 |
+            | Windows | `.exe` (NSIS-Installer) | x64 |
+            | macOS | `.dmg` | x64 (Intel), arm64 (Apple Silicon) |
 
             ### Verifikation
-            Die `SHA256SUMS.txt` enthält die SHA-256-Hashes aller AppImages. Manuelle Prüfung:
+            `SHA256SUMS.txt` enthält die Hashes aller Dateien:
             ```bash
             sha256sum -c SHA256SUMS.txt --ignore-missing
             ```
-            Ab v6.2.0 prüft die In-App-Update-Funktion diesen Hash automatisch.
+            Die In-App-Update-Funktion verifiziert ab v6.2.0 automatisch.
+
+            ### macOS / Windows ohne Code-Signing
+            Diese Builds sind aktuell **unsigniert**. Beim ersten Start erscheint
+            eine Sicherheitswarnung — siehe [docs/UNSIGNED-BUILDS.md](https://github.com/Zenovs/coremail/blob/initial-code/docs/UNSIGNED-BUILDS.md).
 
             ### Änderungen
             Siehe [Commit-History](https://github.com/Zenovs/coremail/commits/initial-code)
           files: |
             dist/*.AppImage
+            dist/*.deb
+            dist/*.rpm
+            dist/*.exe
+            dist/*.dmg
             dist/SHA256SUMS.txt
           draft: false
           prerelease: false

@@ -71,6 +71,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   renameFolder: (accountId, oldName, newName) => ipcRenderer.invoke('imap:renameFolder', accountId, oldName, newName),
   deleteFolder: (accountId, folderName) => ipcRenderer.invoke('imap:deleteFolder', accountId, folderName),
   
+  // List-Unsubscribe (v6.3.0)
+  unsubscribeFromList: (params) => ipcRenderer.invoke('mail:unsubscribe', params),
+
+  // Volltext-Suche (FTS5, v6.3.0)
+  searchFTS: (params) => ipcRenderer.invoke('search:fts', params),
+  searchIndexEmail: (payload) => ipcRenderer.invoke('search:indexEmail', payload),
+  searchIndexBatch: (payloads) => ipcRenderer.invoke('search:indexBatch', payloads),
+  searchStats: () => ipcRenderer.invoke('search:stats'),
+  searchClearIndex: () => ipcRenderer.invoke('search:clearIndex'),
+
   // SMTP
   testSmtp: (settings) => ipcRenderer.invoke('smtp:test', settings),
   sendEmail: (emailData) => ipcRenderer.invoke('smtp:send', emailData),

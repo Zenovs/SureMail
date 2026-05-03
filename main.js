@@ -145,6 +145,161 @@ try {
 
 let mainWindow;
 
+// ============ FULL-TEXT-SEARCH-INDEX (SQLite + FTS5, v6.3.0) ============
+// Lokaler Index aller bereits abgerufenen Mails. Sucht in <50ms, auch offline.
+// Lazy-Loading: better-sqlite3 wird nur geladen wenn verfügbar; ohne fällt
+// die Suche transparent auf den bisherigen IMAP-Server-Search zurück.
+let searchDb = null;
+let searchDbAvailable = false;
+
+function initSearchIndex() {
+  try {
+    const Database = require('better-sqlite3');
+    const dbPath = path.join(app.getPath('userData'), 'coremail-search.db');
+    searchDb = new Database(dbPath);
+    searchDb.pragma('journal_mode = WAL');
+    searchDb.pragma('synchronous = NORMAL');
+
+    // Haupt-Tabelle: Mail-Metadaten + Suchfelder
+    searchDb.exec(`
+      CREATE TABLE IF NOT EXISTS emails (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id TEXT NOT NULL,
+        folder TEXT NOT NULL,
+        uid TEXT NOT NULL,
+        message_id TEXT,
+        subject TEXT,
+        from_addr TEXT,
+        to_addr TEXT,
+        cc_addr TEXT,
+        date INTEGER,
+        body TEXT,
+        has_attachments INTEGER DEFAULT 0,
+        seen INTEGER DEFAULT 0,
+        UNIQUE(account_id, folder, uid)
+      );
+      CREATE INDEX IF NOT EXISTS idx_emails_date ON emails(date DESC);
+      CREATE INDEX IF NOT EXISTS idx_emails_account ON emails(account_id, folder);
+
+      CREATE VIRTUAL TABLE IF NOT EXISTS emails_fts USING fts5(
+        subject, from_addr, to_addr, body,
+        content='emails', content_rowid='id',
+        tokenize='unicode61 remove_diacritics 2'
+      );
+
+      CREATE TRIGGER IF NOT EXISTS emails_ai AFTER INSERT ON emails BEGIN
+        INSERT INTO emails_fts(rowid, subject, from_addr, to_addr, body)
+        VALUES (new.id, new.subject, new.from_addr, new.to_addr, new.body);
+      END;
+      CREATE TRIGGER IF NOT EXISTS emails_ad AFTER DELETE ON emails BEGIN
+        INSERT INTO emails_fts(emails_fts, rowid, subject, from_addr, to_addr, body)
+        VALUES ('delete', old.id, old.subject, old.from_addr, old.to_addr, old.body);
+      END;
+      CREATE TRIGGER IF NOT EXISTS emails_au AFTER UPDATE ON emails BEGIN
+        INSERT INTO emails_fts(emails_fts, rowid, subject, from_addr, to_addr, body)
+        VALUES ('delete', old.id, old.subject, old.from_addr, old.to_addr, old.body);
+        INSERT INTO emails_fts(rowid, subject, from_addr, to_addr, body)
+        VALUES (new.id, new.subject, new.from_addr, new.to_addr, new.body);
+      END;
+    `);
+
+    searchDbAvailable = true;
+    console.log('[Search] FTS5-Index initialisiert:', dbPath);
+  } catch (e) {
+    searchDbAvailable = false;
+    console.warn('[Search] better-sqlite3 nicht verfügbar — Volltextsuche fällt auf Server-Suche zurück:', e.message);
+  }
+}
+
+// Stripped-down Body extrahieren für den Index (HTML → Text, Limit 50 KB pro Mail)
+function htmlToSearchText(html) {
+  if (!html) return '';
+  const noScripts = String(html).replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, ' ');
+  const noTags = noScripts.replace(/<[^>]+>/g, ' ');
+  const decoded = noTags.replace(/&[a-z]+;/gi, ' ').replace(/&#\d+;/g, ' ');
+  return decoded.replace(/\s+/g, ' ').trim().slice(0, 50000);
+}
+
+function indexEmailInSearch({ accountId, folder, uid, messageId, subject, from, to, cc, date, body, html, hasAttachments, seen }) {
+  if (!searchDbAvailable || !searchDb) return false;
+  try {
+    const bodyText = (body && String(body).trim().length) ? String(body).slice(0, 50000) : htmlToSearchText(html);
+    const stmt = searchDb.prepare(`
+      INSERT INTO emails (account_id, folder, uid, message_id, subject, from_addr, to_addr, cc_addr, date, body, has_attachments, seen)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(account_id, folder, uid) DO UPDATE SET
+        subject=excluded.subject,
+        from_addr=excluded.from_addr,
+        to_addr=excluded.to_addr,
+        cc_addr=excluded.cc_addr,
+        date=excluded.date,
+        body=excluded.body,
+        has_attachments=excluded.has_attachments,
+        seen=excluded.seen
+    `);
+    stmt.run(
+      String(accountId), String(folder), String(uid), messageId || null,
+      subject || '', from || '', to || '', cc || '',
+      date ? new Date(date).getTime() : 0,
+      bodyText, hasAttachments ? 1 : 0, seen ? 1 : 0
+    );
+    return true;
+  } catch (e) {
+    console.warn('[Search] indexEmail-Fehler:', e.message);
+    return false;
+  }
+}
+
+function searchEmailsFTS({ query, accountIds = [], limit = 50 }) {
+  if (!searchDbAvailable || !searchDb) return { success: false, error: 'Search-Index nicht verfügbar' };
+  try {
+    // Sanitize Query für FTS5: Sonderzeichen die FTS5 als Operatoren liest in Quotes setzen.
+    const safeQuery = query.trim().split(/\s+/).map(token => {
+      // Numerisch oder simples Wort: belassen (erlaubt Prefix-Matches mit *)
+      if (/^[a-zA-Z0-9äöüÄÖÜß]+$/.test(token)) return token + '*';
+      // Sonst quoten (alles im Token wird als Phrase gesucht)
+      return '"' + token.replace(/"/g, '""') + '"';
+    }).join(' ');
+
+    let sql = `
+      SELECT e.account_id, e.folder, e.uid, e.message_id, e.subject, e.from_addr, e.to_addr, e.date, e.has_attachments, e.seen,
+             snippet(emails_fts, 3, '<mark>', '</mark>', '…', 12) AS snippet,
+             rank
+      FROM emails_fts
+      JOIN emails e ON e.id = emails_fts.rowid
+      WHERE emails_fts MATCH ?
+    `;
+    const params = [safeQuery];
+    if (accountIds.length > 0) {
+      sql += ` AND e.account_id IN (${accountIds.map(() => '?').join(',')})`;
+      params.push(...accountIds);
+    }
+    sql += ` ORDER BY rank LIMIT ?`;
+    params.push(limit);
+
+    const rows = searchDb.prepare(sql).all(...params);
+    return {
+      success: true,
+      results: rows.map(r => ({
+        accountId: r.account_id,
+        folder: r.folder,
+        uid: r.uid,
+        messageId: r.message_id,
+        subject: r.subject,
+        from: r.from_addr,
+        to: r.to_addr,
+        date: r.date ? new Date(r.date).toISOString() : null,
+        hasAttachments: !!r.has_attachments,
+        seen: !!r.seen,
+        snippet: r.snippet
+      }))
+    };
+  } catch (e) {
+    console.error('[Search] FTS-Query-Fehler:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
 // Security: Strict Content-Security-Policy for renderer (defense-in-depth).
 // Allowed: self for scripts/styles/images/fonts, data: for inline images, https: for tracker-image opt-in.
 // External fetches (Microsoft Graph, GitHub API, Google Fonts) are explicitly listed.
@@ -345,6 +500,7 @@ async function migrateToSafeStorage() {
 
 app.whenReady().then(async () => {
   await migrateToSafeStorage();
+  initSearchIndex();
   createWindow();
   // Sync system launcher icons in background (non-blocking)
   setTimeout(() => syncSystemIcons(), 3000);
@@ -457,6 +613,42 @@ function getAccountById(accountId) {
 // damit sich an deren Verhalten nichts ändert.
 function shouldRejectUnauthorized(account) {
   return !(account?.allowInsecureTLS === true);
+}
+
+// List-Unsubscribe (RFC 2369 + RFC 8058) aus Mail-Headern extrahieren.
+// Liefert { mailto, http, oneClick } — alles optional. oneClick=true bedeutet
+// RFC 8058: ein POST genügt (kein Browser-Tab, keine Bestätigung), wenn der
+// Server `List-Unsubscribe-Post: List-Unsubscribe=One-Click` mitsendet.
+function extractListUnsubscribe(parsedMail) {
+  if (!parsedMail) return null;
+  let raw = null;
+  try {
+    if (parsedMail.headers && typeof parsedMail.headers.get === 'function') {
+      raw = parsedMail.headers.get('list-unsubscribe');
+    }
+  } catch (_) {}
+  if (!raw && parsedMail.headerLines) {
+    const line = parsedMail.headerLines.find(h => h.key === 'list-unsubscribe');
+    if (line) raw = line.line.replace(/^list-unsubscribe:\s*/i, '');
+  }
+  if (!raw || typeof raw !== 'string') return null;
+
+  const items = raw.match(/<([^>]+)>/g) || [];
+  let mailto = null, http = null;
+  for (const item of items) {
+    const v = item.slice(1, -1).trim();
+    if (v.startsWith('mailto:')) mailto = mailto || v;
+    else if (v.startsWith('http://') || v.startsWith('https://')) http = http || v;
+  }
+  if (!mailto && !http) return null;
+
+  let oneClick = false;
+  try {
+    const post = parsedMail.headers?.get?.('list-unsubscribe-post');
+    if (post && /one-click/i.test(String(post))) oneClick = true;
+  } catch (_) {}
+
+  return { mailto, http, oneClick };
 }
 
 // v2.0.0: IMAP-Konfiguration für ein Konto erstellen
@@ -1216,6 +1408,131 @@ ipcMain.handle('notification:setBadge', async (event, count) => {
   return { success: true };
 });
 
+// === FULL-TEXT-SEARCH (FTS5, v6.3.0) ===
+// Schnelle lokale Suche über bereits indexierte Mails.
+// Index wird live beim Mail-Abruf gefüllt (über search:indexEmail aus dem Renderer).
+ipcMain.handle('search:fts', async (event, params) => {
+  return searchEmailsFTS({
+    query: params?.query || '',
+    accountIds: params?.accountIds || [],
+    limit: params?.limit || 50
+  });
+});
+
+ipcMain.handle('search:indexEmail', async (event, payload) => {
+  const ok = indexEmailInSearch(payload || {});
+  return { success: ok };
+});
+
+ipcMain.handle('search:indexBatch', async (event, payloads) => {
+  if (!searchDbAvailable || !searchDb) return { success: false, count: 0 };
+  let count = 0;
+  const txn = searchDb.transaction((items) => {
+    for (const it of items) {
+      if (indexEmailInSearch(it)) count++;
+    }
+  });
+  try {
+    txn(payloads || []);
+    return { success: true, count };
+  } catch (e) {
+    return { success: false, count, error: e.message };
+  }
+});
+
+ipcMain.handle('search:stats', async () => {
+  if (!searchDbAvailable || !searchDb) return { success: false, available: false };
+  try {
+    const total = searchDb.prepare('SELECT COUNT(*) as c FROM emails').get().c;
+    const accounts = searchDb.prepare('SELECT account_id, COUNT(*) as c FROM emails GROUP BY account_id').all();
+    return { success: true, available: true, total, accounts };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('search:clearIndex', async () => {
+  if (!searchDbAvailable || !searchDb) return { success: false };
+  try {
+    searchDb.exec('DELETE FROM emails');
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+// === LIST-UNSUBSCRIBE (RFC 2369 + RFC 8058) ===
+// Drei Wege:
+//   1) one-click POST an https-URL (RFC 8058) — wenn der Sender es mitsendet
+//   2) GET an https-URL → im Browser öffnen (User bestätigt selbst)
+//   3) mailto: → leere Mail vom aktiven Konto an den angegebenen Empfänger schicken
+ipcMain.handle('mail:unsubscribe', async (event, { listUnsubscribe, accountId }) => {
+  if (!listUnsubscribe) return { success: false, error: 'Keine Unsubscribe-Information' };
+  const { mailto, http, oneClick } = listUnsubscribe;
+
+  // Pfad 1: One-Click POST (RFC 8058) — bevorzugt
+  if (http && oneClick) {
+    try {
+      const resp = await fetch(http, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'CoreMail-Desktop' },
+        body: 'List-Unsubscribe=One-Click'
+      });
+      if (resp.ok) {
+        return { success: true, method: 'http-post', message: 'Erfolgreich abgemeldet' };
+      }
+      console.warn('[Unsubscribe] HTTP-POST scheiterte, Status:', resp.status);
+    } catch (e) {
+      console.warn('[Unsubscribe] HTTP-POST-Fehler, Fallback auf mailto/Browser:', e.message);
+    }
+  }
+
+  // Pfad 2: mailto — leere Mail über das aktive Konto schicken
+  if (mailto && accountId) {
+    try {
+      const accounts = store.get('accounts', []);
+      const account = accounts.find(a => a.id === accountId);
+      if (account?.smtp) {
+        const url = new URL(mailto);
+        const to = url.pathname || url.href.replace(/^mailto:/, '').split('?')[0];
+        const subject = url.searchParams.get('subject') || 'unsubscribe';
+        const body = url.searchParams.get('body') || '';
+
+        if (account.type === 'microsoft') {
+          await graphRequest(accountId, 'POST', '/me/sendMail', {
+            message: {
+              subject,
+              body: { contentType: 'Text', content: body },
+              toRecipients: [{ emailAddress: { address: to } }]
+            }
+          });
+        } else {
+          const transporter = getSmtpTransporterForAccount(account);
+          await transporter.sendMail({
+            from: account.smtp.fromEmail || account.smtp.username,
+            to, subject, text: body
+          });
+        }
+        return { success: true, method: 'mailto', message: 'Abmeldungs-Mail gesendet an ' + to };
+      }
+    } catch (e) {
+      console.error('[Unsubscribe] mailto-Fehler:', e.message);
+    }
+  }
+
+  // Pfad 3: Fallback — Browser öffnen für User-Bestätigung
+  if (http) {
+    try {
+      await shell.openExternal(http);
+      return { success: true, method: 'http-browser', message: 'Abmeldungs-Seite im Browser geöffnet' };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  return { success: false, error: 'Keine nutzbare Unsubscribe-Methode gefunden' };
+});
+
 // === SPAM FILTER (v1.14.0) ===
 ipcMain.handle('spamfilter:saveSettings', async (event, settings) => {
   store.set('spamFilterSettings', settings);
@@ -1578,6 +1895,7 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder
         date: parsed.date || new Date(),
         html: parsed.html || null,
         text: parsed.text || '',
+        listUnsubscribe: extractListUnsubscribe(parsed),
         attachments: parsed.attachments.map(att => ({
           filename: att.filename,
           contentType: att.contentType,
@@ -1701,6 +2019,7 @@ ipcMain.handle('imap:fetchEmail', async (event, uid) => {
         date: parsed.date || new Date(),
         html: parsed.html || null,
         text: parsed.text || '',
+        listUnsubscribe: extractListUnsubscribe(parsed),
         attachments: parsed.attachments.map(att => ({
           filename: att.filename,
           contentType: att.contentType,
@@ -2704,21 +3023,44 @@ ipcMain.handle('graph:fetchEmails', async (event, accountId, { folder = 'INBOX',
 // --- IPC: Graph – Fetch single email with body ---
 ipcMain.handle('graph:fetchEmail', async (event, accountId, messageId) => {
   try {
+    // internetMessageHeaders zusätzlich anfragen für List-Unsubscribe-Erkennung
     const data = await graphRequest(
       accountId, 'GET',
-      `/me/messages/${messageId}?$select=id,subject,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,isRead,hasAttachments,body&$expand=attachments`
+      `/me/messages/${messageId}?$select=id,subject,from,toRecipients,ccRecipients,bccRecipients,receivedDateTime,isRead,hasAttachments,body,internetMessageHeaders&$expand=attachments`
     );
+
+    // List-Unsubscribe aus Graph-internetMessageHeaders extrahieren
+    let listUnsubscribe = null;
+    try {
+      const headers = data.internetMessageHeaders || [];
+      const lu = headers.find(h => /^list-unsubscribe$/i.test(h.name));
+      const lup = headers.find(h => /^list-unsubscribe-post$/i.test(h.name));
+      if (lu?.value) {
+        const items = (lu.value.match(/<([^>]+)>/g) || []);
+        let mailto = null, http = null;
+        for (const it of items) {
+          const v = it.slice(1, -1).trim();
+          if (v.startsWith('mailto:')) mailto = mailto || v;
+          else if (v.startsWith('http://') || v.startsWith('https://')) http = http || v;
+        }
+        if (mailto || http) {
+          listUnsubscribe = { mailto, http, oneClick: !!lup && /one-click/i.test(lup.value) };
+        }
+      }
+    } catch (_) {}
+
     const email = {
       ...normalizeGraphEmail(data),
       html: data.body?.contentType?.toLowerCase() === 'html' ? data.body.content : null,
       text: data.body?.contentType?.toLowerCase() === 'text' ? data.body.content : null,
       cc: (data.ccRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
       bcc: (data.bccRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+      listUnsubscribe,
       attachments: (data.attachments || []).map(att => ({
         filename: att.name,
         size: att.size,
         contentType: att.contentType,
-        content: att.contentBytes || null, // keep as base64 string for saveAllAttachments
+        content: att.contentBytes || null,
         id: att.id
       }))
     };

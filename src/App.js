@@ -144,6 +144,26 @@ function AppContent() {
             if (localStorageEnabled) {
               await bgSaveToIndexedDB(account.id, 'INBOX', result.emails);
             }
+            // FTS5-Index aktualisieren (best-effort, blockiert nicht)
+            if (window.electronAPI?.searchIndexBatch) {
+              window.electronAPI.searchIndexBatch(
+                result.emails.map(e => ({
+                  accountId: account.id,
+                  folder: 'INBOX',
+                  uid: e.uid,
+                  messageId: e.messageId || null,
+                  subject: e.subject || '',
+                  from: e.from || '',
+                  to: e.to || '',
+                  cc: e.cc || '',
+                  date: e.date || null,
+                  body: e.preview || e.text || '',
+                  html: null,
+                  hasAttachments: !!e.hasAttachments,
+                  seen: !!e.seen
+                }))
+              ).catch(() => {});
+            }
             const unread = result.emails.filter(e => !e.seen).length;
             updateAccountStats(account.id, { unread, total: result.emails.length });
             window.dispatchEvent(new CustomEvent('coremail:bgSync', {

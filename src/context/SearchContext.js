@@ -91,12 +91,35 @@ export function SearchProvider({ children }) {
     setSearchResults([]);
     setSuggestions([]);
 
+    const activeFilters = customFilters || filters;
+
+    // 1) FTS5-Schnellsuche (lokal, <50ms) — zeigt sofort Resultate aus dem Index
     try {
-      const activeFilters = customFilters || filters;
+      const ftsResult = await window.electronAPI?.searchFTS({
+        query: query.trim(),
+        accountIds: activeFilters.accountIds,
+        limit: 100
+      });
+      if (ftsResult?.success && ftsResult.results?.length > 0) {
+        setSearchResults(ftsResult.results);
+        setSearchStats({
+          totalFound: ftsResult.results.length,
+          searchedAccounts: 'lokaler Index',
+          query: query.trim(),
+          source: 'fts',
+          errors: []
+        });
+      }
+    } catch (e) {
+      console.warn('[Search] FTS-Fehler, fällt auf Server-Suche zurück:', e.message);
+    }
+
+    // 2) Server-Suche zusätzlich im Hintergrund (langsam, aber findet auch ältere Mails)
+    try {
       const result = await window.electronAPI?.globalSearch({
         query: query.trim(),
         accountIds: activeFilters.accountIds,
-        folders: activeFilters.folders.length > 0 ? activeFilters.folders : ['*'], // Search all folders by default
+        folders: activeFilters.folders.length > 0 ? activeFilters.folders : ['*'],
         filters: {
           dateFrom: activeFilters.dateFrom,
           dateTo: activeFilters.dateTo,
@@ -107,11 +130,25 @@ export function SearchProvider({ children }) {
       });
 
       if (result?.success) {
-        setSearchResults(result.results || []);
+        // Server-Resultate haben Priorität (frischer / vollständiger), aber FTS-Treffer behalten wir
+        // Dedup über messageId/uid
+        setSearchResults(prev => {
+          const seen = new Set(prev.map(r => `${r.accountId}:${r.uid}`));
+          const merged = [...prev];
+          for (const r of (result.results || [])) {
+            const key = `${r.accountId}:${r.uid}`;
+            if (!seen.has(key)) {
+              merged.push(r);
+              seen.add(key);
+            }
+          }
+          return merged;
+        });
         setSearchStats({
           totalFound: result.totalFound,
           searchedAccounts: result.searchedAccounts,
           query: result.query,
+          source: 'fts+server',
           errors: result.errors
         });
       } else {

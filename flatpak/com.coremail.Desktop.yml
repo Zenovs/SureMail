@@ -1,0 +1,88 @@
+# Flatpak-Manifest für CoreMail Desktop
+#
+# Lokal bauen (zum Testen):
+#   sudo apt install flatpak-builder
+#   flatpak install flathub org.electronjs.Electron2.BaseApp//23.08
+#   flatpak install flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
+#   flatpak-builder --user --install --force-clean build-dir flatpak/com.coremail.Desktop.yml
+#   flatpak run com.coremail.Desktop
+#
+# Auf Flathub veröffentlichen — Anleitung: docs/FLATPAK.md
+
+app-id: com.coremail.Desktop
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '23.08'
+command: coremail-desktop
+
+separate-locales: false
+
+finish-args:
+  # GUI
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  # Audio (Notifications)
+  - --socket=pulseaudio
+  # Netzwerk (IMAP, SMTP, Microsoft Graph, Update-Check)
+  - --share=network
+  # Datei-Auswahl (Anhänge, Downloads)
+  - --filesystem=xdg-download
+  - --filesystem=xdg-documents:ro
+  # Notifications (DBus)
+  - --talk-name=org.freedesktop.Notifications
+  # Secret Service (safeStorage / Keyring)
+  - --talk-name=org.freedesktop.secrets
+  # Standard-Browser für Links und OAuth
+  - --talk-name=org.freedesktop.portal.Desktop
+  # KDE-Wallet (alternative zu Secret Service)
+  - --talk-name=org.kde.kwalletd5
+  - --talk-name=org.kde.kwalletd6
+
+modules:
+  - name: zypak
+    sources:
+      - type: git
+        url: https://github.com/refi64/zypak
+        tag: v2024.01.17
+
+  - name: coremail-desktop
+    buildsystem: simple
+    build-commands:
+      # AppImage entpacken und Inhalt installieren
+      - install -d /app/coremail-desktop
+      - chmod +x ./coremail.AppImage
+      - ./coremail.AppImage --appimage-extract
+      - cp -r squashfs-root/* /app/coremail-desktop/
+      - rm -rf /app/coremail-desktop/AppRun /app/coremail-desktop/.DirIcon
+      # Wrapper-Skript: zypak-wrapper für Sandbox-Kompatibilität
+      - install -Dm755 coremail-launcher /app/bin/coremail-desktop
+      # Desktop-Datei
+      - install -Dm644 com.coremail.Desktop.desktop /app/share/applications/com.coremail.Desktop.desktop
+      # Icon (256x256)
+      - install -Dm644 com.coremail.Desktop.png /app/share/icons/hicolor/256x256/apps/com.coremail.Desktop.png
+      # AppStream-Metadaten
+      - install -Dm644 com.coremail.Desktop.metainfo.xml /app/share/metainfo/com.coremail.Desktop.metainfo.xml
+    sources:
+      - type: file
+        url: https://github.com/Zenovs/coremail/releases/download/v6.2.1/CoreMail-Desktop-6.2.1-x86_64.AppImage
+        sha256: PLACEHOLDER_SHA256_AUS_SHA256SUMS_TXT_DES_RELEASES
+        only-arches: [x86_64]
+        dest-filename: coremail.AppImage
+      - type: file
+        url: https://github.com/Zenovs/coremail/releases/download/v6.2.1/CoreMail-Desktop-6.2.1-arm64.AppImage
+        sha256: PLACEHOLDER_SHA256_AUS_SHA256SUMS_TXT_DES_RELEASES
+        only-arches: [aarch64]
+        dest-filename: coremail.AppImage
+      - type: file
+        path: coremail-launcher
+      - type: file
+        path: com.coremail.Desktop.desktop
+      - type: file
+        path: com.coremail.Desktop.png
+      - type: file
+        path: com.coremail.Desktop.metainfo.xml

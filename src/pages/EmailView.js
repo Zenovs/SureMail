@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   TrashCan, Email, Reply, ReplyAll, SendAlt, ArrowLeft, InProgress,
   WarningFilled, WarningAlt, Close, Checkmark, Attachment, Download, FolderOpen, View,
-  Image, DocumentPdf, DocumentBlank, Music, Video, Box
+  Image, DocumentPdf, DocumentBlank, Music, Video, Box, NotificationOff
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
@@ -21,7 +21,34 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
   const [actionLoading, setActionLoading] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [isRead, setIsRead] = useState(email?.seen ?? true);
+  const [unsubscribing, setUnsubscribing] = useState(false);
+  const [unsubscribeResult, setUnsubscribeResult] = useState(null); // { success, message } | null
   const c = currentTheme.colors;
+
+  const handleUnsubscribe = async () => {
+    if (!fullEmail?.listUnsubscribe || unsubscribing) return;
+    const lu = fullEmail.listUnsubscribe;
+    const askConfirm = !lu.oneClick; // bei one-click direkt, sonst kurze Bestätigung
+    if (askConfirm) {
+      const ok = window.confirm(
+        'Vom Newsletter / dieser Liste abmelden?\n\n' +
+        (lu.http ? 'Es wird ' + (lu.mailto ? 'eine Abmeldungs-Mail gesendet (oder eine Webseite geöffnet).' : 'eine Webseite geöffnet.') : 'Es wird eine Abmeldungs-Mail gesendet.')
+      );
+      if (!ok) return;
+    }
+    setUnsubscribing(true);
+    setUnsubscribeResult(null);
+    try {
+      const result = await window.electronAPI.unsubscribeFromList({
+        listUnsubscribe: lu, accountId: activeAccountId
+      });
+      setUnsubscribeResult(result);
+    } catch (e) {
+      setUnsubscribeResult({ success: false, error: e.message });
+    } finally {
+      setUnsubscribing(false);
+    }
+  };
 
   useEffect(() => {
     const fetchFullEmail = async () => {
@@ -61,7 +88,26 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
         
         if (result.success) {
           setFullEmail(result.email);
-          
+
+          // Volltext-Index mit komplettem Body aktualisieren
+          if (window.electronAPI?.searchIndexEmail) {
+            window.electronAPI.searchIndexEmail({
+              accountId: activeAccountId,
+              folder: currentFolder,
+              uid: email.uid,
+              messageId: result.email.messageId || null,
+              subject: result.email.subject || '',
+              from: result.email.from || '',
+              to: result.email.to || '',
+              cc: result.email.cc || '',
+              date: result.email.date || null,
+              body: result.email.text || '',
+              html: result.email.html || null,
+              hasAttachments: (result.email.attachments || []).length > 0,
+              seen: true
+            }).catch(() => {});
+          }
+
           // Mark as read on open if setting is "onOpen" (v1.8.1)
           const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
           if (markMode === 'onOpen' && !email.seen) {
@@ -331,6 +377,47 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
         <div className="mx-6 mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-between">
           <span className="text-sm text-red-400">{actionError}</span>
           <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-300 ml-3"><Close size={16} /></button>
+        </div>
+      )}
+
+      {/* List-Unsubscribe Banner */}
+      {fullEmail?.listUnsubscribe && !unsubscribeResult && (
+        <div className="mx-6 mt-4 px-4 py-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <NotificationOff size={20} className="text-cyan-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className={`text-sm font-medium ${c.text}`}>Newsletter / Liste</p>
+              <p className={`text-xs ${c.textSecondary}`}>
+                Diese E-Mail enthält einen Abmeldungs-Hinweis ({fullEmail.listUnsubscribe.oneClick ? 'One-Click' : (fullEmail.listUnsubscribe.http ? 'Web' : 'E-Mail')}).
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleUnsubscribe}
+            disabled={unsubscribing}
+            className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg text-sm transition-colors inline-flex items-center gap-2 flex-shrink-0"
+          >
+            {unsubscribing ? <><InProgress size={16} className="animate-spin" /> Melde ab…</> : <><NotificationOff size={16} /> Abmelden</>}
+          </button>
+        </div>
+      )}
+
+      {/* Unsubscribe Result */}
+      {unsubscribeResult && (
+        <div className={`mx-6 mt-4 px-4 py-3 rounded-lg flex items-center justify-between gap-4 ${
+          unsubscribeResult.success
+            ? 'bg-green-500/10 border border-green-500/30'
+            : 'bg-red-500/10 border border-red-500/30'
+        }`}>
+          <div className="flex items-center gap-3 min-w-0">
+            {unsubscribeResult.success
+              ? <Checkmark size={20} className="text-green-400 flex-shrink-0" />
+              : <WarningAlt size={20} className="text-red-400 flex-shrink-0" />}
+            <span className={`text-sm ${unsubscribeResult.success ? 'text-green-400' : 'text-red-400'}`}>
+              {unsubscribeResult.success ? unsubscribeResult.message : (unsubscribeResult.error || 'Abmeldung fehlgeschlagen')}
+            </span>
+          </div>
+          <button onClick={() => setUnsubscribeResult(null)} className="text-gray-400 hover:text-white ml-2"><Close size={16} /></button>
         </div>
       )}
 
