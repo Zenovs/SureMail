@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CheckCircle, AlertCircle, Settings, Mail, Loader, Shield, RefreshCw, ChevronDown, ChevronUp, HelpCircle, ExternalLink, Key, Info, Building2 } from 'lucide-react';
+import {
+  CheckmarkFilled, WarningAlt, Settings, Email, InProgress, Security, Renew,
+  ChevronDown, ChevronUp, Help, Launch, Password, Information, Building, Close
+} from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
@@ -8,14 +11,14 @@ const SERVER_PRESETS = [
   {
     id: 'custom',
     name: 'Benutzerdefiniert',
-    icon: '⚙️',
+    Icon: Settings,
     imap: { host: '', port: '993', tls: true },
     smtp: { host: '', port: '465', secure: true }
   },
   {
     id: 'hostpoint',
     name: 'Hostpoint',
-    icon: '🇨🇭',
+    Icon: Building,
     imap: { host: 'imap.mail.hostpoint.ch', port: '993', tls: true },
     smtp: { host: 'asmtp.mail.hostpoint.ch', port: '465', secure: true },
     note: 'Schweizer Hosting-Anbieter - Benutzername ist die vollständige E-Mail-Adresse',
@@ -24,7 +27,7 @@ const SERVER_PRESETS = [
   {
     id: 'bluewin',
     name: 'Bluewin (Swisscom)',
-    icon: '📶',
+    Icon: Email,
     imap: { host: 'imaps.bluewin.ch', port: '993', tls: true },
     smtp: { host: 'smtpauths.bluewin.ch', port: '465', secure: true },
     note: 'Swisscom Bluewin Mail - Benutzername ist die vollständige E-Mail-Adresse',
@@ -237,7 +240,7 @@ function AccountManager() {
         <div className={`mb-6 p-4 ${c.card} ${c.border} border rounded-xl`}>
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
-              <Mail className="w-5 h-5 text-cyan-400" />
+              <Email size={20} className="text-cyan-400" />
             </div>
             <div className="flex-1">
               <h3 className={`font-medium ${c.text}`}>CoreMail Desktop – E-Mail-Client</h3>
@@ -345,12 +348,12 @@ function AccountManager() {
                         {account.name}
                         {account.type === 'microsoft' ? (
                           <span className="px-1.5 py-0.5 text-xs bg-blue-500/20 text-blue-400 rounded flex items-center gap-1">
-                            <Building2 className="w-3 h-3" />
+                            <Building size={16} />
                             Microsoft 365
                           </span>
                         ) : (
                           <span className="px-1.5 py-0.5 text-xs bg-cyan-500/20 text-cyan-400 rounded flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
+                            <Email size={16} />
                             IMAP/SMTP
                           </span>
                         )}
@@ -402,7 +405,7 @@ function AccountManager() {
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-blue-400" />
+                          <Building size={20} className="text-blue-400" />
                         </div>
                         <span className={`font-semibold ${c.text}`}>Microsoft Exchange</span>
                       </div>
@@ -416,7 +419,7 @@ function AccountManager() {
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
-                          <Mail className="w-5 h-5 text-cyan-400" />
+                          <Email size={20} className="text-cyan-400" />
                         </div>
                         <span className={`font-semibold ${c.text}`}>IMAP / SMTP</span>
                       </div>
@@ -451,7 +454,7 @@ function AccountManager() {
                   {/* Azure App Client ID */}
                   <div className={`${c.bgTertiary} p-4 rounded-xl space-y-3`}>
                     <div className="flex items-center gap-2">
-                      <Key className="w-4 h-4 text-blue-400" />
+                      <Password size={16} className="text-blue-400" />
                       <h4 className={`font-medium ${c.text}`}>Azure App-ID (Client-ID)</h4>
                     </div>
                     <input
@@ -464,7 +467,7 @@ function AccountManager() {
                     {/* Instructions */}
                     <details className={`text-xs ${c.textSecondary}`}>
                       <summary className="cursor-pointer text-blue-400 hover:underline flex items-center gap-1">
-                        <HelpCircle className="w-3 h-3" />
+                        <Help size={16} />
                         Wie erhalte ich eine Client-ID?
                       </summary>
                       <ol className="mt-2 space-y-1 pl-4 list-decimal">
@@ -488,13 +491,13 @@ function AccountManager() {
                       disabled={!msClientId.trim()}
                       className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
                     >
-                      <Building2 className="w-5 h-5" />
+                      <Building size={20} />
                       Mit Microsoft anmelden
                     </button>
                   )}
                   {msLoginState === 'loading' && (
                     <div className={`flex items-center gap-3 p-4 rounded-xl ${c.bgTertiary}`}>
-                      <Loader className="w-5 h-5 text-blue-400 animate-spin flex-shrink-0" />
+                      <InProgress size={20} className="text-blue-400 animate-spin flex-shrink-0" />
                       <div>
                         <p className={`text-sm font-medium ${c.text}`}>Browser geöffnet…</p>
                         <p className={`text-xs ${c.textSecondary}`}>Bitte im Browser bei Microsoft anmelden und danach hierher zurückkehren.</p>
@@ -504,7 +507,7 @@ function AccountManager() {
                   {msLoginState === 'success' && msLoginResult && (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/30">
-                        <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                        <CheckmarkFilled size={20} className="text-green-400 flex-shrink-0" />
                         <div>
                           <p className="text-sm font-medium text-green-400">Anmeldung erfolgreich!</p>
                           <p className={`text-xs ${c.textSecondary}`}>{msLoginResult.displayName} ({msLoginResult.email})</p>
@@ -514,7 +517,7 @@ function AccountManager() {
                         onClick={handleSaveMicrosoftAccount}
                         className="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
                       >
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckmarkFilled size={20} />
                         Konto speichern
                       </button>
                     </div>
@@ -522,7 +525,7 @@ function AccountManager() {
                   {msLoginState === 'error' && (
                     <div className="space-y-3">
                       <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-                        <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                        <WarningAlt size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
                         <div>
                           <p className="text-sm font-medium text-red-400">Anmeldung fehlgeschlagen</p>
                           <p className={`text-xs ${c.textSecondary} mt-1`}>{msLoginError}</p>
@@ -604,7 +607,7 @@ function AccountManager() {
                             }`}
                           >
                             <div className="flex items-center gap-2">
-                              <span className="text-lg">{preset.icon}</span>
+                              {(() => { const PresetIcon = preset.Icon; return <PresetIcon size={20} />; })()}
                               <span className={`text-sm font-medium ${selectedPreset === preset.id ? 'text-white' : c.text}`}>
                                 {preset.name}
                               </span>
@@ -613,7 +616,7 @@ function AccountManager() {
                         ))}
                       </div>
                       {currentPreset?.note && (
-                        <p className={`text-xs ${c.textSecondary} mt-2`}>ℹ️ {currentPreset.note}</p>
+                        <p className={`text-xs ${c.textSecondary} mt-2 flex items-start gap-2`}><Information size={16} className="flex-shrink-0 mt-0.5" /> {currentPreset.note}</p>
                       )}
                     </div>
                   )}
@@ -643,13 +646,13 @@ function AccountManager() {
                       </label>
                       <button onClick={handleTestImap} disabled={testing.imap}
                         className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded flex items-center gap-1`}>
-                        {testing.imap ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                        {testing.imap ? <InProgress size={16} className="animate-spin" /> : <CheckmarkFilled size={16} />}
                         {testing.imap ? 'Teste...' : 'Testen'}
                       </button>
                     </div>
                     {testResults.imap && (
                       <div className={`mt-2 text-sm flex items-center gap-1 ${testResults.imap.success ? 'text-green-400' : 'text-red-400'}`}>
-                        {testResults.imap.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                        {testResults.imap.success ? <CheckmarkFilled size={16} /> : <WarningAlt size={16} />}
                         {testResults.imap.success ? 'Verbindung OK' : testResults.imap.error}
                       </div>
                     )}
@@ -660,7 +663,7 @@ function AccountManager() {
                     <div className="flex items-center justify-between mb-3">
                       <h4 className={`font-medium ${c.text}`}>SMTP (Versand)</h4>
                       <button onClick={copyImapToSmtp} className={`text-xs ${c.accent} hover:underline flex items-center gap-1`}>
-                        <Mail className="w-3 h-3" /> Von IMAP kopieren
+                        <Email size={16} /> Von IMAP kopieren
                       </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -688,13 +691,13 @@ function AccountManager() {
                       </label>
                       <button onClick={handleTestSmtp} disabled={testing.smtp}
                         className={`px-3 py-1 text-sm ${c.accentBg} text-white rounded flex items-center gap-1`}>
-                        {testing.smtp ? <Loader className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                        {testing.smtp ? <InProgress size={16} className="animate-spin" /> : <CheckmarkFilled size={16} />}
                         {testing.smtp ? 'Teste...' : 'Testen'}
                       </button>
                     </div>
                     {testResults.smtp && (
                       <div className={`mt-2 text-sm flex items-center gap-1 ${testResults.smtp.success ? 'text-green-400' : 'text-red-400'}`}>
-                        {testResults.smtp.success ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                        {testResults.smtp.success ? <CheckmarkFilled size={16} /> : <WarningAlt size={16} />}
                         {testResults.smtp.success ? 'Verbindung OK' : testResults.smtp.error}
                       </div>
                     )}

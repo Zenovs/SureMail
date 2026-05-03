@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Globe, Key, Link, CheckSquare, Square } from 'lucide-react';
+import { Earth, Password, Link, CheckboxChecked, Checkbox } from '@carbon/icons-react';
 
 const LANGUAGES = [
   { code: 'DE', name: 'Deutsch' },
@@ -83,7 +83,7 @@ function TranslationSettings() {
       {/* Dienst-Auswahl */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
         <div className="flex items-center gap-2 mb-4">
-          <Globe className={`w-5 h-5 ${c.accent}`} />
+          <Earth size={20} className={c.accent} />
           <h3 className={`text-lg font-semibold ${c.text}`}>Übersetzungsdienst</h3>
         </div>
 
@@ -172,7 +172,7 @@ function TranslationSettings() {
               </div>
               {settings.service === 'custom' && (
                 <div className="mt-3 flex items-center gap-2">
-                  <Link className="w-4 h-4 text-white/60 flex-shrink-0" />
+                  <Link size={16} className="text-white/60 flex-shrink-0" />
                   <input
                     type="text"
                     value={settings.customApiUrl}
@@ -191,11 +191,11 @@ function TranslationSettings() {
       {settings.service !== 'custom' && (
         <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
           <div className="flex items-center gap-2 mb-4">
-            <Key className={`w-5 h-5 ${c.accent}`} />
+            <Password size={20} className={c.accent} />
             <h3 className={`text-lg font-semibold ${c.text}`}>API-Schlüssel</h3>
           </div>
           <div className={`flex items-center gap-2 px-3 py-2.5 rounded-lg ${c.bgSecondary} ${c.border} border`}>
-            <Key className={`w-4 h-4 ${c.textSecondary} flex-shrink-0`} />
+            <Password size={16} className={`${c.textSecondary} flex-shrink-0`} />
             <input
               type="password"
               value={settings.apiKey}
@@ -219,7 +219,7 @@ function TranslationSettings() {
       {/* Zielsprachen */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
         <div className="flex items-center gap-2 mb-1">
-          <Globe className={`w-5 h-5 ${c.accent}`} />
+          <Earth size={20} className={c.accent} />
           <h3 className={`text-lg font-semibold ${c.text}`}>Zielsprachen</h3>
         </div>
         <p className={`text-sm ${c.textSecondary} mb-4`}>
@@ -239,8 +239,8 @@ function TranslationSettings() {
                 }`}
               >
                 {active
-                  ? <CheckSquare className="w-4 h-4 flex-shrink-0" />
-                  : <Square className="w-4 h-4 flex-shrink-0 opacity-40" />
+                  ? <CheckboxChecked size={16} className="flex-shrink-0" />
+                  : <Checkbox size={16} className="flex-shrink-0 opacity-40" />
                 }
                 <span>{lang.name}</span>
                 <span className={`ml-auto text-xs ${active ? 'text-white/60' : c.textSecondary}`}>{lang.code}</span>
@@ -273,7 +273,7 @@ function TranslationSettings() {
       </div>
 
       {saved && (
-        <div className="text-sm text-green-400 text-center">Einstellungen gespeichert ✓</div>
+        <div className="text-sm text-green-400 text-center inline-flex items-center justify-center gap-1 w-full"><CheckboxChecked size={16} /> Einstellungen gespeichert</div>
       )}
     </div>
   );

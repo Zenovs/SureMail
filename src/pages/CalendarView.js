@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X, MapPin, Trash2, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Add, Close, Location, TrashCan, Checkmark, Calendar } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
@@ -102,7 +102,7 @@ const EventModal = memo(({ event, defaultDate, onSave, onDelete, onClose, c }) =
            onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className={`font-semibold ${c.text}`}>{isNew ? 'Neuer Termin' : 'Termin bearbeiten'}</h3>
-          <button onClick={onClose} className={`p-1 rounded-lg ${c.hover} ${c.textSecondary}`}><X className="w-4 h-4"/></button>
+          <button onClick={onClose} className={`p-1 rounded-lg ${c.hover} ${c.textSecondary}`}><Close size={16} /></button>
         </div>
 
         <div className="space-y-3">
@@ -135,13 +135,13 @@ const EventModal = memo(({ event, defaultDate, onSave, onDelete, onClose, c }) =
 
         <div className="flex items-center justify-between mt-4">
           {!isNew && onDelete
-            ? <button onClick={() => onDelete(event.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10"><Trash2 className="w-3.5 h-3.5"/> Löschen</button>
+            ? <button onClick={() => onDelete(event.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10"><TrashCan size={16} /> Löschen</button>
             : <div/>}
           <div className="flex gap-2">
             <button onClick={onClose} className={`px-4 py-1.5 rounded-lg text-sm ${c.bgTertiary} ${c.text} ${c.hover}`}>Abbrechen</button>
             <button onClick={handleSave} disabled={saving || !title.trim()}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm bg-cyan-500 hover:bg-cyan-600 text-white disabled:opacity-50">
-              {saving ? '…' : <><Check className="w-3.5 h-3.5"/> Speichern</>}
+              {saving ? '…' : <><Checkmark size={16} /> Speichern</>}
             </button>
           </div>
         </div>
@@ -285,7 +285,7 @@ const WeekView = memo(({ weekStart, events, today, onSlotClick, onEventClick, c 
                     className={`text-xs text-white rounded px-1 py-0.5 overflow-hidden cursor-pointer hover:opacity-80 z-10 ${SHOW_AS_COLORS[e.showAs]||'bg-cyan-500'}`}>
                     <div className="font-medium truncate">{e.title}</div>
                     <div className="opacity-80 truncate">{formatTime(e.start)}–{formatTime(e.end)}</div>
-                    {e.location && <div className="opacity-70 truncate flex items-center gap-0.5"><MapPin className="w-2.5 h-2.5 inline"/>{e.location}</div>}
+                    {e.location && <div className="opacity-70 truncate flex items-center gap-0.5"><Location size={16} />{e.location}</div>}
                   </div>
                 ))}
               </div>
@@ -358,7 +358,7 @@ const DayView = memo(({ date, events, today, onSlotClick, onEventClick, c }) => 
                 className={`text-xs text-white rounded px-2 py-1 overflow-hidden cursor-pointer hover:opacity-80 z-10 ${SHOW_AS_COLORS[e.showAs]||'bg-cyan-500'}`}>
                 <div className="font-medium">{e.title}</div>
                 <div className="opacity-80">{formatTime(e.start)} – {formatTime(e.end)}</div>
-                {e.location && <div className="opacity-70 flex items-center gap-1"><MapPin className="w-3 h-3"/>{e.location}</div>}
+                {e.location && <div className="opacity-70 flex items-center gap-1"><Location size={16} />{e.location}</div>}
               </div>
             ))}
           </div>
@@ -491,7 +491,7 @@ export default function CalendarView() {
     return (
       <div className={`flex-1 flex items-center justify-center ${c.bg}`}>
         <div className="text-center">
-          <div className="text-5xl mb-4">📅</div>
+          <Calendar size={48} className={`mx-auto mb-4 ${c.textSecondary}`} />
           <h3 className={`font-semibold ${c.text} mb-2`}>Kein Microsoft 365-Konto verbunden</h3>
           <p className={`text-sm ${c.textSecondary}`}>Der Kalender ist nur mit Microsoft 365-Konten verfügbar.</p>
         </div>
@@ -505,9 +505,9 @@ export default function CalendarView() {
       <div className={`px-4 py-3 ${c.border} border-b flex items-center justify-between gap-4 flex-wrap flex-shrink-0`}>
         {/* Navigation */}
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className={`p-1.5 rounded-lg ${c.hover} ${c.textSecondary}`}><ChevronLeft className="w-4 h-4"/></button>
+          <button onClick={() => navigate(-1)} className={`p-1.5 rounded-lg ${c.hover} ${c.textSecondary}`}><ChevronLeft size={16} /></button>
           <h2 className={`font-semibold ${c.text} text-base min-w-[220px] text-center`}>{headerTitle()}</h2>
-          <button onClick={() => navigate(1)}  className={`p-1.5 rounded-lg ${c.hover} ${c.textSecondary}`}><ChevronRight className="w-4 h-4"/></button>
+          <button onClick={() => navigate(1)}  className={`p-1.5 rounded-lg ${c.hover} ${c.textSecondary}`}><ChevronRight size={16} /></button>
           <button onClick={() => navigate(0)} className={`px-3 py-1 rounded-lg text-xs ${c.bgTertiary} ${c.text} ${c.hover} ${c.border} border`}>Heute</button>
         </div>
 
@@ -532,7 +532,7 @@ export default function CalendarView() {
           {loading && <span className={`text-xs ${c.textSecondary} animate-pulse`}>Lade…</span>}
           <button onClick={() => { setDefaultDate(viewDate); setEditEvent({}); }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-cyan-500 hover:bg-cyan-600 text-white">
-            <Plus className="w-4 h-4"/> Neuer Termin
+            <Add size={16} /> Neuer Termin
           </button>
         </div>
       </div>

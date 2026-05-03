@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Settings, Mail, Shield, Users, Type,
-  PanelLeft, Tag, Bell, PenLine, FolderDown, Languages, RefreshCw,
-  Palette, Info
-} from 'lucide-react';
+  Settings, Email, Security, Group, TextFont,
+  SidePanelOpen, Tag, Notification, Edit, FolderDetails, Translate, Renew,
+  ColorPalette, Information
+} from '@carbon/icons-react';
 import { useTheme, themes } from '../context/ThemeContext';
 import UpdateSettings from './UpdateSettings';
 import NotificationSettings from './NotificationSettings';
@@ -54,18 +54,18 @@ function SettingsV2() {
   };
 
   const tabs = [
-    { id: 'general',       name: 'Allgemein',          Icon: Settings      },
-    { id: 'email',         name: 'E-Mail',              Icon: Mail          },
-    { id: 'spamfilter',    name: 'Spam-Filter',         Icon: Shield        },
-    { id: 'senders',       name: 'Absender',            Icon: Users         },
-    { id: 'font',          name: 'Schriftart',          Icon: Type          },
-    { id: 'sidebar',       name: 'Sidebar',             Icon: PanelLeft     },
-    { id: 'categories',    name: 'Kategorien',          Icon: Tag           },
-    { id: 'notifications', name: 'Benachrichtigungen',  Icon: Bell          },
-    { id: 'signatures',    name: 'Signaturen',          Icon: PenLine       },
-    { id: 'downloads',     name: 'Downloads',           Icon: FolderDown    },
-    { id: 'translation',   name: 'Übersetzung',         Icon: Languages     },
-    { id: 'updates',       name: 'Updates',             Icon: RefreshCw     },
+    { id: 'general',       name: 'Allgemein',          Icon: Settings       },
+    { id: 'email',         name: 'E-Mail',              Icon: Email          },
+    { id: 'spamfilter',    name: 'Spam-Filter',         Icon: Security       },
+    { id: 'senders',       name: 'Absender',            Icon: Group          },
+    { id: 'font',          name: 'Schriftart',          Icon: TextFont       },
+    { id: 'sidebar',       name: 'Sidebar',             Icon: SidePanelOpen  },
+    { id: 'categories',    name: 'Kategorien',          Icon: Tag            },
+    { id: 'notifications', name: 'Benachrichtigungen',  Icon: Notification   },
+    { id: 'signatures',    name: 'Signaturen',          Icon: Edit           },
+    { id: 'downloads',     name: 'Downloads',           Icon: FolderDetails  },
+    { id: 'translation',   name: 'Übersetzung',         Icon: Translate      },
+    { id: 'updates',       name: 'Updates',             Icon: Renew          },
   ];
 
   const themeOptions = [
@@ -158,7 +158,7 @@ function SettingsV2() {
           <div className="space-y-6">
             {/* Theme Selection */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Palette className="w-4 h-4 text-cyan-400" /> Design</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><ColorPalette size={16} className="text-cyan-400" /> Design</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {themeOptions.map(t => (
                   <button
@@ -182,7 +182,7 @@ function SettingsV2() {
 
             {/* Info */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Info className="w-4 h-4 text-cyan-400" /> Über CoreMail</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Information size={16} className="text-cyan-400" /> Über CoreMail</h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className={c.textSecondary}>Version</span>
@@ -201,7 +201,7 @@ function SettingsV2() {
 
             {/* Hinweise */}
             <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-              <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Info className="w-4 h-4 text-cyan-400" /> Hinweise</h3>
+              <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Information size={16} className="text-cyan-400" /> Hinweise</h3>
               <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
                 <li>• E-Mail-Konten werden unter "Konten" verwaltet</li>
                 <li>• Passwörter werden verschlüsselt gespeichert</li>
@@ -312,7 +312,7 @@ function SettingsV2() {
                     : `${c.hover} text-white opacity-60 hover:opacity-100`
                 }`}
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
+                <Icon size={16} className="flex-shrink-0" />
                 <span className="text-sm">{tab.name}</span>
               </button>
             );
@@ -330,7 +330,7 @@ function SettingsV2() {
               <div className={`flex items-center gap-3 mb-6`}>
                 {HeaderIcon && (
                   <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
-                    <HeaderIcon className="w-4 h-4 text-cyan-400" />
+                    <HeaderIcon size={16} className="text-cyan-400" />
                   </div>
                 )}
                 <h1 className={`text-2xl font-bold ${c.text}`}>{active?.name}</h1>

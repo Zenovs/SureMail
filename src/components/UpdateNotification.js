@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Download, X, RefreshCw, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, Close, Renew, Checkmark, WarningAlt, InProgress } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import UpdateManager, { 
   UpdateStatus, 
@@ -80,7 +80,7 @@ function UpdateNotification({ onOpenSettings }) {
     return (
       <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
         <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-8 shadow-2xl max-w-sm w-full mx-4 text-center`}>
-          <div className="text-5xl mb-4">✅</div>
+          <Checkmark size={48} className="mx-auto mb-4 text-green-400" />
           <h3 className={`font-semibold ${c.text} text-lg mb-2`}>Update installiert!</h3>
           <p className={`text-sm ${c.textSecondary} mb-1`}>CoreMail wird gleich beendet.</p>
           <p className={`text-sm ${c.textSecondary}`}>Bitte CoreMail danach manuell neu starten.</p>
@@ -105,7 +105,7 @@ function UpdateNotification({ onOpenSettings }) {
       <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
         <div className={`${c.card} ${c.border} border rounded-xl p-4 shadow-lg max-w-sm`}>
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <WarningAlt size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className={`font-medium ${c.text}`}>Update-Fehler</p>
               <p className={`text-sm ${c.textSecondary} mt-1`}>{state.error}</p>
@@ -114,7 +114,7 @@ function UpdateNotification({ onOpenSettings }) {
               onClick={handleDismiss}
               className={`${c.textSecondary} hover:${c.text} p-1`}
             >
-              <X className="w-4 h-4" />
+              <Close size={16} />
             </button>
           </div>
         </div>
@@ -129,7 +129,7 @@ function UpdateNotification({ onOpenSettings }) {
         <div className={`${c.card} border border-cyan-500/50 rounded-xl p-4 shadow-lg max-w-md`}>
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
-              <Download className="w-5 h-5 text-cyan-400" />
+              <Download size={20} className="text-cyan-400" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -150,7 +150,7 @@ function UpdateNotification({ onOpenSettings }) {
                   onClick={handleDownload}
                   className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download size={16} />
                   Jetzt updaten
                 </button>
                 <button
@@ -180,7 +180,7 @@ function UpdateNotification({ onOpenSettings }) {
               onClick={handleDismiss}
               className={`${c.textSecondary} hover:${c.text} p-1`}
             >
-              <X className="w-4 h-4" />
+              <Close size={16} />
             </button>
           </div>
         </div>
@@ -194,7 +194,7 @@ function UpdateNotification({ onOpenSettings }) {
       <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
         <div className={`${c.card} ${c.border} border rounded-xl p-4 shadow-lg max-w-sm`}>
           <div className="flex items-start gap-3">
-            <Loader2 className="w-5 h-5 text-cyan-400 animate-spin flex-shrink-0 mt-0.5" />
+            <InProgress size={20} className="text-cyan-400 animate-spin flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className={`font-medium ${c.text}`}>Update wird heruntergeladen...</p>
               <div className="mt-2">
@@ -222,7 +222,7 @@ function UpdateNotification({ onOpenSettings }) {
         <div className={`${c.card} border border-green-500/50 rounded-xl p-4 shadow-lg max-w-sm`}>
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-              <Check className="w-5 h-5 text-green-400" />
+              <Checkmark size={20} className="text-green-400" />
             </div>
             <div className="flex-1 min-w-0">
               <p className={`font-semibold ${c.text}`}>Update bereit</p>
@@ -234,7 +234,7 @@ function UpdateNotification({ onOpenSettings }) {
                   onClick={handleInstall}
                   className="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <Renew size={16} />
                   Jetzt installieren
                 </button>
                 <button
@@ -252,7 +252,7 @@ function UpdateNotification({ onOpenSettings }) {
               onClick={handleDismiss}
               className={`${c.textSecondary} hover:${c.text} p-1`}
             >
-              <X className="w-4 h-4" />
+              <Close size={16} />
             </button>
           </div>
         </div>
@@ -266,7 +266,7 @@ function UpdateNotification({ onOpenSettings }) {
       <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
         <div className={`${c.card} ${c.border} border rounded-xl p-4 shadow-lg max-w-sm`}>
           <div className="flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-green-400 animate-spin" />
+            <InProgress size={20} className="text-green-400 animate-spin" />
             <div>
               <p className={`font-medium ${c.text}`}>Update wird installiert...</p>
               <p className={`text-sm ${c.textSecondary}`}>App wird gleich neu gestartet</p>

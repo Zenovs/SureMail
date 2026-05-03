@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { Search, X, Filter, Calendar, Mail, MailOpen, Paperclip, Flag, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Search, Close, Filter, Calendar, Email, Attachment, Flag, ChevronDown, ChevronUp, InProgress, WarningAlt } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useSearch } from '../context/SearchContext';
 import { useAccounts } from '../context/AccountContext';
@@ -80,7 +80,7 @@ export default function GlobalSearch({ onSelectEmail }) {
         {/* Search Header */}
         <form onSubmit={handleSubmit} className="p-4 border-b border-gray-700">
           <div className="flex items-center gap-3">
-            <Search className={`w-5 h-5 ${c.textSecondary}`} />
+            <Search size={20} className={c.textSecondary} />
             <input
               ref={inputRef}
               type="text"
@@ -91,7 +91,7 @@ export default function GlobalSearch({ onSelectEmail }) {
               autoComplete="off"
             />
             {isSearching && (
-              <Loader2 className="w-5 h-5 text-orange-500 animate-spin" />
+              <InProgress size={20} className="text-orange-500 animate-spin" />
             )}
             <button
               type="button"
@@ -99,8 +99,8 @@ export default function GlobalSearch({ onSelectEmail }) {
               className={`p-2 rounded-lg transition-colors ${showFilters ? 'bg-orange-500/20 text-orange-500' : `${c.buttonSecondary}`}`}
               title="Filter anzeigen"
             >
-              <Filter className="w-5 h-5" />
-              {showFilters ? <ChevronUp className="w-3 h-3 ml-1 inline" /> : <ChevronDown className="w-3 h-3 ml-1 inline" />}
+              <Filter size={20} />
+              {showFilters ? <ChevronUp size={16} className="ml-1 inline" /> : <ChevronDown size={16} className="ml-1 inline" />}
             </button>
             <button
               type="button"
@@ -108,7 +108,7 @@ export default function GlobalSearch({ onSelectEmail }) {
               className={`p-2 rounded-lg ${c.buttonSecondary} hover:bg-red-500/20 hover:text-red-500 transition-colors`}
               title="Schliessen"
             >
-              <X className="w-5 h-5" />
+              <Close size={20} />
             </button>
           </div>
 
@@ -141,7 +141,7 @@ export default function GlobalSearch({ onSelectEmail }) {
               {/* Date From */}
               <div>
                 <label className={`block text-xs ${c.textSecondary} mb-1`}>
-                  <Calendar className="w-3 h-3 inline mr-1" />
+                  <Calendar size={16} className="inline mr-1" />
                   Von Datum
                 </label>
                 <input
@@ -155,7 +155,7 @@ export default function GlobalSearch({ onSelectEmail }) {
               {/* Date To */}
               <div>
                 <label className={`block text-xs ${c.textSecondary} mb-1`}>
-                  <Calendar className="w-3 h-3 inline mr-1" />
+                  <Calendar size={16} className="inline mr-1" />
                   Bis Datum
                 </label>
                 <input
@@ -192,7 +192,7 @@ export default function GlobalSearch({ onSelectEmail }) {
                   onChange={(e) => updateFilter('unreadOnly', e.target.checked)}
                   className="w-4 h-4 rounded accent-orange-500"
                 />
-                <MailOpen className="w-4 h-4" />
+                <Email size={16} />
                 Nur ungelesene
               </label>
 
@@ -203,7 +203,7 @@ export default function GlobalSearch({ onSelectEmail }) {
                   onChange={(e) => updateFilter('flaggedOnly', e.target.checked)}
                   className="w-4 h-4 rounded accent-orange-500"
                 />
-                <Flag className="w-4 h-4" />
+                <Flag size={16} />
                 Nur markierte
               </label>
 
@@ -214,7 +214,7 @@ export default function GlobalSearch({ onSelectEmail }) {
                   onChange={(e) => updateFilter('hasAttachments', e.target.checked)}
                   className="w-4 h-4 rounded accent-orange-500"
                 />
-                <Paperclip className="w-4 h-4" />
+                <Attachment size={16} />
                 Mit Anhängen
               </label>
 
@@ -239,7 +239,7 @@ export default function GlobalSearch({ onSelectEmail }) {
                 onClick={() => handleSuggestionClick(suggestion)}
                 className={`w-full px-3 py-2 text-left rounded-lg hover:bg-gray-700/50 transition-colors flex items-center gap-3`}
               >
-                <Mail className={`w-4 h-4 ${c.textSecondary} flex-shrink-0`} />
+                <Email size={16} className={`${c.textSecondary} flex-shrink-0`} />
                 <div className="flex-1 min-w-0">
                   <div className={`${c.text} text-sm truncate`}>{suggestion.subject}</div>
                   <div className={`${c.textSecondary} text-xs truncate`}>{suggestion.from}</div>
@@ -285,8 +285,8 @@ export default function GlobalSearch({ onSelectEmail }) {
         {/* Search Errors from accounts */}
         {searchStats?.errors && searchStats.errors.length > 0 && (
           <div className="p-3 border-t border-gray-700 bg-yellow-500/10">
-            <div className="text-yellow-500 text-xs">
-              ⚠️ Einige Konten konnten nicht durchsucht werden:
+            <div className="text-yellow-500 text-xs flex items-start gap-1">
+              <WarningAlt size={16} className="flex-shrink-0 mt-0.5" /> Einige Konten konnten nicht durchsucht werden:
               {searchStats.errors.map((err, idx) => (
                 <span key={idx} className="ml-2">{err.accountName}</span>
               ))}

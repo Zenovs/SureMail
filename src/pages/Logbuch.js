@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { RefreshCw, Trash2, Download, Search, X } from 'lucide-react';
+import {
+  Renew, TrashCan, Download, Search, Close,
+  Rocket, Inbox, Send, Settings, WarningAlt, Information
+} from '@carbon/icons-react';
 
 const TYPE_CONFIG = {
-  app_start:       { label: 'App-Start',     icon: '🚀', color: 'text-cyan-400' },
-  email_received:  { label: 'Empfangen',     icon: '📥', color: 'text-green-400' },
-  email_sent:      { label: 'Gesendet',      icon: '📤', color: 'text-blue-400' },
-  settings:        { label: 'Einstellungen', icon: '⚙️', color: 'text-yellow-400' },
-  update:          { label: 'Update',        icon: '🔄', color: 'text-purple-400' },
-  error:           { label: 'Fehler',        icon: '⚠️', color: 'text-red-400' },
-  info:            { label: 'Info',          icon: 'ℹ️', color: 'text-gray-400' },
+  app_start:       { label: 'App-Start',     Icon: Rocket,      color: 'text-cyan-400' },
+  email_received:  { label: 'Empfangen',     Icon: Inbox,       color: 'text-green-400' },
+  email_sent:      { label: 'Gesendet',      Icon: Send,        color: 'text-blue-400' },
+  settings:        { label: 'Einstellungen', Icon: Settings,    color: 'text-yellow-400' },
+  update:          { label: 'Update',        Icon: Renew,       color: 'text-purple-400' },
+  error:           { label: 'Fehler',        Icon: WarningAlt,  color: 'text-red-400' },
+  info:            { label: 'Info',          Icon: Information, color: 'text-gray-400' },
 };
 
 const FILTERS = [
@@ -106,21 +109,21 @@ function Logbuch() {
             className={`p-2 rounded-lg ${c.hover} ${c.textSecondary} transition-colors`}
             title="Aktualisieren"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <Renew size={16} className={loading ? 'animate-spin' : ''} />
           </button>
           <button
             onClick={handleExport}
             className={`p-2 rounded-lg ${c.hover} ${c.textSecondary} transition-colors`}
             title="Als .txt exportieren"
           >
-            <Download className="w-4 h-4" />
+            <Download size={16} />
           </button>
           <button
             onClick={handleClear}
             className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
             title="Logbuch leeren"
           >
-            <Trash2 className="w-4 h-4" />
+            <TrashCan size={16} />
           </button>
         </div>
       </div>
@@ -129,7 +132,7 @@ function Logbuch() {
       <div className={`px-6 py-3 ${c.border} border-b space-y-3`}>
         {/* Suchfeld */}
         <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${c.bgSecondary} ${c.border} border`}>
-          <Search className={`w-4 h-4 ${c.textSecondary} flex-shrink-0`} />
+          <Search size={16} className={`${c.textSecondary} flex-shrink-0`} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -138,7 +141,7 @@ function Logbuch() {
           />
           {search && (
             <button onClick={() => setSearch('')} className={c.textSecondary}>
-              <X className="w-3.5 h-3.5" />
+              <Close size={16} />
             </button>
           )}
         </div>
@@ -193,7 +196,7 @@ function Logbuch() {
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className={`flex items-center justify-center h-32 ${c.textSecondary}`}>
-            <RefreshCw className="w-5 h-5 animate-spin mr-2" />
+            <Renew size={20} className="animate-spin mr-2" />
             Lade Logbuch...
           </div>
         ) : filtered.length === 0 ? (
@@ -216,7 +219,7 @@ function Logbuch() {
                 >
                   <div className="flex items-start gap-3">
                     {/* Icon */}
-                    <span className="text-base mt-0.5 flex-shrink-0">{cfg.icon}</span>
+                    {(() => { const CfgIcon = cfg.Icon; return <CfgIcon size={16} className={`mt-0.5 flex-shrink-0 ${cfg.color}`} />; })()}
                     {/* Inhalt */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
+import { Checkmark, Notification, Information } from '@carbon/icons-react';
 
 function NotificationSettings() {
   const { currentTheme } = useTheme();
@@ -64,8 +65,8 @@ function NotificationSettings() {
     <div className="space-y-6">
       {/* Saved Banner */}
       {saved && (
-        <div className="p-3 bg-green-900/20 border border-green-600 rounded-lg text-green-400 text-center">
-          ✓ Einstellungen gespeichert
+        <div className="p-3 bg-green-900/20 border border-green-600 rounded-lg text-green-400 text-center inline-flex items-center justify-center gap-1 w-full">
+          <Checkmark size={16} /> Einstellungen gespeichert
         </div>
       )}
 
@@ -133,9 +134,9 @@ function NotificationSettings() {
           <button
             onClick={testNotification}
             disabled={!settings.notificationsEnabled}
-            className={`px-4 py-2 ${c.bgTertiary} ${c.hover} ${c.text} rounded-lg transition-colors disabled:opacity-50`}
+            className={`px-4 py-2 ${c.bgTertiary} ${c.hover} ${c.text} rounded-lg transition-colors disabled:opacity-50 inline-flex items-center gap-2`}
           >
-            🔔 Test-Benachrichtigung senden
+            <Notification size={16} /> Test-Benachrichtigung senden
           </button>
         </div>
       </div>
@@ -211,7 +212,7 @@ function NotificationSettings() {
 
       {/* Info */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-        <h3 className={`text-lg font-semibold ${c.text} mb-3`}>ℹ️ Hinweise</h3>
+        <h3 className={`text-lg font-semibold ${c.text} mb-3 flex items-center gap-2`}><Information size={20} /> Hinweise</h3>
         <ul className={`space-y-2 text-sm ${c.textSecondary}`}>
           <li>• Benachrichtigungen werden nur bei neuen ungelesenen E-Mails angezeigt</li>
           <li>• Klicke auf eine Benachrichtigung, um die E-Mail direkt zu öffnen</li>

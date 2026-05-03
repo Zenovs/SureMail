@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, MailOpen, MousePointer, RefreshCw, Clock, Database, HardDrive } from 'lucide-react';
+import { Email, Cursor1, Renew, Time, DataBase } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 
 const MARK_AS_READ_OPTIONS = [
-  { id: 'onClick', name: 'Beim Klick', desc: 'E-Mail wird beim Auswählen als gelesen markiert', icon: MousePointer },
-  { id: 'onOpen', name: 'Beim Öffnen', desc: 'E-Mail wird beim Öffnen in Vollansicht als gelesen markiert', icon: Mail },
-  { id: 'iconOnly', name: 'Nur durch Icon', desc: 'E-Mail wird nur durch Klick auf das Gelesen-Icon markiert', icon: MailOpen },
+  { id: 'onClick', name: 'Beim Klick', desc: 'E-Mail wird beim Auswählen als gelesen markiert', Icon: Cursor1 },
+  { id: 'onOpen', name: 'Beim Öffnen', desc: 'E-Mail wird beim Öffnen in Vollansicht als gelesen markiert', Icon: Email },
+  { id: 'iconOnly', name: 'Nur durch Icon', desc: 'E-Mail wird nur durch Klick auf das Gelesen-Icon markiert', Icon: Email },
 ];
 
 // v1.8.2: Refresh interval options
@@ -109,7 +109,7 @@ function EmailSettings() {
 
         <div className="space-y-3">
           {MARK_AS_READ_OPTIONS.map(option => {
-            const Icon = option.icon;
+            const Icon = option.Icon;
             return (
               <button
                 key={option.id}
@@ -121,7 +121,7 @@ function EmailSettings() {
                 }`}
               >
                 <div className={`p-2 rounded-lg ${markAsReadMode === option.id ? c.accentBg : c.bgSecondary}`}>
-                  <Icon className={`w-5 h-5 ${markAsReadMode === option.id ? 'text-white' : c.textSecondary}`} />
+                  <Icon size={20} className={markAsReadMode === option.id ? 'text-white' : c.textSecondary} />
                 </div>
                 <div className="flex-1">
                   <div className={`font-medium ${c.text}`}>{option.name}</div>
@@ -139,7 +139,7 @@ function EmailSettings() {
       {/* v1.8.2: Auto-Refresh Settings */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
         <div className="flex items-center gap-3 mb-2">
-          <RefreshCw className={`w-5 h-5 ${c.accent}`} />
+          <Renew size={20} className={c.accent} />
           <h3 className={`text-lg font-semibold ${c.text}`}>Automatische Aktualisierung</h3>
         </div>
         <p className={`text-sm ${c.textSecondary} mb-4`}>
@@ -158,7 +158,7 @@ function EmailSettings() {
               }`}
             >
               <div className="flex items-center justify-center gap-2">
-                <Clock className={`w-4 h-4 ${refreshInterval === option.id ? c.accent : c.textSecondary}`} />
+                <Time size={16} className={refreshInterval === option.id ? c.accent : c.textSecondary} />
                 <span className={`text-sm font-medium ${refreshInterval === option.id ? c.accent : c.text}`}>
                   {option.name}
                 </span>
@@ -169,7 +169,7 @@ function EmailSettings() {
 
         {refreshInterval !== 'manual' && (
           <p className={`text-xs ${c.textSecondary} mt-3 flex items-center gap-1`}>
-            <RefreshCw className="w-3 h-3" />
+            <Renew size={16} />
             E-Mails werden alle {REFRESH_INTERVAL_OPTIONS.find(o => o.id === refreshInterval)?.name.toLowerCase()} aktualisiert
           </p>
         )}
@@ -178,7 +178,7 @@ function EmailSettings() {
       {/* v1.8.2: Local Storage Settings */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
         <div className="flex items-center gap-3 mb-2">
-          <Database className={`w-5 h-5 ${c.accent}`} />
+          <DataBase size={20} className={c.accent} />
           <h3 className={`text-lg font-semibold ${c.text}`}>Lokale Speicherung</h3>
         </div>
         <p className={`text-sm ${c.textSecondary} mb-4`}>
@@ -187,7 +187,7 @@ function EmailSettings() {
 
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <HardDrive className={`w-5 h-5 ${c.textSecondary}`} />
+            <DataBase size={20} className={c.textSecondary} />
             <div>
               <div className={`font-medium ${c.text}`}>E-Mail-Cache aktiviert</div>
               <div className={`text-xs ${c.textSecondary}`}>

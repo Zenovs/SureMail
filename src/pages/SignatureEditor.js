@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
+import { Edit, Portfolio, PenFountain, Checkmark, Link, Image, TrashCan, Email } from '@carbon/icons-react';
 
 function SignatureEditor() {
   const { currentTheme } = useTheme();
@@ -136,14 +137,14 @@ function SignatureEditor() {
     {
       name: 'Einfach',
       desc: 'MfG + Name',
-      icon: '📝',
+      Icon: Edit,
       getHtml: (acc) => `<p>Mit freundlichen Grüßen</p><p><strong>${acc.name}</strong></p>`,
       getText: (acc) => `Mit freundlichen Grüßen\n${acc.name}`
     },
     {
       name: 'Professionell',
       desc: 'Name + E-Mail + Trennlinie',
-      icon: '💼',
+      Icon: Portfolio,
       getHtml: (acc) => {
         const email = acc.smtp?.fromEmail || acc.smtp?.username || '';
         return `<p style="border-top: 1px solid #ccc; padding-top: 12px; margin-top: 12px;">Mit freundlichen Grüßen</p><p><strong>${acc.name}</strong></p><p style="color: #666; font-size: 12px;">E-Mail: <a href="mailto:${email}">${email}</a></p>`;
@@ -183,7 +184,7 @@ function SignatureEditor() {
     {
       name: 'Modern',
       desc: 'Mit Social Links',
-      icon: '🚀',
+      Icon: PenFountain,
       getHtml: (acc) => {
         const email = acc.smtp?.fromEmail || acc.smtp?.username || '';
         return `<div style="font-family: Arial, sans-serif;"><p style="margin: 0; font-size: 14px;"><strong>${acc.name}</strong></p><p style="margin: 4px 0; font-size: 12px; color: #666;">${email}</p><p style="margin-top: 8px;"><a href="#" style="text-decoration: none; margin-right: 8px;">🔗 LinkedIn</a><a href="#" style="text-decoration: none; margin-right: 8px;">🐦 Twitter</a><a href="#" style="text-decoration: none;">🌐 Website</a></p></div>`;
@@ -207,8 +208,8 @@ function SignatureEditor() {
     <div className="space-y-6">
       {/* Saved Banner */}
       {saved && (
-        <div className="p-3 bg-green-900/20 border border-green-600 rounded-lg text-green-400 text-center">
-          ✓ Signatur gespeichert
+        <div className="p-3 bg-green-900/20 border border-green-600 rounded-lg text-green-400 text-center inline-flex items-center justify-center gap-1 w-full">
+          <Checkmark size={16} /> Signatur gespeichert
         </div>
       )}
 
@@ -229,7 +230,7 @@ function SignatureEditor() {
               >
                 {account.name}
                 {signatures[account.id]?.enabled && (
-                  <span className="ml-2 text-green-400">✓</span>
+                  <Checkmark size={16} className="ml-2 text-green-400 inline" />
                 )}
               </button>
             ))}
@@ -243,7 +244,7 @@ function SignatureEditor() {
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
             <label className="flex items-center justify-between cursor-pointer">
               <div>
-                <span className={`font-semibold ${c.text}`}>✍️ Signatur aktivieren</span>
+                <span className={`font-semibold ${c.text} inline-flex items-center gap-2`}><PenFountain size={16} /> Signatur aktivieren</span>
                 <p className={`text-sm ${c.textSecondary}`}>
                   Signatur für "{selectedAccount.name}" automatisch anhängen
                 </p>
@@ -272,7 +273,7 @@ function SignatureEditor() {
           {/* Editor */}
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-semibold ${c.text}`}>📝 Signatur bearbeiten</h3>
+              <h3 className={`text-lg font-semibold ${c.text} inline-flex items-center gap-2`}><Edit size={20} /> Signatur bearbeiten</h3>
               <div className="flex gap-1">
                 {[
                   { key: 'visual',   label: 'Bearbeiten' },
@@ -360,14 +361,14 @@ function SignatureEditor() {
                     className={`p-2 ${c.hover} rounded ${c.text}`}
                     title="Link einfügen"
                   >
-                    🔗
+                    <Link size={16} />
                   </button>
                   <button
                     onClick={insertImage}
                     className={`p-2 ${c.hover} rounded ${c.text}`}
                     title="Bild einfügen"
                   >
-                    🖼️
+                    <Image size={16} />
                   </button>
                   <div className={`w-px h-6 ${c.bgTertiary} self-center mx-1`} />
                   <select
@@ -452,7 +453,7 @@ function SignatureEditor() {
                   onClick={() => applyTemplate(template)}
                   className={`p-3 ${c.bgSecondary} ${c.hover} rounded-lg text-left transition-all hover:scale-[1.02]`}
                 >
-                  <span className="text-xl mb-2 block">{template.icon}</span>
+                  {(() => { const TplIcon = template.Icon; return <TplIcon size={20} className="mb-2" />; })()}
                   <span className={`text-sm font-medium ${c.text}`}>{template.name}</span>
                   <p className={`text-xs ${c.textSecondary} mt-1`}>{template.desc}</p>
                 </button>
@@ -464,7 +465,7 @@ function SignatureEditor() {
                 }}
                 className={`p-3 ${c.bgSecondary} ${c.hover} rounded-lg text-left border border-red-500/30 hover:border-red-500`}
               >
-                <span className="text-xl mb-2 block">🗑️</span>
+                <TrashCan size={20} className="mb-2 text-red-400" />
                 <span className={`text-sm font-medium text-red-400`}>Löschen</span>
                 <p className={`text-xs ${c.textSecondary} mt-1`}>Signatur entfernen</p>
               </button>
@@ -486,7 +487,7 @@ function SignatureEditor() {
 
       {accounts.length === 0 && (
         <div className={`${c.card} ${c.border} border rounded-xl p-8 text-center`}>
-          <div className="text-4xl mb-4">✉️</div>
+          <Email size={48} className={`mx-auto mb-4 ${c.textSecondary}`} />
           <h3 className={`text-lg font-semibold ${c.text} mb-2`}>Keine Konten vorhanden</h3>
           <p className={`${c.textSecondary}`}>
             Füge zuerst ein E-Mail-Konto hinzu, um Signaturen zu erstellen.

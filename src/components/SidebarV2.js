@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Search, Inbox, PenLine, Calendar,
-  Users, Settings, BookOpen
-} from 'lucide-react';
+import { Search, Inbox, Edit, Calendar, Group, Settings, Book, ChevronRight } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -11,7 +8,7 @@ import { getCategoryIcon } from '../pages/CategorySettings';
 
 const NAV_ITEMS = [
   { id: 'inbox',    label: 'Posteingang', Icon: Inbox    },
-  { id: 'compose',  label: 'Verfassen',   Icon: PenLine  },
+  { id: 'compose',  label: 'Verfassen',   Icon: Edit     },
   { id: 'calendar', label: 'Kalender',    Icon: Calendar },
 ];
 
@@ -80,9 +77,9 @@ function SidebarV2({ currentView, onNavigate }) {
   const handleNavItemClick = useCallback((id) => onNavigate(id), [onNavigate]);
 
   const bottomItems = [
-    { id: 'accounts', label: 'Konten',        Icon: Users    },
+    { id: 'accounts', label: 'Konten',        Icon: Group    },
     { id: 'settings', label: 'Einstellungen', Icon: Settings },
-    { id: 'logbuch',  label: 'Logbuch',       Icon: BookOpen },
+    { id: 'logbuch',  label: 'Logbuch',       Icon: Book     },
   ];
 
   // Icons-Only Mode
@@ -156,7 +153,7 @@ function SidebarV2({ currentView, onNavigate }) {
           title={isIconsOnly || settings.collapsed ? 'Suche (Ctrl+K)' : ''}
           className={`w-full flex items-center ${isIconsOnly || settings.collapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg transition-colors ${c.input} ${c.text} hover:border-orange-500/50 border border-transparent`}
         >
-          <Search className="w-4 h-4" />
+          <Search size={16} />
           {!isIconsOnly && !settings.collapsed && (
             <>
               <span className="flex-1 text-left opacity-60">Suche...</span>
@@ -182,7 +179,7 @@ function SidebarV2({ currentView, onNavigate }) {
                   : `${c.hover} opacity-60 hover:opacity-100 text-white`
               }`}
             >
-              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-white' : 'text-white/80'}`} />
+              <Icon size={16} className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-white/80'}`} />
               {!isIconsOnly && !settings.collapsed && <span className="tracking-tight">{item.label}</span>}
             </button>
           );
@@ -205,7 +202,7 @@ function SidebarV2({ currentView, onNavigate }) {
                   onClick={() => toggleCategory(category.id)}
                   className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg ${c.hover} ${c.text} text-sm`}
                 >
-                  <span className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+                  <ChevronRight size={16} className={`transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`} />
                   {/* v1.11.0: Show category icon */}
                   {(() => {
                     const IconComponent = getCategoryIcon(category.icon);
@@ -214,7 +211,7 @@ function SidebarV2({ currentView, onNavigate }) {
                         className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0" 
                         style={{ backgroundColor: category.color }}
                       >
-                        <IconComponent className="w-3 h-3 text-white" />
+                        <IconComponent size={16} className="text-white" />
                       </div>
                     );
                   })()}
@@ -278,7 +275,7 @@ function SidebarV2({ currentView, onNavigate }) {
                   : `${c.hover} opacity-50 hover:opacity-90 text-white`
               }`}
             >
-              <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? c.accent : 'text-white/80'}`} />
+              <Icon size={16} className={`flex-shrink-0 ${isActive ? c.accent : 'text-white/80'}`} />
               {!isIconsOnly && !settings.collapsed && <span>{item.label}</span>}
             </button>
           );

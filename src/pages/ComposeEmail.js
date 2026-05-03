@@ -1,19 +1,28 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
+import {
+  TextBold, TextItalic, TextUnderline, Strikethrough,
+  ListNumbered, ListBulleted,
+  TextAlignLeft, TextAlignCenter, TextAlignRight,
+  TextClearFormat,
+  Document, DocumentBlank, Portfolio, Money, Template, Code,
+  Attachment, Close, Send, Checkmark, InProgress, Edit, PenFountain, View, Time,
+  Image, DocumentPdf, Music, Video, Box
+} from '@carbon/icons-react';
 
 // ─── HTML-Vorlagen ───────────────────────────────────────────────────────────
 const HTML_TEMPLATES = [
   {
     id: 'blank',
     name: 'Leer',
-    icon: '📄',
+    Icon: DocumentBlank,
     html: '<p></p>',
   },
   {
     id: 'formal',
     name: 'Formeller Brief',
-    icon: '💼',
+    Icon: Portfolio,
     html: `<p>Sehr geehrte Damen und Herren,</p>
 <p>ich schreibe Ihnen bezüglich <em>[Thema]</em>.</p>
 <p>[Ihr Text hier]</p>
@@ -23,7 +32,7 @@ const HTML_TEMPLATES = [
   {
     id: 'newsletter',
     name: 'Newsletter',
-    icon: '📰',
+    Icon: Document,
     html: `<div style="max-width:600px;margin:0 auto;font-family:Arial,sans-serif;color:#333">
   <h2 style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:8px">Betreff des Newsletters</h2>
   <p>Hallo,</p>
@@ -39,7 +48,7 @@ const HTML_TEMPLATES = [
   {
     id: 'offer',
     name: 'Angebot',
-    icon: '💰',
+    Icon: Money,
     html: `<p>Sehr geehrte Damen und Herren,</p>
 <p>wir freuen uns, Ihnen folgendes Angebot zu unterbreiten:</p>
 <table style="border-collapse:collapse;width:100%;margin:16px 0;font-size:14px">
@@ -68,7 +77,7 @@ const HTML_TEMPLATES = [
   {
     id: 'custom',
     name: 'HTML einfügen',
-    icon: '🧩',
+    Icon: Code,
     html: null, // will open paste dialog
   },
 ];
@@ -76,22 +85,22 @@ const HTML_TEMPLATES = [
 // ─── Toolbar-Konfiguration ────────────────────────────────────────────────────
 const TOOLBAR = [
   [
-    { cmd: 'bold',         icon: <strong>B</strong>, title: 'Fett (Ctrl+B)' },
-    { cmd: 'italic',       icon: <em>I</em>,          title: 'Kursiv (Ctrl+I)' },
-    { cmd: 'underline',    icon: <span style={{textDecoration:'underline'}}>U</span>, title: 'Unterstrichen (Ctrl+U)' },
-    { cmd: 'strikeThrough',icon: <span style={{textDecoration:'line-through'}}>S</span>, title: 'Durchgestrichen' },
+    { cmd: 'bold',         Icon: TextBold,          title: 'Fett (Ctrl+B)' },
+    { cmd: 'italic',       Icon: TextItalic,        title: 'Kursiv (Ctrl+I)' },
+    { cmd: 'underline',    Icon: TextUnderline,     title: 'Unterstrichen (Ctrl+U)' },
+    { cmd: 'strikeThrough',Icon: Strikethrough,     title: 'Durchgestrichen' },
   ],
   [
-    { cmd: 'insertOrderedList',   icon: '1.', title: 'Nummerierte Liste' },
-    { cmd: 'insertUnorderedList', icon: '•',  title: 'Aufzählungsliste' },
+    { cmd: 'insertOrderedList',   Icon: ListNumbered, title: 'Nummerierte Liste' },
+    { cmd: 'insertUnorderedList', Icon: ListBulleted, title: 'Aufzählungsliste' },
   ],
   [
-    { cmd: 'justifyLeft',   icon: '⬛⬜', title: 'Links' },
-    { cmd: 'justifyCenter', icon: '⬜⬛', title: 'Zentriert' },
-    { cmd: 'justifyRight',  icon: '⬜⬛', title: 'Rechts' },
+    { cmd: 'justifyLeft',   Icon: TextAlignLeft,    title: 'Links' },
+    { cmd: 'justifyCenter', Icon: TextAlignCenter,  title: 'Zentriert' },
+    { cmd: 'justifyRight',  Icon: TextAlignRight,   title: 'Rechts' },
   ],
   [
-    { cmd: 'removeFormat', icon: '✕', title: 'Formatierung entfernen' },
+    { cmd: 'removeFormat',  Icon: TextClearFormat,  title: 'Formatierung entfernen' },
   ],
 ];
 
@@ -110,14 +119,12 @@ const formatFileSize = (bytes) => {
 };
 
 const getFileIcon = (contentType, filename) => {
-  if (contentType.startsWith('image/')) return '🖼️';
-  if (contentType === 'application/pdf') return '📕';
-  if (contentType.includes('word') || filename?.endsWith('.docx')) return '📘';
-  if (contentType.includes('excel') || filename?.endsWith('.xlsx')) return '📗';
-  if (contentType.includes('zip') || contentType.includes('archive')) return '📦';
-  if (contentType.startsWith('video/')) return '🎬';
-  if (contentType.startsWith('audio/')) return '🎵';
-  return '📄';
+  if (contentType.startsWith('image/')) return Image;
+  if (contentType === 'application/pdf') return DocumentPdf;
+  if (contentType.includes('zip') || contentType.includes('archive')) return Box;
+  if (contentType.startsWith('video/')) return Video;
+  if (contentType.startsWith('audio/')) return Music;
+  return DocumentBlank;
 };
 
 // ─── E-Mail-Tag-Eingabe ───────────────────────────────────────────────────────
@@ -587,7 +594,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       {isDragging && (
         <div className="absolute inset-0 bg-cyan-500/10 border-4 border-dashed border-cyan-500 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className={`text-center ${c.text}`}>
-            <div className="text-6xl mb-4">📎</div>
+            <Attachment size={64} className="mx-auto mb-4 text-cyan-400" />
             <p className="text-xl font-semibold">Dateien hier ablegen</p>
           </div>
         </div>
@@ -602,14 +609,14 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
           </div>
           <div className="flex items-center gap-2">
             {attachments.length > 0 && (
-              <span className={`text-xs ${c.textSecondary}`}>📎 {attachments.length} ({formatFileSize(getTotalSize())})</span>
+              <span className={`text-xs ${c.textSecondary} flex items-center gap-1`}><Attachment size={16} /> {attachments.length} ({formatFileSize(getTotalSize())})</span>
             )}
             {/* Templates Button */}
             <button
               onClick={() => setShowTemplates(!showTemplates)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${showTemplates ? 'bg-cyan-500/30 text-cyan-400' : `${c.bgTertiary} ${c.hover} ${c.textSecondary}`}`}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors flex items-center gap-1 ${showTemplates ? 'bg-cyan-500/30 text-cyan-400' : `${c.bgTertiary} ${c.hover} ${c.textSecondary}`}`}
             >
-              🧩 Vorlagen
+              <Template size={16} /> Vorlagen
             </button>
             {/* Zeitversetzt senden */}
             <div className="relative">
@@ -617,12 +624,12 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                 onClick={() => setShowSchedulePicker(p => !p)}
                 disabled={sending || success || undoCountdown !== null}
                 title="Zeitversetzt senden"
-                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${c.bgSecondary} ${c.border} border ${c.text} ${c.hover} disabled:opacity-40`}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${c.bgSecondary} ${c.border} border ${c.text} ${c.hover} disabled:opacity-40 inline-flex items-center gap-1`}
               >
-                🕐
+                <Time size={16} />
               </button>
               {showSchedulePicker && (
-                <div className={`absolute right-0 bottom-full mb-2 p-3 rounded-xl shadow-xl ${c.bg} ${c.border} border z-50 min-w-[260px]`}>
+                <div className={`absolute right-0 top-full mt-2 p-3 rounded-xl shadow-xl ${c.bg} ${c.border} border z-50 min-w-[260px]`}>
                   <p className={`text-xs font-medium ${c.text} mb-2`}>Senden um:</p>
                   <input
                     type="datetime-local"
@@ -650,9 +657,9 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
             <button
               onClick={() => handleSend()}
               disabled={sending || success || undoCountdown !== null}
-              className={`px-5 py-1.5 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors disabled:opacity-50`}
+              className={`px-5 py-1.5 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors disabled:opacity-50 inline-flex items-center gap-1`}
             >
-              {sending ? 'Sende...' : success ? '✓ Gesendet!' : '📤 Senden'}
+              {sending ? <><InProgress size={16} className="animate-spin" /> Sende...</> : success ? <><Checkmark size={16} /> Gesendet!</> : <><Send size={16} /> Senden</>}
             </button>
           </div>
         </div>
@@ -667,8 +674,8 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
             {/* Undo-Send Banner */}
             {undoCountdown !== null && (
               <div className="flex items-center justify-between p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg">
-                <span className="text-sm text-blue-300">
-                  📤 E-Mail wird in <strong>{undoCountdown}s</strong> gesendet…
+                <span className="text-sm text-blue-300 flex items-center gap-2">
+                  <Send size={16} /> E-Mail wird in <strong>{undoCountdown}s</strong> gesendet…
                 </span>
                 <button
                   onClick={cancelSend}
@@ -681,7 +688,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
 
             {/* Fehler / Erfolg */}
             {error && <div className="p-3 bg-red-900/20 border border-red-600 rounded-lg text-red-400 text-sm">{error}</div>}
-            {success && <div className="p-3 bg-green-900/20 border border-green-600 rounded-lg text-green-400 text-sm">✓ E-Mail erfolgreich gesendet!</div>}
+            {success && <div className="p-3 bg-green-900/20 border border-green-600 rounded-lg text-green-400 text-sm flex items-center gap-2"><Checkmark size={16} /> E-Mail erfolgreich gesendet!</div>}
 
             {/* Von-Bereich */}
             <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4 space-y-3`}>
@@ -764,7 +771,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
             {/* Anhänge */}
             <div className={`${c.bgSecondary} ${c.border} border rounded-lg p-4`}>
               <div className="flex items-center justify-between mb-2">
-                <span className={`text-sm ${c.textSecondary}`}>📎 Anhänge</span>
+                <span className={`text-sm ${c.textSecondary} flex items-center gap-1`}><Attachment size={16} /> Anhänge</span>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className={`px-3 py-1 ${c.bgTertiary} ${c.hover} ${c.text} rounded text-xs transition-colors`}
@@ -782,7 +789,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                   {attachments.map(att => (
                     <div key={att.id} className={`flex items-center justify-between p-2 ${c.bgTertiary} rounded-lg`}>
                       <div className="flex items-center gap-2 min-w-0">
-                        <span>{getFileIcon(att.contentType, att.filename)}</span>
+                        {(() => { const FileIcon = getFileIcon(att.contentType, att.filename); return <FileIcon size={16} className="flex-shrink-0" />; })()}
                         <div className="min-w-0">
                           <p className={`text-xs ${c.text} truncate`}>{att.filename}</p>
                           <p className={`text-xs ${c.textSecondary}`}>{formatFileSize(att.size)}</p>
@@ -794,9 +801,9 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                             <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${uploadProgress[att.id]}%` }} />
                           </div>
                         )}
-                        {att.loaded && <span className="text-green-400 text-xs">✓</span>}
+                        {att.loaded && <Checkmark size={16} className="text-green-400" />}
                         <button onClick={() => setAttachments(prev => prev.filter(a => a.id !== att.id))}
-                          className={`p-0.5 ${c.hover} rounded text-red-400 text-xs`}>✕</button>
+                          className={`p-0.5 ${c.hover} rounded text-red-400`}><Close size={16} /></button>
                       </div>
                     </div>
                   ))}
@@ -810,22 +817,25 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
               {/* Editor-Tabs */}
               <div className={`flex items-center gap-0 border-b ${c.border} ${c.bgTertiary}`}>
                 {[
-                  { id: 'richtext', label: '✏️ Bearbeiten' },
-                  { id: 'html',    label: '<> HTML' },
-                  { id: 'preview', label: '👁 Vorschau' },
-                ].map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => switchMode(tab.id)}
-                    className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 ${
-                      editorMode === tab.id
-                        ? 'border-cyan-500 text-cyan-400'
-                        : `border-transparent ${c.textSecondary} hover:text-cyan-400`
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+                  { id: 'richtext', label: 'Bearbeiten', Icon: Edit },
+                  { id: 'html',     label: 'HTML',       Icon: Code },
+                  { id: 'preview',  label: 'Vorschau',   Icon: View },
+                ].map(tab => {
+                  const TabIcon = tab.Icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => switchMode(tab.id)}
+                      className={`px-4 py-2 text-xs font-medium transition-colors border-b-2 inline-flex items-center gap-1 ${
+                        editorMode === tab.id
+                          ? 'border-cyan-500 text-cyan-400'
+                          : `border-transparent ${c.textSecondary} hover:text-cyan-400`
+                      }`}
+                    >
+                      <TabIcon size={16} /> {tab.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Toolbar (nur im richtext-Modus) */}
@@ -846,16 +856,19 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                   {/* Format-Buttons */}
                   {TOOLBAR.map((group, gi) => (
                     <React.Fragment key={gi}>
-                      {group.map((btn, bi) => (
-                        <button
-                          key={bi}
-                          onMouseDown={e => { e.preventDefault(); execFormat(btn.cmd); }}
-                          title={btn.title}
-                          className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${c.textSecondary} hover:text-cyan-400 transition-colors`}
-                        >
-                          {btn.icon}
-                        </button>
-                      ))}
+                      {group.map((btn, bi) => {
+                        const BtnIcon = btn.Icon;
+                        return (
+                          <button
+                            key={bi}
+                            onMouseDown={e => { e.preventDefault(); execFormat(btn.cmd); }}
+                            title={btn.title}
+                            className={`w-7 h-7 flex items-center justify-center rounded ${c.hover} ${c.textSecondary} hover:text-cyan-400 transition-colors`}
+                          >
+                            <BtnIcon size={16} />
+                          </button>
+                        );
+                      })}
                       {gi < TOOLBAR.length - 1 && (
                         <div className={`w-px h-5 ${c.border} border-l mx-1`} />
                       )}
@@ -932,7 +945,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                   onChange={e => setUseSignature(e.target.checked)}
                   className="w-4 h-4 rounded accent-cyan-500"
                 />
-                <label htmlFor="useSignature" className={`${c.textSecondary} cursor-pointer text-xs`}>✍️ Signatur anhängen</label>
+                <label htmlFor="useSignature" className={`${c.textSecondary} cursor-pointer text-xs flex items-center gap-1`}><PenFountain size={16} /> Signatur anhängen</label>
               </div>
             )}
 
@@ -954,18 +967,20 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
             onClick={e => e.stopPropagation()}
           >
             <div className={`px-5 py-4 border-b ${c.border} flex items-center justify-between`}>
-              <h3 className={`font-semibold ${c.text}`}>🧩 HTML-Vorlage auswählen</h3>
-              <button onClick={() => setShowTemplates(false)} className={`${c.textSecondary} hover:${c.text}`}>✕</button>
+              <h3 className={`font-semibold ${c.text} flex items-center gap-2`}><Template size={20} /> HTML-Vorlage auswählen</h3>
+              <button onClick={() => setShowTemplates(false)} className={`${c.textSecondary} hover:${c.text}`}><Close size={16} /></button>
             </div>
             <div className="p-5 grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-              {HTML_TEMPLATES.map(tpl => (
+              {HTML_TEMPLATES.map(tpl => {
+                const TplIcon = tpl.Icon;
+                return (
                 <button
                   key={tpl.id}
                   onClick={() => insertTemplate(tpl)}
                   className={`p-4 ${c.bgTertiary} ${c.hover} rounded-xl text-left border ${c.border} transition-colors group`}
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{tpl.icon}</span>
+                    <TplIcon size={20} className={c.text} />
                     <span className={`font-medium ${c.text} text-sm`}>{tpl.name}</span>
                   </div>
                   {tpl.html && (
@@ -976,7 +991,8 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                     <p className={`text-xs ${c.textSecondary}`}>Eigenes HTML einfügen</p>
                   )}
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -987,8 +1003,8 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className={`${c.bgSecondary} ${c.border} border rounded-xl shadow-2xl w-full max-w-2xl mx-4`}>
             <div className={`px-5 py-4 border-b ${c.border} flex items-center justify-between`}>
-              <h3 className={`font-semibold ${c.text}`}>🧩 HTML einfügen</h3>
-              <button onClick={() => { setShowCustomPaste(false); setCustomHtmlPaste(''); }} className={`${c.textSecondary}`}>✕</button>
+              <h3 className={`font-semibold ${c.text} flex items-center gap-2`}><Code size={20} /> HTML einfügen</h3>
+              <button onClick={() => { setShowCustomPaste(false); setCustomHtmlPaste(''); }} className={`${c.textSecondary}`}><Close size={16} /></button>
             </div>
             <div className="p-5 space-y-4">
               <textarea

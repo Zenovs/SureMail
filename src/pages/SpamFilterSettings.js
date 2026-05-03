@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Security, Add, Close, Warning, CheckmarkFilled, Tag, Bullhorn, Misuse, WarningAlt, Debug, SliderAnalog } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { getSpamFilterSettings, saveSpamFilterSettings, TAG_STYLES } from '../utils/SpamFilter';
 
@@ -71,7 +71,7 @@ function SpamFilterSettings() {
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Shield className={`w-6 h-6 ${settings.enabled ? 'text-green-400' : c.textSecondary}`} />
+            <Security size={24} className={settings.enabled ? 'text-green-400' : c.textSecondary} />
             <div>
               <h3 className={`text-lg font-semibold ${c.text}`}>Spam-Filter</h3>
               <p className={`text-sm ${c.textSecondary}`}>
@@ -109,7 +109,7 @@ function SpamFilterSettings() {
         <>
           {/* Sensitivity */}
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-            <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🎚️ Empfindlichkeit</h3>
+            <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><SliderAnalog size={20} /> Empfindlichkeit</h3>
             <p className={`text-sm ${c.textSecondary} mb-4`}>
               Bestimmt, wie streng der Spam-Filter E-Mails bewertet.
             </p>
@@ -142,7 +142,7 @@ function SpamFilterSettings() {
 
           {/* Show Tags Toggle */}
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-            <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🏷️ Anzeige</h3>
+            <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Tag size={20} /> Anzeige</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -166,7 +166,7 @@ function SpamFilterSettings() {
           {/* Whitelist */}
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
             <h3 className={`text-lg font-semibold ${c.text} mb-2`}>
-              <CheckCircle className="w-5 h-5 inline-block mr-2 text-green-400" />
+              <CheckmarkFilled size={20} className="inline-block mr-2 text-green-400" />
               Whitelist — Vertrauenswürdige Absender
             </h3>
             <p className={`text-sm ${c.textSecondary} mb-4`}>
@@ -187,7 +187,7 @@ function SpamFilterSettings() {
                 disabled={!newWhitelist.trim()}
                 className={`px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm transition-colors flex items-center gap-1 disabled:opacity-50`}
               >
-                <Plus className="w-4 h-4" /> Hinzufügen
+                <Add size={16} /> Hinzufügen
               </button>
             </div>
             
@@ -203,7 +203,7 @@ function SpamFilterSettings() {
                       onClick={() => removeFromWhitelist(entry)}
                       className="hover:text-green-200 transition-colors"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <Close size={16} />
                     </button>
                   </span>
                 ))}
@@ -218,7 +218,7 @@ function SpamFilterSettings() {
           {/* Blacklist */}
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
             <h3 className={`text-lg font-semibold ${c.text} mb-2`}>
-              <AlertTriangle className="w-5 h-5 inline-block mr-2 text-red-400" />
+              <Warning size={20} className="inline-block mr-2 text-red-400" />
               Blacklist — Blockierte Absender
             </h3>
             <p className={`text-sm ${c.textSecondary} mb-4`}>
@@ -239,7 +239,7 @@ function SpamFilterSettings() {
                 disabled={!newBlacklist.trim()}
                 className={`px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors flex items-center gap-1 disabled:opacity-50`}
               >
-                <Plus className="w-4 h-4" /> Hinzufügen
+                <Add size={16} /> Hinzufügen
               </button>
             </div>
             
@@ -255,7 +255,7 @@ function SpamFilterSettings() {
                       onClick={() => removeFromBlacklist(entry)}
                       className="hover:text-red-200 transition-colors"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <Close size={16} />
                     </button>
                   </span>
                 ))}
@@ -276,7 +276,12 @@ function SpamFilterSettings() {
               <li>• <strong className={c.text}>Spam-Tags</strong> erscheinen neben dem "Neu"-Badge in der E-Mail-Liste</li>
               <li>• <strong className={c.text}>Warnbanner</strong> werden in der E-Mail-Vorschau angezeigt</li>
               <li>• Der Filter analysiert: Betreff, Absender, Inhalt, Links und Anhänge</li>
-              <li>• Kategorien: 📢 Werbung (harmlos), 🚫 Spam, ⚠️ Schädlich (Phishing), 🦠 Virus (gefährliche Anhänge)</li>
+              <li className="flex items-start gap-2"><span>• Kategorien:</span>
+                <span className="inline-flex items-center gap-1"><Bullhorn size={16} /> Werbung (harmlos),</span>
+                <span className="inline-flex items-center gap-1"><Misuse size={16} /> Spam,</span>
+                <span className="inline-flex items-center gap-1"><WarningAlt size={16} /> Schädlich (Phishing),</span>
+                <span className="inline-flex items-center gap-1"><Debug size={16} /> Virus (gefährliche Anhänge)</span>
+              </li>
             </ul>
           </div>
         </>

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Mail, MailOpen, Reply, ReplyAll, Forward, ArrowLeft, Loader2 } from 'lucide-react';
+import {
+  TrashCan, Email, Reply, ReplyAll, Forward, ArrowLeft, InProgress,
+  WarningFilled, WarningAlt, Close, Checkmark, Attachment, Download, FolderOpen, View,
+  Image, DocumentPdf, DocumentBlank, Music, Video, Box
+} from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -201,16 +205,12 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
   };
 
   const getFileIcon = (contentType, filename) => {
-    if (contentType.startsWith('image/')) return '🖼️';
-    if (contentType === 'application/pdf') return '📕';
-    if (contentType.includes('word') || filename?.endsWith('.doc') || filename?.endsWith('.docx')) return '📘';
-    if (contentType.includes('excel') || filename?.endsWith('.xls') || filename?.endsWith('.xlsx')) return '📗';
-    if (contentType.includes('powerpoint') || filename?.endsWith('.ppt') || filename?.endsWith('.pptx')) return '📙';
-    if (contentType.includes('zip') || contentType.includes('archive')) return '📦';
-    if (contentType.startsWith('video/')) return '🎬';
-    if (contentType.startsWith('audio/')) return '🎵';
-    if (contentType.includes('text')) return '📝';
-    return '📄';
+    if (contentType.startsWith('image/')) return Image;
+    if (contentType === 'application/pdf') return DocumentPdf;
+    if (contentType.includes('zip') || contentType.includes('archive')) return Box;
+    if (contentType.startsWith('video/')) return Video;
+    if (contentType.startsWith('audio/')) return Music;
+    return DocumentBlank;
   };
 
   const isPreviewable = (contentType) => {
@@ -228,7 +228,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
   if (error) {
     return (
       <div className={`flex-1 flex flex-col items-center justify-center p-8 ${c.bg}`}>
-        <div className="text-red-400 text-4xl mb-4">⚠️</div>
+        <WarningFilled size={48} className="text-red-400 mb-4" />
         <h3 className={`text-lg font-medium ${c.text} mb-2`}>Fehler beim Laden</h3>
         <p className={`${c.textSecondary} text-center max-w-md mb-4`}>{error}</p>
         <button
@@ -253,7 +253,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
             className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.text}`}
             title="Zurück"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft size={20} />
           </button>
           <div className="flex-1">
             <h2 className={`text-lg font-semibold ${c.text} truncate`}>
@@ -271,9 +271,9 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               title="Löschen"
             >
               {actionLoading === 'delete' ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <InProgress size={20} className="animate-spin" />
               ) : (
-                <Trash2 className="w-5 h-5" />
+                <TrashCan size={20} />
               )}
             </button>
             
@@ -285,11 +285,11 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               title={isRead ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
             >
               {actionLoading === 'read' ? (
-                <span className="animate-spin">⏳</span>
+                <InProgress size={20} className="animate-spin" />
               ) : isRead ? (
-                <Mail className="w-5 h-5" />
+                <Email size={20} />
               ) : (
-                <MailOpen className="w-5 h-5" />
+                <Email size={20} />
               )}
             </button>
 
@@ -301,7 +301,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.accent}`}
               title="Antworten"
             >
-              <Reply className="w-5 h-5" />
+              <Reply size={20} />
             </button>
             
             {/* Reply All */}
@@ -310,7 +310,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.accent}`}
               title="Allen antworten"
             >
-              <ReplyAll className="w-5 h-5" />
+              <ReplyAll size={20} />
             </button>
             
             {/* Forward */}
@@ -319,7 +319,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.accent}`}
               title="Weiterleiten"
             >
-              <Forward className="w-5 h-5" />
+              <Forward size={20} />
             </button>
 
           </div>
@@ -330,7 +330,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
       {actionError && (
         <div className="mx-6 mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-between">
           <span className="text-sm text-red-400">{actionError}</span>
-          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-300 ml-3">✕</button>
+          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-300 ml-3"><Close size={16} /></button>
         </div>
       )}
 
@@ -379,15 +379,17 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           {fullEmail.attachments && fullEmail.attachments.length > 0 && (
             <div className={`mt-6 pt-6 ${c.border} border-t`}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-sm font-medium ${c.textSecondary}`}>
-                  📎 Anhänge ({fullEmail.attachments.length})
+                <h3 className={`text-sm font-medium ${c.textSecondary} flex items-center gap-2`}>
+                  <Attachment size={16} /> Anhänge ({fullEmail.attachments.length})
                 </h3>
                 <button
                   onClick={downloadAllAttachments}
                   disabled={downloadingAll}
-                  className={`px-3 py-1 ${c.accentBg} ${c.accentHover} text-white text-sm rounded transition-colors disabled:opacity-50`}
+                  className={`px-3 py-1 ${c.accentBg} ${c.accentHover} text-white text-sm rounded transition-colors disabled:opacity-50 flex items-center gap-2`}
                 >
-                  {downloadingAll ? '⏳ Lade...' : '⬇️ Alle herunterladen'}
+                  {downloadingAll
+                    ? <><InProgress size={16} className="animate-spin" /> Lade...</>
+                    : <><Download size={16} /> Alle herunterladen</>}
                 </button>
               </div>
               
@@ -416,7 +418,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
                         onClick={() => setPreviewAttachment(att)}
                       >
                         <div className="text-center">
-                          <div className="text-4xl mb-2">📕</div>
+                          <DocumentPdf size={32} className={`mx-auto mb-2 ${c.textSecondary}`} />
                           <span className={`text-xs ${c.textSecondary}`}>Klicken für Vorschau</span>
                         </div>
                       </div>
@@ -424,7 +426,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
                     
                     <div className="flex items-center justify-between p-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-2xl flex-shrink-0">{getFileIcon(att.contentType, att.filename)}</span>
+                        {(() => { const FileIcon = getFileIcon(att.contentType, att.filename); return <FileIcon size={24} className={`flex-shrink-0 ${c.textSecondary}`} />; })()}
                         <div className="min-w-0">
                           <p className={`text-sm ${c.text} truncate`}>{att.filename}</p>
                           <p className={`text-xs ${c.textSecondary}`}>
@@ -434,32 +436,32 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {downloadProgress[index] === 'done' ? (
-                          <span className="text-green-400 text-sm">✓ Geladen</span>
+                          <span className="text-green-400 text-sm flex items-center gap-1"><Checkmark size={16} /> Geladen</span>
                         ) : downloadProgress[index] === 'downloading' ? (
-                          <span className="text-cyan-400 text-sm">⏳</span>
+                          <InProgress size={16} className="text-cyan-400 animate-spin" />
                         ) : downloadProgress[index] === 'error' ? (
-                          <span className="text-red-400 text-sm">✕ Fehler</span>
+                          <span className="text-red-400 text-sm flex items-center gap-1"><Close size={16} /> Fehler</span>
                         ) : (
                           <>
                             {isPreviewable(att.contentType) && (
                               <button
                                 onClick={() => setPreviewAttachment(att)}
-                                className={`px-3 py-1 ${c.bgTertiary} ${c.hover} ${c.textSecondary} rounded text-sm transition-colors`}
+                                className={`px-3 py-1 ${c.bgTertiary} ${c.hover} ${c.textSecondary} rounded text-sm transition-colors inline-flex items-center gap-1`}
                               >
-                                👁️ Vorschau
+                                <View size={16} /> Vorschau
                               </button>
                             )}
                             <button
                               onClick={() => downloadAttachment(att, index, false)}
-                              className={`px-3 py-1 ${c.bgTertiary} ${c.hover} ${c.accent} rounded text-sm transition-colors`}
+                              className={`px-3 py-1 ${c.bgTertiary} ${c.hover} ${c.accent} rounded text-sm transition-colors flex items-center gap-1`}
                             >
-                              ⬇️ Speichern
+                              <Download size={16} /> Speichern
                             </button>
                             <button
                               onClick={() => downloadAttachment(att, index, true)}
-                              className={`px-3 py-1 ${c.bgTertiary} ${c.hover} text-green-400 rounded text-sm transition-colors`}
+                              className={`px-3 py-1 ${c.bgTertiary} ${c.hover} text-green-400 rounded text-sm transition-colors flex items-center gap-1`}
                             >
-                              📂 Öffnen
+                              <FolderOpen size={16} /> Öffnen
                             </button>
                           </>
                         )}
@@ -488,15 +490,15 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => downloadAttachment(previewAttachment, -1)}
-                  className={`px-3 py-1 ${c.accentBg} ${c.accentHover} text-white rounded text-sm transition-colors`}
+                  className={`px-3 py-1 ${c.accentBg} ${c.accentHover} text-white rounded text-sm transition-colors flex items-center gap-1`}
                 >
-                  ⬇️ Download
+                  <Download size={16} /> Download
                 </button>
                 <button
                   onClick={() => setPreviewAttachment(null)}
                   className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary}`}
                 >
-                  ✕
+                  <Close size={16} />
                 </button>
               </div>
             </div>

@@ -6,17 +6,20 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Trash2, Search, Download, Upload, RefreshCw, AlertTriangle, Megaphone, Ban, ShieldAlert, Bug, Users, X, Filter, CheckCircle } from 'lucide-react';
+import {
+  TrashCan, Search, Download, Upload, Renew, Warning, Bullhorn, Misuse,
+  WarningAlt, Debug, Group, Close, Filter, CheckmarkFilled
+} from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import SenderCategoryManager from '../services/SenderCategoryManager';
 
 // Category definitions matching InboxSplitView
 const CATEGORIES = [
-  { id: 'whitelist', name: 'Vertrauenswürdig', icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-500/20', emoji: '✅' },
-  { id: 'werbung', name: 'Werbung', icon: Megaphone, color: 'text-orange-400', bgColor: 'bg-orange-500/20', emoji: '📢' },
-  { id: 'spam', name: 'Spam', icon: Ban, color: 'text-red-400', bgColor: 'bg-red-500/20', emoji: '🚫' },
-  { id: 'schaedlich', name: 'Schädlich', icon: ShieldAlert, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', emoji: '⚠️' },
-  { id: 'virus', name: 'Virus', icon: Bug, color: 'text-purple-400', bgColor: 'bg-purple-500/20', emoji: '🦠' },
+  { id: 'whitelist', name: 'Vertrauenswürdig', Icon: CheckmarkFilled, color: 'text-green-400', bgColor: 'bg-green-500/20' },
+  { id: 'werbung', name: 'Werbung', Icon: Bullhorn, color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+  { id: 'spam', name: 'Spam', Icon: Misuse, color: 'text-red-400', bgColor: 'bg-red-500/20' },
+  { id: 'schaedlich', name: 'Schädlich', Icon: WarningAlt, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
+  { id: 'virus', name: 'Virus', Icon: Debug, color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
 ];
 
 function SenderManagement() {
@@ -112,7 +115,7 @@ function SenderManagement() {
       {/* Header */}
       <div>
         <h2 className={`text-xl font-bold ${c.text} flex items-center gap-2`}>
-          <Users className="w-6 h-6" />
+          <Group size={24} />
           Absender-Verwaltung
         </h2>
         <p className={`${c.textSecondary} text-sm mt-1`}>
@@ -130,7 +133,7 @@ function SenderManagement() {
         
         {/* Category counts */}
         {CATEGORIES.map(cat => {
-          const Icon = cat.icon;
+          const Icon = cat.Icon;
           return (
             <button
               key={cat.id}
@@ -175,9 +178,9 @@ function SenderManagement() {
               CATEGORIES.find(c => c.id === categoryFilter)?.color
             }`}
           >
-            <Filter className="w-4 h-4" />
+            <Filter size={16} />
             {CATEGORIES.find(c => c.id === categoryFilter)?.name}
-            <X className="w-4 h-4" />
+            <Close size={16} />
           </button>
         )}
         
@@ -189,11 +192,11 @@ function SenderManagement() {
             className={`p-2 rounded-lg ${c.hover} ${c.textSecondary} hover:${c.text} transition-colors disabled:opacity-50`}
             title="Exportieren"
           >
-            <Download className="w-5 h-5" />
+            <Download size={20} />
           </button>
           
           <label className={`p-2 rounded-lg ${c.hover} ${c.textSecondary} hover:${c.text} transition-colors cursor-pointer`} title="Importieren">
-            <Upload className="w-5 h-5" />
+            <Upload size={20} />
             <input type="file" accept=".json" onChange={handleImport} className="hidden" />
           </label>
           
@@ -202,7 +205,7 @@ function SenderManagement() {
             className={`p-2 rounded-lg ${c.hover} ${c.textSecondary} hover:${c.text} transition-colors`}
             title="Aktualisieren"
           >
-            <RefreshCw className="w-5 h-5" />
+            <Renew size={20} />
           </button>
           
           {senders.length > 0 && (
@@ -211,7 +214,7 @@ function SenderManagement() {
               className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
               title="Alle löschen"
             >
-              <Trash2 className="w-5 h-5" />
+              <TrashCan size={20} />
             </button>
           )}
         </div>
@@ -223,7 +226,7 @@ function SenderManagement() {
           <div className={`p-8 text-center ${c.textSecondary}`}>
             {searchQuery || categoryFilter ? (
               <>
-                <Search className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <Search size={32} className="mx-auto mb-4 opacity-50" />
                 <p>Keine Absender gefunden</p>
                 <button
                   onClick={() => { setSearchQuery(''); setCategoryFilter(null); }}
@@ -234,7 +237,7 @@ function SenderManagement() {
               </>
             ) : (
               <>
-                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <Group size={32} className="mx-auto mb-4 opacity-50" />
                 <p className="font-medium">Keine Absender kategorisiert</p>
                 <p className="text-sm mt-1">
                   Markiere E-Mails im Posteingang, um Absender automatisch zu kategorisieren.
@@ -256,7 +259,7 @@ function SenderManagement() {
             <tbody className="divide-y divide-gray-700">
               {sortedSenders.map(sender => {
                 const cat = CATEGORIES.find(c => c.id === sender.category);
-                const Icon = cat?.icon || AlertTriangle;
+                const Icon = cat?.Icon || Warning;
                 
                 return (
                   <tr key={sender.email} className={`${c.hover} transition-colors`}>
@@ -270,7 +273,7 @@ function SenderManagement() {
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium ${cat?.bgColor || 'bg-gray-500/20'} ${cat?.color || 'text-gray-400'} border-0 cursor-pointer`}
                       >
                         {CATEGORIES.map(c => (
-                          <option key={c.id} value={c.id}>{c.emoji} {c.name}</option>
+                          <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>
                     </td>
@@ -292,7 +295,7 @@ function SenderManagement() {
                         className="p-1.5 rounded-lg hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
                         title="Entfernen"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <TrashCan size={16} />
                       </button>
                     </td>
                   </tr>
@@ -306,7 +309,7 @@ function SenderManagement() {
       {/* Info Box */}
       <div className={`${c.bgTertiary} ${c.border} border rounded-xl p-4`}>
         <h4 className={`font-medium ${c.text} mb-2 flex items-center gap-2`}>
-          <AlertTriangle className="w-4 h-4 text-yellow-400" />
+          <Warning size={16} className="text-yellow-400" />
           Hinweis
         </h4>
         <ul className={`text-sm ${c.textSecondary} space-y-1 list-disc list-inside`}>
@@ -323,7 +326,7 @@ function SenderManagement() {
           <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl`}>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-red-500/20 rounded-full">
-                <Trash2 className="w-6 h-6 text-red-400" />
+                <TrashCan size={24} className="text-red-400" />
               </div>
               <div>
                 <h3 className={`text-lg font-semibold ${c.text}`}>Absender entfernen?</h3>
@@ -346,7 +349,7 @@ function SenderManagement() {
                 onClick={() => handleRemoveSender(showDeleteConfirm)}
                 className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-2"
               >
-                <Trash2 className="w-4 h-4" />
+                <TrashCan size={16} />
                 Entfernen
               </button>
             </div>
@@ -360,7 +363,7 @@ function SenderManagement() {
           <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl`}>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-red-500/20 rounded-full">
-                <AlertTriangle className="w-6 h-6 text-red-400" />
+                <Warning size={24} className="text-red-400" />
               </div>
               <div>
                 <h3 className={`text-lg font-semibold ${c.text}`}>Alle Absender löschen?</h3>
@@ -383,7 +386,7 @@ function SenderManagement() {
                 onClick={handleClearAll}
                 className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-2"
               >
-                <Trash2 className="w-4 h-4" />
+                <TrashCan size={16} />
                 Alle löschen
               </button>
             </div>

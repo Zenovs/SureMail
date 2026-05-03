@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <strong>Lightweight open-source email client for Linux — IMAP/SMTP + Microsoft 365 + local AI</strong>
+  <strong>Lightweight open-source email client for Linux — IMAP/SMTP + Microsoft 365</strong>
 </p>
 
 <p align="center">
@@ -34,15 +34,16 @@
 
 ## What is CoreMail?
 
-CoreMail Desktop is a **free, open-source email client for Linux** built with Electron and React. It supports any IMAP/SMTP server as well as **Microsoft 365 / Exchange via OAuth2** (no app passwords needed). An optional **local AI assistant powered by Ollama** lets you summarize emails and generate replies — fully offline, no data leaves your machine.
+CoreMail Desktop is a **free, open-source email client for Linux** built with Electron and React. It supports any IMAP/SMTP server as well as **Microsoft 365 / Exchange via OAuth2** (no app passwords needed). Schlank, schnell und ohne Cloud-Abhängigkeiten — ideal auch für ressourcenarme Geräte wie den Raspberry Pi.
 
 **Key highlights:**
-- Multiple accounts (IMAP/SMTP + Microsoft 365 Graph API)
-- 11 dark/light themes, virtual scrolling, split-view
-- Local spam filter and sender management
-- Optional AI assistant (Ollama) — runs entirely offline
-- Raspberry Pi 4/5 (arm64) support
-- One-command install via AppImage
+- Mehrere Konten gleichzeitig (IMAP/SMTP + Microsoft 365 Graph API)
+- 11 Dark/Light-Themes, virtuelles Scrolling, Split-View
+- Lokaler Spam-Filter und Absender-Verwaltung
+- Carbon Design System Icons — einheitliche, monochrome UI
+- Raspberry Pi 4/5 (arm64) Support
+- One-Command-Install via AppImage
+- **Schlank**: kein Dashboard, keine KI-Abhängigkeiten — startet direkt im Posteingang
 
 ---
 
@@ -78,8 +79,8 @@ wget -qO- https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install
 
 | Architektur | Download |
 |---|---|
-| **x64** (Standard-PC) | [⬇️ CoreMail-Desktop-5.1.8-x86_64.AppImage](https://github.com/Zenovs/coremail/releases/latest) |
-| **arm64** (Raspberry Pi 4/5) | [⬇️ CoreMail-Desktop-5.1.8-arm64.AppImage](https://github.com/Zenovs/coremail/releases/latest) |
+| **x64** (Standard-PC) | [⬇️ CoreMail-Desktop-6.0.0-x86_64.AppImage](https://github.com/Zenovs/coremail/releases/latest) |
+| **arm64** (Raspberry Pi 4/5) | [⬇️ CoreMail-Desktop-6.0.0-arm64.AppImage](https://github.com/Zenovs/coremail/releases/latest) |
 
 ---
 
@@ -116,7 +117,7 @@ rm -rf \
   2>/dev/null ; \
 gtk-update-icon-cache -f ~/.local/share/icons/hicolor 2>/dev/null ; \
 update-desktop-database ~/.local/share/applications 2>/dev/null ; \
-echo "✅ CoreMail wurde komplett entfernt!"
+echo "CoreMail wurde komplett entfernt!"
 ```
 
 ---
@@ -130,14 +131,16 @@ echo "✅ CoreMail wurde komplett entfernt!"
 - **Split-View** — Mailliste und Vorschau nebeneinander, alle Spalten verstellbar
 - **Inline-Antwort** — direkt in der Vorschau antworten, ohne Seitenwechsel
 - **Allen antworten & Weiterleiten** — inkl. CC/BCC-Unterstützung
-- **Ordner-Navigation** — alle IMAP-Ordner durchsuchen und wechseln
+- **Ordner-Navigation** — alle IMAP-Ordner durchsuchen, erstellen, umbenennen, löschen
 - **Tag-Eingabe für Empfänger** — An/CC/BCC als einzelne Chips
+- **Hintergrund-Sync** — automatischer Mail-Abruf alle 1–30 Min konfigurierbar
 
 ### 📎 Anhänge
 - **Speichern** — Anhang direkt in den Download-Ordner speichern
 - **Öffnen** — Anhang speichern und sofort mit der Standard-Anwendung öffnen
 - **Alle herunterladen** — alle Anhänge einer Mail auf einmal speichern
 - **Vorschau** — Bilder und PDFs direkt in der App anzeigen
+- **Drag & Drop** — Dateien direkt ins Compose-Fenster ziehen
 
 ### 🔍 Suche & Filter
 - **Globale Suche** über alle Konten — `Ctrl+K`
@@ -145,44 +148,45 @@ echo "✅ CoreMail wurde komplett entfernt!"
 - **Kategorie-Filter** — nach Werbung, Spam, etc. filtern
 
 ### 🛡️ Spam-Schutz & Kategorisierung
-- **Automatischer Spam-Filter** — erkennt Werbung, Phishing, Schadsoftware
+- **Automatischer Spam-Filter** — erkennt Werbung, Phishing, Schadsoftware (rein heuristisch, ohne KI)
 - **Manuelle Kategorien** — Mails als Werbung / Spam / Schädlich / Virus / Vertrauenswürdig markieren
 - **Absender-Regeln** — neue Mails vom gleichen Absender werden automatisch kategorisiert
-- **Absender-Verwaltung** — alle kategorisierten Absender in einer Übersicht
+- **Absender-Verwaltung** — alle kategorisierten Absender in einer Übersicht (Import/Export)
 
 ### ✏️ Verfassen
-- **Rich-Text-Editor** mit Formatierungs-Toolbar (Fett, Kursiv, Listen, Farben, Links)
+- **Rich-Text-Editor** mit Formatierungs-Toolbar (Fett, Kursiv, Listen, Ausrichtung)
 - **HTML-Quellcode-Modus** und **Vorschau**
 - **HTML-Vorlagen** — Leer, Formeller Brief, Newsletter, Angebot, eigenes HTML
 - **Signaturen** — pro Konto, mit HTML-Unterstützung
 - **Anhänge** — per Dateiauswahl oder Drag & Drop
 - **Zeitversetztes Senden** — Mail zu einem bestimmten Zeitpunkt versenden
 - **Entwurf-Autosave** — Entwürfe werden alle 10 Sekunden gespeichert
+- **Undo Send** — kurze Verzögerung nach dem Senden mit Abbruch-Möglichkeit
 
-### 🤖 KI-Assistent *(optional, vollständig offline)*
-- **Lokal mit Ollama** — keine Cloud, keine Daten verlassen deinen Computer
-- E-Mails zusammenfassen
-- Antwortvorschläge generieren
-- Text verbessern, kürzen, förmlicher/freundlicher formulieren
+### 📅 Kalender
+- **Microsoft 365 Kalender** — Termine ansehen, erstellen und bearbeiten
+- Direkte Integration mit Microsoft Graph
 
 ### 🎨 Design & Darstellung
+- **Carbon Design System Icons** — einheitliches, professionelles Erscheinungsbild
 - **11 Themes**: Dark, Light, Minimal, Morphismus, Glas, Retro, Foundations, Lollipop, Nerd, Colorful, Indie
 - **Dynamische App-Icons** — passen sich automatisch ans Theme an
 - **Schriftart-Auswahl** — Google Fonts direkt in den Einstellungen
 - **Anpassbare Spaltenbreiten** — per Drag
 - **CSS-Isolation** — E-Mail-CSS beeinflusst niemals die App-Oberfläche
 
-### 📊 Dashboard
-- Anpassbare Widgets: Statistiken, Schnellaktionen, Kontoübersicht, Kategorien
-- Drag & Drop zum Anordnen
+### 🌍 Übersetzung
+- **Integrierte Mail-Übersetzung** — E-Mails in deine Sprache übersetzen lassen
 
 ### 📋 Logbuch
 - **Vollständiges Ereignisprotokoll** — alle App-Aktionen nachvollziehbar
 - Hilft bei der Diagnose von Verbindungs- und Synchronisierungsproblemen
+- Export als JSON
 
 ### 🔄 Updates
 - Automatische Update-Prüfung beim Start
 - Ein-Klick-Update direkt im Client
+- Backup vor jedem Update — Rollback möglich
 
 ---
 
@@ -207,7 +211,7 @@ echo "✅ CoreMail wurde komplett entfernt!"
 | ✅ | Alle Daten bleiben **lokal** auf deinem Computer |
 | ✅ | **Keine Telemetrie**, kein Tracking, keine Analytics |
 | ✅ | Verbindet sich ausschliesslich mit deinen eigenen E-Mail-Servern |
-| ✅ | KI-Features laufen **vollständig offline** (Ollama) |
+| ✅ | **Keine externen KI-/Cloud-Dienste** — alles offline |
 | ✅ | Kontodaten **AES-verschlüsselt** gespeichert |
 | ✅ | Open Source — vollständig einsehbarer Code |
 
@@ -219,8 +223,10 @@ echo "✅ CoreMail wurde komplett entfernt!"
 |---|---|
 | **Betriebssystem** | Linux x64 / arm64 |
 | **Speicher** | ~200 MB |
-| **RAM** | mind. 512 MB (2 GB+ für KI-Features) |
-| **KI-Features** | Ollama + mind. 4 GB RAM (optional) |
+| **RAM** | mind. 512 MB |
+| **CPU** | Beliebig — auch Raspberry Pi 4/5 |
+
+> Da CoreMail Desktop seit v6.0.0 keine KI-Komponenten mehr enthält, läuft die App auch auf sehr ressourcenarmen Geräten flüssig.
 
 ---
 
@@ -270,4 +276,4 @@ Frei verwendbar, modifizierbar und weitergebbar — auch kommerziell.
 
 ---
 
-<p align="center"><strong>CoreMail Desktop</strong> — Free, open-source email client for Linux 📧</p>
+<p align="center"><strong>CoreMail Desktop</strong> — Free, open-source email client for Linux</p>

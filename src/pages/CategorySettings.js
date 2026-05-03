@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, X, Check, Palette, Briefcase, User, Star, Tag, Heart, Flag, Bookmark, Zap, Coffee, Globe, Mail, Home, Shield, Folder } from 'lucide-react';
+import {
+  Add, Edit, TrashCan, Close, Checkmark, ColorPalette,
+  Portfolio, User, Star, Tag, Favorite, Flag, Bookmark, Flash,
+  Bee, Earth, Email, Home, Security, Folder
+} from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 
@@ -20,20 +24,20 @@ const PRESET_COLORS = [
 
 // v1.11.0: Icon options for categories
 const CATEGORY_ICONS = [
-  { id: 'briefcase', icon: Briefcase, name: 'Arbeit' },
-  { id: 'user', icon: User, name: 'Person' },
-  { id: 'star', icon: Star, name: 'Stern' },
-  { id: 'tag', icon: Tag, name: 'Tag' },
-  { id: 'heart', icon: Heart, name: 'Herz' },
-  { id: 'flag', icon: Flag, name: 'Flagge' },
-  { id: 'bookmark', icon: Bookmark, name: 'Lesezeichen' },
-  { id: 'zap', icon: Zap, name: 'Blitz' },
-  { id: 'coffee', icon: Coffee, name: 'Kaffee' },
-  { id: 'globe', icon: Globe, name: 'Globus' },
-  { id: 'mail', icon: Mail, name: 'Mail' },
-  { id: 'home', icon: Home, name: 'Haus' },
-  { id: 'shield', icon: Shield, name: 'Schild' },
-  { id: 'folder', icon: Folder, name: 'Ordner' },
+  { id: 'briefcase', icon: Portfolio, name: 'Arbeit' },
+  { id: 'user',      icon: User,      name: 'Person' },
+  { id: 'star',      icon: Star,      name: 'Stern' },
+  { id: 'tag',       icon: Tag,       name: 'Tag' },
+  { id: 'heart',     icon: Favorite,  name: 'Herz' },
+  { id: 'flag',      icon: Flag,      name: 'Flagge' },
+  { id: 'bookmark',  icon: Bookmark,  name: 'Lesezeichen' },
+  { id: 'zap',       icon: Flash,     name: 'Blitz' },
+  { id: 'coffee',    icon: Bee,       name: 'Kaffee' },
+  { id: 'globe',     icon: Earth,     name: 'Globus' },
+  { id: 'mail',      icon: Email,     name: 'Mail' },
+  { id: 'home',      icon: Home,      name: 'Haus' },
+  { id: 'shield',    icon: Security,  name: 'Schild' },
+  { id: 'folder',    icon: Folder,    name: 'Ordner' },
 ];
 
 // Get icon component by id
@@ -161,7 +165,7 @@ function CategorySettings() {
           className={`w-10 h-10 rounded-lg border-2 ${c.border} flex items-center justify-center ${c.bgTertiary} hover:bg-opacity-80 transition-colors`}
           title="Icon wählen"
         >
-          <IconComponent className="w-5 h-5" style={{ color: editingId ? editColor : newColor }} />
+          <IconComponent size={20} style={{ color: editingId ? editColor : newColor }} />
         </button>
         {showIconPicker === pickerId && (
           <div className={`absolute top-12 left-0 z-20 p-3 ${c.card} ${c.border} border rounded-xl shadow-xl min-w-[200px]`}>
@@ -174,7 +178,7 @@ function CategorySettings() {
                   className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:scale-110 ${value === id ? 'ring-2 ring-cyan-500 bg-cyan-500/20' : c.hover}`}
                   title={name}
                 >
-                  <Icon className="w-4 h-4" style={{ color: editingId ? editColor : newColor }} />
+                  <Icon size={16} style={{ color: editingId ? editColor : newColor }} />
                 </button>
               ))}
             </div>
@@ -200,7 +204,7 @@ function CategorySettings() {
             disabled={isAdding}
             className={`px-4 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50`}
           >
-            <Plus className="w-4 h-4" />
+            <Add size={16} />
             Neue Kategorie
           </button>
         </div>
@@ -236,7 +240,7 @@ function CategorySettings() {
                   style={{ backgroundColor: newColor }}
                   title="Farbe wählen"
                 >
-                  <Palette className="w-5 h-5 text-white drop-shadow" />
+                  <ColorPalette size={20} className="text-white drop-shadow" />
                 </button>
                 {showColorPicker === 'new' && (
                   <div className={`absolute top-12 right-0 z-10 p-3 ${c.card} ${c.border} border rounded-xl shadow-xl`}>
@@ -266,14 +270,14 @@ function CategorySettings() {
                 className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                 title="Speichern"
               >
-                <Check className="w-5 h-5" />
+                <Checkmark size={20} />
               </button>
               <button
                 onClick={handleCancelAdd}
                 className={`p-2 ${c.bgTertiary} ${c.hover} ${c.text} rounded-lg transition-colors`}
                 title="Abbrechen"
               >
-                <X className="w-5 h-5" />
+                <Close size={20} />
               </button>
             </div>
           </div>
@@ -304,7 +308,7 @@ function CategorySettings() {
                         style={{ backgroundColor: editColor }}
                         title="Farbe wählen"
                       >
-                        <Palette className="w-5 h-5 text-white drop-shadow" />
+                        <ColorPalette size={20} className="text-white drop-shadow" />
                       </button>
                       {showColorPicker === category.id && (
                         <div className={`absolute top-12 left-0 z-10 p-3 ${c.card} ${c.border} border rounded-xl shadow-xl`}>
@@ -341,14 +345,14 @@ function CategorySettings() {
                       className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                       title="Speichern"
                     >
-                      <Check className="w-5 h-5" />
+                      <Checkmark size={20} />
                     </button>
                     <button
                       onClick={handleCancelEdit}
                       className={`p-2 ${c.bgTertiary} ${c.hover} ${c.text} rounded-lg transition-colors`}
                       title="Abbrechen"
                     >
-                      <X className="w-5 h-5" />
+                      <Close size={20} />
                     </button>
                   </>
                 ) : (
@@ -358,7 +362,7 @@ function CategorySettings() {
                       className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center"
                       style={{ backgroundColor: category.color }}
                     >
-                      <IconComponent className="w-5 h-5 text-white" />
+                      <IconComponent size={20} className="text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className={`font-medium ${c.text}`}>{category.name}</h4>
@@ -373,7 +377,7 @@ function CategorySettings() {
                         className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 hover:text-white`}
                         title="Kategorie bearbeiten"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit size={16} />
                         <span>Bearbeiten</span>
                       </button>
                       {isDeletable(category.id) && (
@@ -382,7 +386,7 @@ function CategorySettings() {
                           className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm font-medium bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300`}
                           title="Kategorie löschen"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <TrashCan size={16} />
                           <span>Löschen</span>
                         </button>
                       )}

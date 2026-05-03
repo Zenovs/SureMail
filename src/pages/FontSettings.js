@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Type, Eye } from 'lucide-react';
+import { Checkmark, TextFont, View } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 
 // v1.11.0: Google Fonts selection
@@ -84,7 +84,7 @@ function FontSettings() {
       {/* Current Font Info */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
         <div className="flex items-center gap-3 mb-4">
-          <Type className={`w-6 h-6 ${c.accent}`} />
+          <TextFont size={24} className={c.accent} />
           <div>
             <h3 className={`text-lg font-semibold ${c.text}`}>Schriftart</h3>
             <p className={`text-sm ${c.textSecondary}`}>
@@ -113,7 +113,7 @@ function FontSettings() {
                   {font.name}
                 </span>
                 {selectedFont === font.id && (
-                  <Check className="w-5 h-5 text-cyan-500" />
+                  <Checkmark size={20} className="text-cyan-500" />
                 )}
               </div>
               <p 
@@ -130,7 +130,7 @@ function FontSettings() {
       {/* Live Preview */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
         <div className="flex items-center gap-3 mb-4">
-          <Eye className={`w-5 h-5 ${c.accent}`} />
+          <View size={20} className={c.accent} />
           <h3 className={`text-lg font-semibold ${c.text}`}>Vorschau</h3>
         </div>
         

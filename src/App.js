@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, Component, useRef } from 'react';
+import { WarningFilled, WarningAlt, Close, CloudOffline } from '@carbon/icons-react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { AccountProvider, useAccounts } from './context/AccountContext';
 import { SidebarProvider } from './context/SidebarContext';
@@ -30,7 +31,7 @@ class ErrorBoundary extends Component {
     if (this.state.hasError) {
       return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1a1a1a', color: '#e5e7eb', padding: '32px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+          <WarningFilled size={48} style={{ marginBottom: '16px', color: '#f59e0b' }} />
           <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '8px' }}>Ansicht konnte nicht geladen werden</h2>
           <p style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '24px', textAlign: 'center', maxWidth: '400px' }}>
             {this.state.error?.message || 'Unbekannter Fehler'}
@@ -248,15 +249,15 @@ function AppContent() {
     <div className={`flex flex-col h-screen ${c.bg}`}>
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600/90 text-white text-sm font-medium flex-shrink-0 z-50">
-          <span>📡</span>
+          <CloudOffline size={16} />
           <span>Keine Internetverbindung — E-Mails werden offline angezeigt</span>
         </div>
       )}
       {syncErrorToast && (
         <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-red-900/90 border border-red-500/40 text-red-200 text-sm rounded-xl shadow-lg max-w-sm">
-          <span>⚠️</span>
+          <WarningAlt size={16} />
           <span>Sync fehlgeschlagen für <strong>{syncErrorToast.accountName}</strong></span>
-          <button onClick={() => setSyncErrorToast(null)} className="ml-auto opacity-60 hover:opacity-100">✕</button>
+          <button onClick={() => setSyncErrorToast(null)} className="ml-auto opacity-60 hover:opacity-100"><Close size={16} /></button>
         </div>
       )}
       <ErrorBoundary>

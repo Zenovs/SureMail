@@ -10,17 +10,17 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Download, 
-  RefreshCw, 
-  Check, 
-  AlertCircle, 
-  Loader2, 
+import {
+  Download,
+  Renew,
+  Checkmark,
+  WarningAlt,
+  InProgress,
   FolderOpen,
-  Clock,
+  Time,
   Settings,
-  Zap
-} from 'lucide-react';
+  Flash
+} from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import UpdateManager, { 
   UpdateStatus, 
@@ -156,7 +156,7 @@ function UpdateSettings() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-              <Zap className="w-6 h-6 text-cyan-400" />
+              <Flash size={24} className="text-cyan-400" />
             </div>
             <div>
               <h3 className={`text-lg font-semibold ${c.text}`}>CoreMail Desktop</h3>
@@ -164,7 +164,7 @@ function UpdateSettings() {
                 <span className={`text-2xl font-bold ${c.accent}`}>v{currentVersion}</span>
                 {isUpToDate && (
                   <span className="flex items-center gap-1 px-2 py-0.5 bg-green-500/20 text-green-400 text-sm rounded-full">
-                    <Check className="w-3 h-3" /> Aktuell
+                    <Checkmark size={16} /> Aktuell
                   </span>
                 )}
               </div>
@@ -177,12 +177,12 @@ function UpdateSettings() {
           >
             {isChecking ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <InProgress size={16} className="animate-spin" />
                 Prüfe...
               </>
             ) : (
               <>
-                <RefreshCw className="w-4 h-4" />
+                <Renew size={16} />
                 Nach Updates suchen
               </>
             )}
@@ -191,7 +191,7 @@ function UpdateSettings() {
         
         {lastCheck && (
           <div className={`flex items-center gap-2 mt-4 text-sm ${c.textSecondary}`}>
-            <Clock className="w-4 h-4" />
+            <Time size={16} />
             Letzte Überprüfung: {formatLastCheck(lastCheck)}
           </div>
         )}
@@ -200,7 +200,7 @@ function UpdateSettings() {
       {/* Error */}
       {hasError && (
         <div className="p-4 bg-red-900/20 border border-red-600 rounded-xl flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <WarningAlt size={20} className="text-red-400 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-red-400 font-medium">Fehler beim Update-Check</p>
             <p className="text-red-400/80 text-sm mt-1">{state.error}</p>
@@ -213,7 +213,7 @@ function UpdateSettings() {
         <div className={`${c.card} border border-cyan-500 rounded-xl p-6`}>
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
-              <Download className="w-6 h-6 text-cyan-400" />
+              <Download size={24} className="text-cyan-400" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3">
@@ -240,7 +240,7 @@ function UpdateSettings() {
                   disabled={isDownloading}
                   className={`px-6 py-2 ${c.accentBg} ${c.accentHover} text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2`}
                 >
-                  <Download className="w-4 h-4" />
+                  <Download size={16} />
                   Jetzt herunterladen
                 </button>
               </div>
@@ -253,7 +253,7 @@ function UpdateSettings() {
       {isDownloading && (
         <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
           <div className="flex items-center gap-4 mb-4">
-            <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+            <InProgress size={24} className="text-cyan-400 animate-spin" />
             <div>
               <h3 className={`font-semibold ${c.text}`}>Download läuft...</h3>
               <p className={`text-sm ${c.textSecondary}`}>
@@ -278,7 +278,7 @@ function UpdateSettings() {
         <div className={`${c.card} border border-green-500 rounded-xl p-6`}>
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-              <Check className="w-6 h-6 text-green-400" />
+              <Checkmark size={24} className="text-green-400" />
             </div>
             <div className="flex-1">
               <h3 className={`text-lg font-semibold ${c.text}`}>
@@ -294,20 +294,20 @@ function UpdateSettings() {
                   disabled={isInstalling}
                   className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <Renew size={16} />
                   Jetzt installieren
                 </button>
                 <button
                   onClick={openDownloads}
                   className={`px-4 py-2 ${c.bgTertiary} ${c.hover} ${c.text} rounded-lg transition-colors flex items-center gap-2`}
                 >
-                  <FolderOpen className="w-4 h-4" />
+                  <FolderOpen size={16} />
                   Download-Ordner
                 </button>
               </div>
               
-              <p className={`text-xs ${c.textSecondary} mt-3`}>
-                ⚠️ Die App wird nach der Installation automatisch neu gestartet
+              <p className={`text-xs ${c.textSecondary} mt-3 flex items-center gap-1`}>
+                <WarningAlt size={16} /> Die App wird nach der Installation automatisch neu gestartet
               </p>
             </div>
           </div>
@@ -318,7 +318,7 @@ function UpdateSettings() {
       {isInstalling && (
         <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
           <div className="flex items-center gap-4">
-            <Loader2 className="w-6 h-6 text-green-400 animate-spin" />
+            <InProgress size={24} className="text-green-400 animate-spin" />
             <div>
               <h3 className={`font-semibold ${c.text}`}>Update wird installiert...</h3>
               <p className={`text-sm ${c.textSecondary}`}>
@@ -334,7 +334,7 @@ function UpdateSettings() {
         <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-              <Check className="w-6 h-6 text-green-400" />
+              <Checkmark size={24} className="text-green-400" />
             </div>
             <div>
               <h3 className={`text-lg font-semibold ${c.text}`}>
@@ -351,7 +351,7 @@ function UpdateSettings() {
       {/* Auto-Update Settings */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
         <div className="flex items-center gap-3 mb-6">
-          <Settings className="w-5 h-5 text-cyan-400" />
+          <Settings size={20} className="text-cyan-400" />
           <h3 className={`text-lg font-semibold ${c.text}`}>Update-Einstellungen</h3>
         </div>
         

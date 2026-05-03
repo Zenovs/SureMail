@@ -130,7 +130,7 @@ export function analyzeEmail(email, settings = {}) {
   if (blacklist.length > 0) {
     for (const blocked of blacklist) {
       if (blocked && from.includes(blocked)) {
-        return { category: 'spam', score: 100, reasons: ['Absender in Blacklist'], tags: ['🚫 Spam'] };
+        return { category: 'spam', score: 100, reasons: ['Absender in Blacklist'], tags: ['Spam'] };
       }
     }
   }
@@ -301,13 +301,13 @@ export function analyzeEmail(email, settings = {}) {
   let maxScore = 0;
   
   if (virusScore >= VIRUS_THRESHOLD) {
-    tags.push('🦠 Virus');
+    tags.push('Virus');
     category = 'virus';
     maxScore = virusScore;
   }
   
   if (schaedlichScore >= SCHAEDLICH_THRESHOLD) {
-    tags.push('⚠️ Schädlich');
+    tags.push('Schädlich');
     if (category === 'sicher' || schaedlichScore > maxScore) {
       category = 'schaedlich';
       maxScore = schaedlichScore;
@@ -315,7 +315,7 @@ export function analyzeEmail(email, settings = {}) {
   }
   
   if (spamScore >= SPAM_THRESHOLD) {
-    tags.push('🚫 Spam');
+    tags.push('Spam');
     if (category === 'sicher') {
       category = 'spam';
       maxScore = spamScore;
@@ -323,7 +323,7 @@ export function analyzeEmail(email, settings = {}) {
   }
   
   if (werbungScore >= WERBUNG_THRESHOLD) {
-    tags.push('📢 Werbung');
+    tags.push('Werbung');
     if (category === 'sicher') {
       category = 'werbung';
       maxScore = werbungScore;
@@ -398,42 +398,42 @@ export function saveSpamFilterSettings(settings) {
  */
 export const TAG_STYLES = {
   'werbung': {
-    label: '📢 Werbung',
+    label: 'Werbung',
     bgColor: 'bg-orange-500/20',
     textColor: 'text-orange-400',
     borderColor: 'border-orange-500/40',
     description: 'Marketing-Mail oder Newsletter'
   },
   'spam': {
-    label: '🚫 Spam',
+    label: 'Spam',
     bgColor: 'bg-red-500/20',
     textColor: 'text-red-400',
     borderColor: 'border-red-500/40',
     description: 'Unerwünschte E-Mail'
   },
   'schaedlich': {
-    label: '⚠️ Schädlich',
+    label: 'Schädlich',
     bgColor: 'bg-yellow-500/20',
     textColor: 'text-yellow-400',
     borderColor: 'border-yellow-500/40',
     description: 'Möglicher Phishing-Versuch'
   },
   'virus': {
-    label: '🦠 Virus',
+    label: 'Virus',
     bgColor: 'bg-red-700/30',
     textColor: 'text-red-300',
     borderColor: 'border-red-700/50',
     description: 'Enthält möglicherweise gefährliche Dateien'
   },
   'sicher': {
-    label: '✅ Sicher',
+    label: 'Sicher',
     bgColor: 'bg-green-500/20',
     textColor: 'text-green-400',
     borderColor: 'border-green-500/40',
     description: 'Keine Bedrohung erkannt'
   },
   'whitelist': {
-    label: '✅ Vertrauenswürdig',
+    label: 'Vertrauenswürdig',
     bgColor: 'bg-green-500/20',
     textColor: 'text-green-400',
     borderColor: 'border-green-500/40',

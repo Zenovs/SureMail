@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
-import { Trash2, Mail, MailOpen, RefreshCw, Inbox, Send, FileText, Trash, AlertCircle, Archive, Folder, GripVertical, Shield, CheckSquare, Square, XSquare, ChevronDown, ChevronRight, Megaphone, Ban, ShieldAlert, Bug, Tag, X, CheckCircle, Reply, ReplyAll, Download, FolderOpen, Globe, Loader2, FolderPlus, Pencil, Paperclip } from 'lucide-react';
+import {
+  TrashCan, Email, Renew, Inbox, Send, Document,
+  WarningAlt, Archive, Folder, DragVertical, Security,
+  CheckboxChecked, Checkbox, CloseFilled, ChevronDown, ChevronRight,
+  Bullhorn, Misuse, Debug, Tag, Close, Checkmark, CheckmarkFilled, Reply, ReplyAll,
+  Download, FolderOpen, Earth, InProgress, FolderAdd, Edit, Attachment, WarningFilled
+} from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -10,20 +16,20 @@ import SenderCategoryManager from '../services/SenderCategoryManager';
 
 // v2.4.0: Virtual Inbox Subfolders for automatic categorization
 const INBOX_SUBFOLDERS = [
-  { id: 'werbung', name: 'Werbung', icon: Megaphone, color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
-  { id: 'spam', name: 'Spam', icon: Ban, color: 'text-red-400', bgColor: 'bg-red-500/20' },
-  { id: 'schaedlich', name: 'Schädlich', icon: ShieldAlert, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
-  { id: 'virus', name: 'Virus', icon: Bug, color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
-  { id: 'whitelist', name: 'Vertrauenswürdig', icon: CheckCircle, color: 'text-green-400', bgColor: 'bg-green-500/20' },
+  { id: 'werbung', name: 'Werbung', icon: Bullhorn, color: 'text-orange-400', bgColor: 'bg-orange-500/20' },
+  { id: 'spam', name: 'Spam', icon: Misuse, color: 'text-red-400', bgColor: 'bg-red-500/20' },
+  { id: 'schaedlich', name: 'Schädlich', icon: WarningAlt, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20' },
+  { id: 'virus', name: 'Virus', icon: Debug, color: 'text-purple-400', bgColor: 'bg-purple-500/20' },
+  { id: 'whitelist', name: 'Vertrauenswürdig', icon: CheckmarkFilled, color: 'text-green-400', bgColor: 'bg-green-500/20' },
 ];
 
 // v2.6.0: Category definitions for manual categorization
 const MANUAL_CATEGORIES = [
-  { id: 'whitelist', name: 'Vertrauenswürdig', icon: '✅', color: '#10B981', bgClass: 'bg-green-500', hoverClass: 'hover:bg-green-600' },
-  { id: 'werbung', name: 'Werbung', icon: '📢', color: '#F59E0B', bgClass: 'bg-orange-500', hoverClass: 'hover:bg-orange-600' },
-  { id: 'spam', name: 'Spam', icon: '🚫', color: '#EF4444', bgClass: 'bg-red-500', hoverClass: 'hover:bg-red-600' },
-  { id: 'schaedlich', name: 'Schädlich', icon: '⚠️', color: '#EAB308', bgClass: 'bg-yellow-500', hoverClass: 'hover:bg-yellow-600' },
-  { id: 'virus', name: 'Virus', icon: '🦠', color: '#7C3AED', bgClass: 'bg-purple-500', hoverClass: 'hover:bg-purple-600' },
+  { id: 'whitelist', name: 'Vertrauenswürdig', Icon: CheckmarkFilled, color: '#10B981', bgClass: 'bg-green-500', hoverClass: 'hover:bg-green-600' },
+  { id: 'werbung', name: 'Werbung', Icon: Bullhorn, color: '#F59E0B', bgClass: 'bg-orange-500', hoverClass: 'hover:bg-orange-600' },
+  { id: 'spam', name: 'Spam', Icon: Misuse, color: '#EF4444', bgClass: 'bg-red-500', hoverClass: 'hover:bg-red-600' },
+  { id: 'schaedlich', name: 'Schädlich', Icon: WarningAlt, color: '#EAB308', bgClass: 'bg-yellow-500', hoverClass: 'hover:bg-yellow-600' },
+  { id: 'virus', name: 'Virus', Icon: Debug, color: '#7C3AED', bgClass: 'bg-purple-500', hoverClass: 'hover:bg-purple-600' },
 ];
 
 // v2.6.0: Category Buttons Component for manual email categorization
@@ -35,28 +41,29 @@ const CategoryButtons = memo(({ email, currentCategory, onCategorize, c }) => {
   return (
     <div className={`px-4 py-3 ${c.bgSecondary} ${c.border} border-t flex items-center gap-3 flex-wrap`}>
       <div className="flex items-center gap-2">
-        <Tag className={`w-4 h-4 ${c.textSecondary}`} />
+        <Tag size={16} className={c.textSecondary} />
         <span className={`text-sm font-medium ${c.text}`}>Als markieren:</span>
       </div>
       
       <div className="flex items-center gap-2 flex-wrap">
         {MANUAL_CATEGORIES.map(cat => {
           const isActive = currentCategory === cat.id || senderCategory === cat.id;
+          const CatIcon = cat.Icon;
           return (
             <button
               key={cat.id}
               onClick={() => onCategorize(email, cat.id)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
-                isActive 
-                  ? `${cat.bgClass} text-white shadow-lg scale-105` 
+                isActive
+                  ? `${cat.bgClass} text-white shadow-lg scale-105`
                   : `bg-transparent border-2 ${c.text} ${cat.hoverClass} hover:text-white`
               }`}
               style={{ borderColor: isActive ? 'transparent' : cat.color }}
               title={`Als ${cat.name} markieren`}
             >
-              <span>{cat.icon}</span>
+              <CatIcon size={16} />
               <span>{cat.name}</span>
-              {isActive && <span className="ml-1">✓</span>}
+              {isActive && <Checkmark size={16} className="ml-1" />}
             </button>
           );
         })}
@@ -68,7 +75,7 @@ const CategoryButtons = memo(({ email, currentCategory, onCategorize, c }) => {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all border-2 ${c.border} ${c.textSecondary} ${c.hover}`}
             title="Kategorie entfernen"
           >
-            <X className="w-4 h-4" />
+            <Close size={16} />
             <span>Entfernen</span>
           </button>
         )}
@@ -147,7 +154,7 @@ const TranslateBar = memo(({ email, c }) => {
     <>
       <div className={`px-4 py-2 ${c.bgSecondary} ${c.border} border-t flex items-center gap-3 flex-wrap`}>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Globe className={`w-4 h-4 ${c.textSecondary}`} />
+          <Earth size={16} className={c.textSecondary} />
           <span className={`text-sm font-medium ${c.text}`}>Übersetzen:</span>
         </div>
 
@@ -157,9 +164,9 @@ const TranslateBar = memo(({ email, c }) => {
             disabled={loading}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${c.bgTertiary} ${c.border} border ${c.text} ${c.hover} disabled:opacity-50`}
           >
-            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
+            {loading ? <Renew size={16} className="animate-spin" /> : <Earth size={16} />}
             <span>{loading ? 'Übersetze...' : result ? `→ ${result.lang}` : 'Sprache wählen'}</span>
-            <ChevronDown className="w-3 h-3 opacity-60" />
+            <ChevronDown size={16} className="opacity-60" />
           </button>
 
           {open && (
@@ -183,7 +190,7 @@ const TranslateBar = memo(({ email, c }) => {
             onClick={() => setResult(null)}
             className={`ml-auto text-xs ${c.textSecondary} ${c.hover} px-2 py-1 rounded flex items-center gap-1`}
           >
-            <X className="w-3 h-3" /> Übersetzung schließen
+            <Close size={16} /> Übersetzung schließen
           </button>
         )}
       </div>
@@ -192,7 +199,7 @@ const TranslateBar = memo(({ email, c }) => {
       {(result || error) && (
         <div className={`mx-4 mt-4 rounded-xl border ${c.border} overflow-hidden`}>
           <div className={`px-4 py-2 ${c.bgSecondary} flex items-center gap-2 border-b ${c.border}`}>
-            <Globe className={`w-4 h-4 ${c.accent}`} />
+            <Earth size={16} className={c.accent} />
             <span className={`text-sm font-medium ${c.text}`}>
               {result ? `Übersetzung → ${LANG_NAMES[result.lang] || result.lang}` : 'Übersetzungsfehler'}
             </span>
@@ -402,9 +409,9 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             onClick={handleCheckboxClick}
           >
             {isChecked ? (
-              <CheckSquare className={`w-5 h-5 ${c.accent} cursor-pointer`} />
+              <CheckboxChecked size={20} className={`${c.accent} cursor-pointer`} />
             ) : (
-              <Square className={`w-5 h-5 ${c.textSecondary} hover:${c.accent} cursor-pointer`} />
+              <Checkbox size={20} className={`${c.textSecondary} hover:${c.accent} cursor-pointer`} />
             )}
           </div>
         )}
@@ -455,11 +462,11 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             title={email.seen ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
           >
             {actionLoading === `read-${email.uid}` ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <InProgress size={16} className="animate-spin" />
             ) : email.seen ? (
-              <Mail className="w-4 h-4" />
+              <Email size={16} />
             ) : (
-              <MailOpen className="w-4 h-4" />
+              <Email size={16} />
             )}
           </button>
           <button
@@ -468,9 +475,9 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             title="Löschen"
           >
             {actionLoading === `delete-${email.uid}` ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <InProgress size={16} className="animate-spin" />
             ) : (
-              <Trash2 className="w-4 h-4" />
+              <TrashCan size={16} />
             )}
           </button>
         </div>
@@ -482,13 +489,13 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
 // Folder icon helper
 const getFolderIcon = (type) => {
   switch (type) {
-    case 'inbox': return <Inbox className="w-4 h-4" />;
-    case 'sent': return <Send className="w-4 h-4" />;
-    case 'drafts': return <FileText className="w-4 h-4" />;
-    case 'trash': return <Trash className="w-4 h-4" />;
-    case 'spam': return <AlertCircle className="w-4 h-4" />;
-    case 'archive': return <Archive className="w-4 h-4" />;
-    default: return <Folder className="w-4 h-4" />;
+    case 'inbox': return <Inbox size={16} />;
+    case 'sent': return <Send size={16} />;
+    case 'drafts': return <Document size={16} />;
+    case 'trash': return <TrashCan size={16} />;
+    case 'spam': return <WarningAlt size={16} />;
+    case 'archive': return <Archive size={16} />;
+    default: return <Folder size={16} />;
   }
 };
 
@@ -1741,7 +1748,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return (
       <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
         <div className={`text-center ${c.textSecondary}`}>
-          <div className="text-5xl mb-4">📧</div>
+          <Email size={48} className="mx-auto mb-4 opacity-60" />
           <p>Wähle ein Konto aus der Sidebar</p>
         </div>
       </div>
@@ -1791,7 +1798,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
     return (
       <div className={`flex-1 flex items-center justify-center ${c.bgSecondary}`}>
         <div className="text-center max-w-lg px-4">
-          <div className="text-red-400 text-5xl mb-4">⚠️</div>
+          <WarningFilled size={48} className="text-red-400 mx-auto mb-4" />
           <h3 className={`font-semibold ${c.text} mb-2`}>Verbindung fehlgeschlagen</h3>
           {!isMsAccount && activeAccount?.imap?.host && (
             <p className={`text-xs ${c.textSecondary} mb-2`}>
@@ -1831,8 +1838,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
       {/* IndexedDB quota warning */}
       {showQuotaWarning && (
         <div className="flex items-center gap-3 px-4 py-2 bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-sm flex-shrink-0">
-          <span>⚠️ Offline-Speicher voll. Ältere E-Mails werden nicht mehr zwischengespeichert.</span>
-          <button onClick={() => setShowQuotaWarning(false)} className="ml-auto opacity-60 hover:opacity-100">✕</button>
+          <WarningAlt size={16} className="flex-shrink-0" />
+          <span>Offline-Speicher voll. Ältere E-Mails werden nicht mehr zwischengespeichert.</span>
+          <button onClick={() => setShowQuotaWarning(false)} className="ml-auto opacity-60 hover:opacity-100"><Close size={16} /></button>
         </div>
       )}
     <div className={`flex-1 flex overflow-hidden min-h-0 ${c.bg}`}>
@@ -1849,20 +1857,20 @@ function InboxSplitView({ onFullView, onNavigate }) {
               title="Neuer Ordner"
               className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary} hover:text-cyan-400`}
             >
-              <FolderPlus className="w-4 h-4" />
+              <FolderAdd size={16} />
             </button>
             <button
               onClick={() => { folderCache.delete(`folders:${activeAccountId}`); loadFolders(true); }}
               title="Ordner synchronisieren"
               className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary}`}
             >
-              <RefreshCw className={`w-4 h-4 ${loadingFolders ? 'animate-spin' : ''}`} />
+              <Renew size={16} className={loadingFolders ? 'animate-spin' : ''} />
             </button>
           </div>
         </div>
         {folderError && (
-          <div className="px-3 py-2 text-xs text-red-400 bg-red-900/20 border-b border-red-500/20">
-            ⚠️ {folderError}
+          <div className="px-3 py-2 text-xs text-red-400 bg-red-900/20 border-b border-red-500/20 flex items-center gap-2">
+            <WarningAlt size={16} className="flex-shrink-0" /> {folderError}
           </div>
         )}
         <div className="flex-1 overflow-y-auto py-2">
@@ -1902,9 +1910,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     className="p-0.5 -ml-1 hover:bg-white/10 rounded"
                   >
                     {inboxExpanded ? (
-                      <ChevronDown className="w-3 h-3" />
+                      <ChevronDown size={16} />
                     ) : (
-                      <ChevronRight className="w-3 h-3" />
+                      <ChevronRight size={16} />
                     )}
                   </button>
                 ) : folder.children?.length > 0 ? (
@@ -1913,9 +1921,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     className="p-0.5 -ml-1 hover:bg-white/10 rounded"
                   >
                     {collapsedFolders.has(folder.path) ? (
-                      <ChevronRight className="w-3 h-3" />
+                      <ChevronRight size={16} />
                     ) : (
-                      <ChevronDown className="w-3 h-3" />
+                      <ChevronDown size={16} />
                     )}
                   </button>
                 ) : (
@@ -1943,14 +1951,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     title="Umbenennen"
                     className="p-1 rounded hover:bg-white/15 text-gray-400 hover:text-cyan-400 transition-colors"
                   >
-                    <Pencil className="w-3 h-3" />
+                    <Edit size={16} />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); openDeleteFolder(folder); }}
                     title="Löschen"
                     className="p-1 rounded hover:bg-white/15 text-gray-400 hover:text-red-400 transition-colors"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <TrashCan size={16} />
                   </button>
                 </div>
               )}
@@ -2000,7 +2008,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                   currentFolder === 'INBOX' ? c.accent : ''
                 }`}
               >
-                <Inbox className="w-4 h-4" />
+                <Inbox size={16} />
                 Posteingang
                 {unreadCount > 0 && (
                   <span className="ml-auto px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full">
@@ -2029,7 +2037,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
               {folderModal.mode === 'create' && (
                 <>
                   <h3 className={`text-base font-semibold ${c.text} mb-4 flex items-center gap-2`}>
-                    <FolderPlus className="w-5 h-5 text-cyan-400" /> Neuer Ordner
+                    <FolderAdd size={20} className="text-cyan-400" /> Neuer Ordner
                   </h3>
                   <input
                     autoFocus
@@ -2045,7 +2053,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
               {folderModal.mode === 'rename' && (
                 <>
                   <h3 className={`text-base font-semibold ${c.text} mb-4 flex items-center gap-2`}>
-                    <Pencil className="w-5 h-5 text-cyan-400" /> Ordner umbenennen
+                    <Edit size={20} className="text-cyan-400" /> Ordner umbenennen
                   </h3>
                   <input
                     autoFocus
@@ -2061,7 +2069,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
               {folderModal.mode === 'delete' && (
                 <>
                   <h3 className={`text-base font-semibold ${c.text} mb-2 flex items-center gap-2`}>
-                    <Trash2 className="w-5 h-5 text-red-400" /> Ordner löschen
+                    <TrashCan size={20} className="text-red-400" /> Ordner löschen
                   </h3>
                   <p className={`text-sm ${c.textSecondary} mb-4`}>
                     Ordner <strong className={c.text}>"{folderModal.folder.name}"</strong> dauerhaft löschen?
@@ -2071,7 +2079,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
               )}
               {folderModalError && (
                 <p className="text-xs text-red-400 mb-3 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" /> {folderModalError}
+                  <WarningAlt size={16} className="flex-shrink-0" /> {folderModalError}
                 </p>
               )}
               <div className="flex gap-2 justify-end">
@@ -2090,7 +2098,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                       : 'bg-cyan-600 hover:bg-cyan-500 text-white'
                   }`}
                 >
-                  {folderModalLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {folderModalLoading && <InProgress size={16} className="animate-spin" />}
                   {folderModal.mode === 'create' ? 'Erstellen' : folderModal.mode === 'rename' ? 'Umbenennen' : 'Löschen'}
                 </button>
               </div>
@@ -2141,7 +2149,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 className={`p-2 rounded-lg transition-colors ${showUnreadOnly ? 'bg-blue-500 text-white' : `${c.hover} ${c.textSecondary}`}`}
                 title={showUnreadOnly ? 'Alle E-Mails anzeigen' : 'Nur ungelesene anzeigen'}
               >
-                <Mail className="w-4 h-4" />
+                <Email size={16} />
               </button>
               {/* v2.3.0: Toggle Multi-Select */}
               <button
@@ -2152,14 +2160,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 className={`p-2 ${showCheckboxes ? c.accentBg + ' text-white' : c.hover} rounded-lg transition-colors ${c.textSecondary}`}
                 title="Mehrfachauswahl"
               >
-                <CheckSquare className="w-4 h-4" />
+                <CheckboxChecked size={16} />
               </button>
               <button
                 onClick={() => fetchEmails(false)}
                 className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary}`}
                 title="Aktualisieren"
               >
-                <RefreshCw className="w-4 h-4" />
+                <Renew size={16} />
               </button>
             </div>
           </div>
@@ -2174,12 +2182,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 >
                   {selectedUids.size === filteredEmails.length && filteredEmails.length > 0 ? (
                     <>
-                      <XSquare className="w-4 h-4" />
+                      <CloseFilled size={16} />
                       Keine
                     </>
                   ) : (
                     <>
-                      <CheckSquare className="w-4 h-4" />
+                      <CheckboxChecked size={16} />
                       Alle
                     </>
                   )}
@@ -2196,7 +2204,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                   onClick={() => setShowDeleteConfirm(true)}
                   className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <TrashCan size={16} />
                   Löschen ({selectedUids.size})
                 </button>
               )}
@@ -2212,7 +2220,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
             <div className={`p-8 text-center ${c.textSecondary}`}>
               {showUnreadOnly ? (
                 <div>
-                  <div className="text-3xl mb-2">✅</div>
+                  <CheckmarkFilled size={32} className="mx-auto mb-2 text-green-400" />
                   <p>Keine ungelesenen E-Mails</p>
                   <button
                     onClick={() => setShowUnreadOnly(false)}
@@ -2223,7 +2231,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 </div>
               ) : categoryFilter ? (
                 <div>
-                  <div className="text-3xl mb-2">✨</div>
+                  <Inbox size={32} className="mx-auto mb-2 opacity-60" />
                   <p>Keine E-Mails in dieser Kategorie</p>
                   <button
                     onClick={() => setCategoryFilter(null)}
@@ -2285,7 +2293,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
           title="Ziehen zum Ändern der Mail-Liste-Breite"
         >
           <div className="absolute top-1/2 -translate-y-1/2 -left-2 w-5 h-10 flex items-center justify-center">
-            <GripVertical className={`w-4 h-4 ${c.textSecondary} opacity-50`} />
+            <DragVertical size={16} className={`${c.textSecondary} opacity-50`} />
           </div>
         </div>
       </div>
@@ -2321,7 +2329,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
               
               return (
                 <div className={`px-4 py-3 ${style.bgColor} border-b ${style.borderColor} border flex items-center gap-3`}>
-                  <Shield className={`w-5 h-5 ${style.textColor} flex-shrink-0`} />
+                  <Security size={20} className={`${style.textColor} flex-shrink-0`} />
                   <div className="flex-1">
                     <div className={`font-medium text-sm ${style.textColor}`}>
                       {style.label} — {style.description}
@@ -2358,7 +2366,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     }`}
                     title="Antworten"
                   >
-                    <Reply className="w-4 h-4" />
+                    <Reply size={16} />
                     <span className="hidden xl:inline">Antworten</span>
                   </button>
                   <button
@@ -2370,7 +2378,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     }`}
                     title="Allen antworten"
                   >
-                    <ReplyAll className="w-4 h-4" />
+                    <ReplyAll size={16} />
                     <span className="hidden xl:inline">Allen</span>
                   </button>
                   <div className={`w-px h-5 ${c.border} border-l mx-1`} />
@@ -2402,7 +2410,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                   {/* Reply header */}
                   <div className={`px-4 py-2 border-b ${c.border} flex items-center justify-between`}>
                     <div className={`text-sm font-medium ${c.text} flex items-center gap-2`}>
-                      {replyMode === 'replyAll' ? <ReplyAll className="w-4 h-4" /> : <Reply className="w-4 h-4" />}
+                      {replyMode === 'replyAll' ? <ReplyAll size={16} /> : <Reply size={16} />}
                       <span>{replyMode === 'replyAll' ? 'Allen antworten' : 'Antworten'}</span>
                       <span className={`${c.textSecondary} font-normal truncate max-w-[200px]`}>an {selectedEmail.from}</span>
                     </div>
@@ -2413,13 +2421,13 @@ function InboxSplitView({ onFullView, onNavigate }) {
                         disabled={replySending}
                         className={`px-3 py-1.5 ${c.accentBg} ${c.accentHover} text-white rounded-lg text-sm transition-colors flex items-center gap-1.5 disabled:opacity-50`}
                       >
-                        {replySending ? <><span className="animate-spin text-xs">⏳</span> Sende...</> : <><Send className="w-3.5 h-3.5" /> Senden</>}
+                        {replySending ? <><InProgress size={16} className="animate-spin" /> Sende...</> : <><Send size={16} /> Senden</>}
                       </button>
                       <button
                         onClick={() => { setReplyMode(null); setReplyError(null); if (replyEditorRef.current) replyEditorRef.current.innerHTML = ''; }}
                         className={`p-1.5 ${c.hover} rounded ${c.textSecondary}`}
                       >
-                        <X className="w-4 h-4" />
+                        <Close size={16} />
                       </button>
                     </div>
                   </div>
@@ -2458,9 +2466,9 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     <button
                       onMouseDown={e => { e.preventDefault(); replyEditorRef.current?.focus(); document.execCommand('removeFormat', false, null); }}
                       title="Formatierung entfernen"
-                      className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${c.textSecondary} hover:text-cyan-400`}
+                      className={`w-7 h-7 flex items-center justify-center rounded ${c.hover} ${c.textSecondary} hover:text-cyan-400`}
                     >
-                      ✕
+                      <Close size={16} />
                     </button>
                     <div className={`w-px h-4 ${c.border} border-l mx-1`} />
                     <button
@@ -2468,7 +2476,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                       title="Anhang hinzufügen"
                       className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${replyAttachments.length > 0 ? 'text-cyan-400' : c.textSecondary} hover:text-cyan-400`}
                     >
-                      <Paperclip className="w-3.5 h-3.5" />
+                      <Attachment size={16} />
                     </button>
                     <input
                       ref={replyFileInputRef}
@@ -2478,8 +2486,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
                       onChange={e => { addReplyFiles(e.target.files); e.target.value = ''; }}
                     />
                     {replyAttachments.length > 0 && (
-                      <span className={`ml-1 text-xs ${c.textSecondary}`}>
-                        📎 {replyAttachments.length}
+                      <span className={`ml-1 text-xs ${c.textSecondary} flex items-center gap-1`}>
+                        <Attachment size={16} /> {replyAttachments.length}
                       </span>
                     )}
                   </div>
@@ -2489,14 +2497,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
                     <div className={`px-3 py-2 border-b ${c.border} flex flex-wrap gap-1.5`}>
                       {replyAttachments.map(att => (
                         <div key={att.id} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg ${c.bgTertiary} border ${c.border} text-xs`}>
-                          <span className={c.textSecondary}>📎</span>
+                          <Attachment size={16} className={c.textSecondary} />
                           <span className={`${c.text} max-w-[120px] truncate`}>{att.filename}</span>
                           <span className={c.textSecondary}>({(att.size / 1024).toFixed(0)} KB)</span>
                           <button
                             onClick={() => setReplyAttachments(prev => prev.filter(a => a.id !== att.id))}
                             className={`${c.textSecondary} hover:text-red-400 transition-colors`}
                           >
-                            <X className="w-3 h-3" />
+                            <Close size={16} />
                           </button>
                         </div>
                       ))}
@@ -2554,7 +2562,8 @@ function InboxSplitView({ onFullView, onNavigate }) {
                         const hasContent = !!att.content;
                         return (
                           <div key={`${selectedEmail.uid}-${att.filename}-${i}`} className={`flex items-center gap-2 px-3 py-2 ${c.bgTertiary} ${c.border} border rounded-lg text-sm ${c.text}`}>
-                            <span>📎 {att.filename}</span>
+                            <Attachment size={16} className="flex-shrink-0" />
+                            <span className="truncate">{att.filename}</span>
                             {att.size && <span className={`text-xs ${c.textSecondary}`}>({(att.size / 1024).toFixed(1)} KB)</span>}
                             {hasContent && (
                               <>
@@ -2564,7 +2573,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                                   title="Speichern"
                                   className={`p-1 rounded hover:bg-blue-500/20 text-blue-400 transition-colors disabled:opacity-50`}
                                 >
-                                  {prog === 'saving' ? <span className="text-xs">⏳</span> : prog === 'done' ? <span className="text-xs text-green-400">✓</span> : <Download className="w-3.5 h-3.5" />}
+                                  {prog === 'saving' ? <InProgress size={16} className="animate-spin" /> : prog === 'done' ? <CheckmarkFilled size={16} className="text-green-400" /> : <Download size={16} />}
                                 </button>
                                 <button
                                   onClick={() => saveAttachment(att, i, true)}
@@ -2572,7 +2581,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                                   title="Öffnen"
                                   className={`p-1 rounded hover:bg-green-500/20 text-green-400 transition-colors disabled:opacity-50`}
                                 >
-                                  <FolderOpen className="w-3.5 h-3.5" />
+                                  <FolderOpen size={16} />
                                 </button>
                               </>
                             )}
@@ -2599,7 +2608,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
           <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl`}>
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-red-500/20 rounded-full">
-                <Trash2 className="w-6 h-6 text-red-400" />
+                <TrashCan size={24} className="text-red-400" />
               </div>
               <div>
                 <h3 className={`text-lg font-semibold ${c.text}`}>E-Mails löschen?</h3>
@@ -2628,12 +2637,12 @@ function InboxSplitView({ onFullView, onNavigate }) {
               >
                 {bulkDeleting ? (
                   <>
-                    <span className="animate-spin">⏳</span>
+                    <InProgress size={16} className="animate-spin" />
                     Lösche...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4" />
+                    <TrashCan size={16} />
                     Löschen
                   </>
                 )}

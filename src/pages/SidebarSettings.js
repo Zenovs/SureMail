@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
+import { Settings, View, ChartBar, Inbox, Edit, Reset } from '@carbon/icons-react';
 
 function SidebarSettings() {
   const { currentTheme } = useTheme();
@@ -45,7 +46,7 @@ function SidebarSettings() {
 
       {/* Sidebar-Verhalten */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-        <h3 className={`text-lg font-semibold ${c.text} mb-4`}>⚙️ Verhalten</h3>
+        <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Settings size={20} /> Verhalten</h3>
         
         <div className="space-y-4">
           {/* Auto-Collapse */}
@@ -106,7 +107,7 @@ function SidebarSettings() {
 
       {/* Zurücksetzen */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-        <h3 className={`text-lg font-semibold ${c.text} mb-4`}>🔄 Zurücksetzen</h3>
+        <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Reset size={20} /> Zurücksetzen</h3>
         <p className={`${c.textSecondary} mb-4`}>
           Setze alle Sidebar-Einstellungen auf die Standardwerte zurück.
         </p>
@@ -120,7 +121,7 @@ function SidebarSettings() {
 
       {/* Vorschau */}
       <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-        <h3 className={`text-lg font-semibold ${c.text} mb-4`}>👁️ Vorschau</h3>
+        <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><View size={20} /> Vorschau</h3>
         <div className="flex gap-4">
           {/* Normal */}
           <div className="flex-1">
@@ -141,9 +142,9 @@ function SidebarSettings() {
             <div className={`${c.bgSecondary} rounded-lg p-3 h-32 w-12 flex flex-col items-center`}>
               <div className="text-lg mb-2">📧</div>
               <div className="space-y-2 text-center">
-                <div>📊</div>
-                <div>📥</div>
-                <div>✏️</div>
+                <ChartBar size={20} />
+                <Inbox size={20} />
+                <Edit size={20} />
               </div>
             </div>
           </div>
