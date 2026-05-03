@@ -1,6 +1,6 @@
 {
   "name": "coremail-desktop",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "description": "CoreMail Desktop - Lightweight IMAP/SMTP email client for Linux with Microsoft 365 OAuth2 and dark themes",
   "author": "Dario Zenhäusern",
   "license": "MIT",
@@ -98,6 +98,7 @@
     "@azure/msal-node": "^3.8.9",
     "@carbon/icons-react": "^11.69.0",
     "@electron/remote": "^2.1.2",
+    "dompurify": "^3.2.4",
     "electron-store": "^8.1.0",
     "imap-simple": "^5.1.0",
     "mailparser": "^3.6.6",
@@ -128,5 +129,10 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "overrides": {
+    "glob": "^10.4.5",
+    "tar": "^6.2.1",
+    "rimraf": "^5.0.10"
   }
 }

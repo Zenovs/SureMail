@@ -51,6 +51,16 @@ jobs:
       - name: List dist folder
         run: ls -la dist/
 
+      # Security v6.2.0: SHA-256-Manifest erzeugen für In-App-Update-Verifikation.
+      # Die App lädt SHA256SUMS.txt zusätzlich zur AppImage und prüft den Hash
+      # gegen den im Manifest hinterlegten Wert. Stimmt er nicht, wird das Update verworfen.
+      - name: Generate SHA256SUMS manifest
+        working-directory: dist
+        run: |
+          sha256sum *.AppImage > SHA256SUMS.txt
+          echo "Generated manifest:"
+          cat SHA256SUMS.txt
+
       - name: Get version from tag
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
@@ -77,9 +87,18 @@ jobs:
             | x64 (Standard-PC) | `CoreMail-Desktop-${{ steps.version.outputs.VERSION }}-x64.AppImage` |
             | arm64 (Raspberry Pi 4/5) | `CoreMail-Desktop-${{ steps.version.outputs.VERSION }}-arm64.AppImage` |
 
+            ### Verifikation
+            Die `SHA256SUMS.txt` enthält die SHA-256-Hashes aller AppImages. Manuelle Prüfung:
+            ```bash
+            sha256sum -c SHA256SUMS.txt --ignore-missing
+            ```
+            Ab v6.2.0 prüft die In-App-Update-Funktion diesen Hash automatisch.
+
             ### Änderungen
             Siehe [Commit-History](https://github.com/Zenovs/coremail/commits/initial-code)
-          files: dist/*.AppImage
+          files: |
+            dist/*.AppImage
+            dist/SHA256SUMS.txt
           draft: false
           prerelease: false
         env:

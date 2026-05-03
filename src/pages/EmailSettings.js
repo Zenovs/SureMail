@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Email, Cursor_1, Renew, Time, DataBase } from '@carbon/icons-react';
+import { Email, Cursor_1, Renew, Time, DataBase, View, TrashCan, Information } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 
 const MARK_AS_READ_OPTIONS = [
@@ -25,6 +25,7 @@ function EmailSettings() {
   const [refreshInterval, setRefreshInterval] = useState('5');
   const [localStorageEnabled, setLocalStorageEnabled] = useState(true);
   const [cacheSize, setCacheSize] = useState(0);
+  const [alwaysLoadImages, setAlwaysLoadImages] = useState(false);
 
   useEffect(() => {
     // Load settings from localStorage
@@ -36,6 +37,9 @@ function EmailSettings() {
 
     const savedLocalStorage = localStorage.getItem('emailSettings.localStorageEnabled');
     if (savedLocalStorage !== null) setLocalStorageEnabled(savedLocalStorage === 'true');
+
+    const savedAlwaysLoadImages = localStorage.getItem('emailSettings.alwaysLoadImages');
+    if (savedAlwaysLoadImages !== null) setAlwaysLoadImages(savedAlwaysLoadImages === 'true');
 
     // Calculate cache size
     calculateCacheSize();
@@ -211,14 +215,45 @@ function EmailSettings() {
             onClick={clearEmailCache}
             className={`text-sm ${c.textSecondary} hover:${c.text} transition-colors flex items-center gap-1`}
           >
-            🗑️ Cache leeren
+            <TrashCan size={16} /> Cache leeren
           </button>
         )}
       </div>
 
+      {/* Datenschutz / Bildschutz */}
+      <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
+        <div className="flex items-center gap-3 mb-2">
+          <View size={20} className={c.accent} />
+          <h3 className={`text-lg font-semibold ${c.text}`}>Datenschutz</h3>
+        </div>
+        <p className={`text-sm ${c.textSecondary} mb-4`}>
+          Externe Bilder können dem Sender verraten, wann und wo du eine E-Mail geöffnet hast (Tracking-Pixel).
+          CoreMail blockiert sie standardmässig — du kannst pro Mail einzeln freigeben.
+        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className={`font-medium ${c.text}`}>Externe Bilder immer laden</div>
+            <div className={`text-xs ${c.textSecondary} mt-0.5`}>
+              {alwaysLoadImages ? 'Tracking-Schutz deaktiviert' : 'Empfohlen: nur auf Klick'}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !alwaysLoadImages;
+              setAlwaysLoadImages(next);
+              localStorage.setItem('emailSettings.alwaysLoadImages', String(next));
+            }}
+            className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${alwaysLoadImages ? 'bg-yellow-500' : 'bg-gray-600'}`}
+          >
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${alwaysLoadImages ? 'translate-x-6' : 'translate-x-0'}`} />
+          </button>
+        </div>
+      </div>
+
       {/* Tips */}
       <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6`}>
-        <h4 className={`font-medium ${c.text} mb-3`}>💡 Hinweise</h4>
+        <h4 className={`font-medium ${c.text} mb-3 flex items-center gap-2`}><Information size={16} /> Hinweise</h4>
         <ul className={`text-sm ${c.textSecondary} space-y-2`}>
           <li>• Automatische Aktualisierung funktioniert für alle Konten gleichzeitig</li>
           <li>• Lokale Speicherung ermöglicht schnelleren Kontowechsel</li>

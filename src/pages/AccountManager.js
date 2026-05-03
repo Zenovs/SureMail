@@ -58,6 +58,9 @@ function AccountManager() {
     name: '',
     displayName: '',
     categoryId: 'work',
+    // Security: allowInsecureTLS=false (default) bedeutet strikte Cert-Validierung.
+    // Nur aktivieren bei selbst-signierten Zertifikaten auf privaten/firmeneigenen Servern.
+    allowInsecureTLS: false,
     imap: { host: '', port: '993', username: '', password: '', tls: true },
     smtp: { host: '', port: '465', username: '', password: '', secure: true, fromEmail: '' }
   });
@@ -125,6 +128,7 @@ function AccountManager() {
       name: '',
       displayName: '',
       categoryId: 'work',
+      allowInsecureTLS: false,
       imap: { host: '', port: '993', username: '', password: '', tls: true },
       smtp: { host: '', port: '465', username: '', password: '', secure: true, fromEmail: '' }
     });
@@ -203,14 +207,14 @@ function AccountManager() {
 
   const handleTestImap = async () => {
     setTesting(t => ({ ...t, imap: true }));
-    const result = await window.electronAPI.testImap(accountForm.imap);
+    const result = await window.electronAPI.testImap({ ...accountForm.imap, allowInsecureTLS: accountForm.allowInsecureTLS });
     setTestResults(r => ({ ...r, imap: result }));
     setTesting(t => ({ ...t, imap: false }));
   };
 
   const handleTestSmtp = async () => {
     setTesting(t => ({ ...t, smtp: true }));
-    const result = await window.electronAPI.testSmtp(accountForm.smtp);
+    const result = await window.electronAPI.testSmtp({ ...accountForm.smtp, allowInsecureTLS: accountForm.allowInsecureTLS });
     setTestResults(r => ({ ...r, smtp: result }));
     setTesting(t => ({ ...t, smtp: false }));
   };
@@ -701,6 +705,32 @@ function AccountManager() {
                         {testResults.smtp.success ? 'Verbindung OK' : testResults.smtp.error}
                       </div>
                     )}
+                  </div>
+
+                  {/* Sicherheit / TLS-Validierung */}
+                  <div className={`${c.card} ${c.border} border rounded-xl p-4`}>
+                    <div className="flex items-start gap-3">
+                      <Security size={20} className={accountForm.allowInsecureTLS ? 'text-yellow-400 flex-shrink-0 mt-0.5' : 'text-green-400 flex-shrink-0 mt-0.5'} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className={`text-sm font-medium ${c.text}`}>Selbstsigniertes Zertifikat erlauben</p>
+                            <p className={`text-xs ${c.textSecondary} mt-0.5`}>
+                              {accountForm.allowInsecureTLS
+                                ? 'Cert-Validierung ausgeschaltet — nur für eigene Server.'
+                                : 'Empfohlen: Cert-Validierung aktiv (verhindert MITM).'}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAccountForm(f => ({ ...f, allowInsecureTLS: !f.allowInsecureTLS }))}
+                            className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${accountForm.allowInsecureTLS ? 'bg-yellow-500' : 'bg-gray-600'}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${accountForm.allowInsecureTLS ? 'translate-x-6' : 'translate-x-0'}`} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Buttons */}

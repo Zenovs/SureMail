@@ -295,7 +295,12 @@ class UpdateManagerClass {
     }
 
     try {
-      const result = await window.electronAPI.downloadUpdate(this.updateInfo.downloadUrl);
+      // Security v6.2.0: SHA256SUMS-Manifest mitschicken für Hash-Verifikation
+      const result = await window.electronAPI.downloadUpdate({
+        downloadUrl: this.updateInfo.downloadUrl,
+        sumsUrl: this.updateInfo.sumsUrl,
+        expectedFilename: this.updateInfo.expectedFilename
+      });
 
       // Clean up progress listener after download
       window.electronAPI?.removeUpdateListeners?.();

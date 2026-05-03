@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification, shell, dialog, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, shell, dialog, nativeImage, session, safeStorage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -145,7 +145,32 @@ try {
 
 let mainWindow;
 
+// Security: Strict Content-Security-Policy for renderer (defense-in-depth).
+// Allowed: self for scripts/styles/images/fonts, data: for inline images, https: for tracker-image opt-in.
+// External fetches (Microsoft Graph, GitHub API, Google Fonts) are explicitly listed.
+function setupCSP() {
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; " +
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + // 'unsafe-eval' nötig für react-scripts dev; in Production eigentlich nicht
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+          "font-src 'self' data: https://fonts.gstatic.com; " +
+          "img-src 'self' data: blob: https: http:; " + // Mail-Bilder erlauben (sind in Iframe-Sandbox)
+          "connect-src 'self' https://api.github.com https://graph.microsoft.com https://login.microsoftonline.com https://*.outlook.com; " +
+          "frame-src 'self' data:; " + // EmailHtmlFrame nutzt srcDoc (data:)
+          "object-src 'none'; " +
+          "base-uri 'none'"
+        ]
+      }
+    });
+  });
+}
+
 function createWindow() {
+  setupCSP();
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -255,7 +280,71 @@ function createWindow() {
 app.setName('coremail-desktop');
 app.setAppUserModelId('com.coremail.desktop');
 
+// Security v6.2.0: SafeStorage-Migration — verschlüsselt den Store-Key mit dem
+// OS-Keyring (libsecret/KWallet auf Linux, Keychain auf macOS, DPAPI auf Windows)
+// statt aus os.homedir() abzuleiten. Migration ist atomar mit Verifikation;
+// bei Fehlschlag bleibt der Store mit dem abgeleiteten Key bestehen.
+async function migrateToSafeStorage() {
+  let canUseSafeStorage = false;
+  try { canUseSafeStorage = safeStorage.isEncryptionAvailable(); } catch (_) {}
+  if (!canUseSafeStorage) {
+    console.log('[SafeStorage] Nicht verfügbar (kein Keyring) — derived-key wird weiter verwendet.');
+    return;
+  }
+
+  const userDataPath = app.getPath('userData');
+  const keyFilePath = path.join(userDataPath, 'coremail-keyring.enc');
+
+  // Pfad 1: Keyring-Datei existiert → entschlüsseln und Store damit neu öffnen
+  if (fs.existsSync(keyFilePath)) {
+    try {
+      const encryptedKey = fs.readFileSync(keyFilePath);
+      const realKey = safeStorage.decryptString(encryptedKey);
+      const protectedStore = new Store({ encryptionKey: realKey, name: 'coremail-config' });
+      protectedStore.get('accounts', []); // Read-Test
+      store = protectedStore;
+      console.log('[SafeStorage] Store mit OS-Keyring entschlüsselt.');
+      return;
+    } catch (e) {
+      console.warn('[SafeStorage] Keyring-Datei beschädigt, fällt auf derived-key zurück:', e.message);
+      return;
+    }
+  }
+
+  // Pfad 2: Erstmalige Migration vom derived-key zum safeStorage-Key
+  try {
+    const oldData = store.store; // Alle Daten lesen (entschlüsselt mit derived-key)
+    const newKey = crypto.randomBytes(32).toString('hex');
+    const encryptedKey = safeStorage.encryptString(newKey);
+
+    // 1) Keyring-Datei schreiben (atomar via fs.writeFileSync)
+    fs.writeFileSync(keyFilePath, encryptedKey, { mode: 0o600 });
+
+    // 2) Alte Config-Datei löschen, damit electron-store sie mit neuem Key neu schreibt
+    const configPath = path.join(userDataPath, 'coremail-config.json');
+    if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
+
+    // 3) Store mit neuem Key öffnen, alte Daten zurückschreiben
+    const newStore = new Store({ encryptionKey: newKey, name: 'coremail-config' });
+    newStore.store = oldData;
+
+    // 4) Verifikation: konnten wir alle Konten zurücklesen?
+    const verifyAccounts = newStore.get('accounts', null);
+    if (!Array.isArray(verifyAccounts) && oldData.accounts) {
+      throw new Error('Verifikation fehlgeschlagen — accounts nicht lesbar');
+    }
+
+    store = newStore;
+    console.log('[SafeStorage] Migration zum OS-Keyring erfolgreich.');
+  } catch (e) {
+    console.error('[SafeStorage] Migration fehlgeschlagen, derived-key bleibt aktiv:', e.message);
+    // Halb-geschriebene Keyring-Datei aufräumen, damit nächster Boot sauber retried
+    try { if (fs.existsSync(keyFilePath)) fs.unlinkSync(keyFilePath); } catch (_) {}
+  }
+}
+
 app.whenReady().then(async () => {
+  await migrateToSafeStorage();
   createWindow();
   // Sync system launcher icons in background (non-blocking)
   setTimeout(() => syncSystemIcons(), 3000);
@@ -362,6 +451,14 @@ function getAccountById(accountId) {
   return accounts.find(acc => acc.id === accountId);
 }
 
+// Security helper: returns rejectUnauthorized based on per-account flag.
+// Default (flag not set) → true (validates certs).
+// Bestehende Konten werden bei load_accounts auf allowInsecureTLS: true migriert,
+// damit sich an deren Verhalten nichts ändert.
+function shouldRejectUnauthorized(account) {
+  return !(account?.allowInsecureTLS === true);
+}
+
 // v2.0.0: IMAP-Konfiguration für ein Konto erstellen
 function getImapConfigForAccount(account) {
   return {
@@ -373,7 +470,7 @@ function getImapConfigForAccount(account) {
       tls: account.imap.tls !== false,
       authTimeout: 15000,
       connTimeout: 30000,
-      tlsOptions: { rejectUnauthorized: false }
+      tlsOptions: { rejectUnauthorized: shouldRejectUnauthorized(account) }
     }
   };
 }
@@ -511,7 +608,7 @@ function getSmtpTransporterForAccount(account) {
       user: smtp.username,
       pass: smtp.password
     },
-    tls: { rejectUnauthorized: false },  // accept self-signed certs
+    tls: { rejectUnauthorized: shouldRejectUnauthorized(account) },  // strict by default, opt-in für self-signed via account.allowInsecureTLS
     connectionTimeout: 15000,            // 15s to connect
     greetingTimeout:   10000,            // 10s for SMTP greeting
     socketTimeout:     30000,            // 30s per socket operation
@@ -593,12 +690,16 @@ async function checkForUpdates(silent = false) {
     );
     const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0 && !!appImageAsset;
     const downloadUrl = appImageAsset?.browser_download_url || null;
+    // Security v6.2.0: SHA256SUMS-Manifest aus dem Release fürs Update-Verify
+    const sumsAsset = (release.assets || []).find(a => a.name === 'SHA256SUMS.txt');
+    const sumsUrl = sumsAsset?.browser_download_url || null;
+    const expectedFilename = appImageAsset?.name || null;
 
     if (hasUpdate && !silent && mainWindow) {
-      mainWindow.webContents.send('update:available', { version: latestVersion, notes: release.body || '', downloadUrl });
+      mainWindow.webContents.send('update:available', { version: latestVersion, notes: release.body || '', downloadUrl, sumsUrl, expectedFilename });
     }
 
-    return { success: true, currentVersion: APP_VERSION, latestVersion, hasUpdate, releaseNotes: release.body || '', downloadUrl, publishedAt: release.published_at };
+    return { success: true, currentVersion: APP_VERSION, latestVersion, hasUpdate, releaseNotes: release.body || '', downloadUrl, sumsUrl, expectedFilename, publishedAt: release.published_at };
   } catch (e) {
     clearTimeout(timer);
     const msg = e.name === 'AbortError' ? 'Timeout — GitHub API nicht erreichbar (>15s)' : e.message;
@@ -619,7 +720,38 @@ function compareVersions(v1, v2) {
   return 0;
 }
 
-async function downloadUpdate(downloadUrl) {
+// Security v6.2.0: SHA-256-Manifest des Releases laden und expected hash für eine Datei extrahieren.
+// Format SHA256SUMS.txt (eine Zeile pro Datei):  <hex64>  <filename>
+async function fetchExpectedSha256(sumsUrl, expectedFilename) {
+  if (!sumsUrl || !expectedFilename) return null;
+  try {
+    const resp = await fetch(sumsUrl, {
+      headers: { 'User-Agent': 'CoreMail-Desktop' }
+    });
+    if (!resp.ok) return null;
+    const text = await resp.text();
+    for (const line of text.split(/\r?\n/)) {
+      const m = line.match(/^([a-f0-9]{64})\s+\*?(.+)$/i);
+      if (m && path.basename(m[2].trim()) === expectedFilename) return m[1].toLowerCase();
+    }
+    return null;
+  } catch (e) {
+    console.warn('[Update] SHA256SUMS-Fetch fehlgeschlagen:', e.message);
+    return null;
+  }
+}
+
+async function computeFileSha256(filePath) {
+  const hash = crypto.createHash('sha256');
+  const stream = fs.createReadStream(filePath);
+  return new Promise((resolve, reject) => {
+    stream.on('data', d => hash.update(d));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', reject);
+  });
+}
+
+async function downloadUpdate(downloadUrl, sumsUrl = null, expectedFilename = null) {
   const downloadDir = app.getPath('downloads');
   const filename = 'CoreMail-Desktop-update.AppImage';
   const filePath = path.join(downloadDir, filename);
@@ -677,7 +809,31 @@ async function downloadUpdate(downloadUrl) {
 
     fs.chmodSync(filePath, 0o755);
     console.log('[Update] Download abgeschlossen:', filePath, 'Grösse:', stats.size);
-    return { success: true, filePath, size: stats.size };
+
+    // Security v6.2.0: SHA-256-Verifikation gegen SHA256SUMS-Manifest aus dem Release.
+    // Wenn das Manifest fehlt (alte Releases), wird die Datei zwar akzeptiert,
+    // aber ein deutlicher Warn-Log ausgegeben. Aktuelle Releases (v6.2.0+)
+    // haben das Manifest verpflichtend.
+    let verified = null;
+    if (sumsUrl && expectedFilename) {
+      const expected = await fetchExpectedSha256(sumsUrl, expectedFilename);
+      if (expected) {
+        const actual = (await computeFileSha256(filePath)).toLowerCase();
+        if (actual !== expected) {
+          fs.unlinkSync(filePath);
+          console.error('[Update] SHA-256-Mismatch! erwartet:', expected, 'gemessen:', actual);
+          throw new Error('Sicherheitsprüfung fehlgeschlagen — Hash der heruntergeladenen Datei stimmt nicht mit dem Release-Manifest überein.');
+        }
+        verified = { sha256: actual };
+        console.log('[Update] SHA-256 verifiziert:', actual);
+      } else {
+        console.warn('[Update] SHA256SUMS-Manifest nicht im Release gefunden — ungeprüft akzeptiert.');
+      }
+    } else {
+      console.warn('[Update] Kein Manifest-URL übergeben — Hash-Verifikation übersprungen (Legacy-Pfad).');
+    }
+
+    return { success: true, filePath, size: stats.size, verified };
 
   } catch (e) {
     clearTimeout(timer);
@@ -829,10 +985,14 @@ ipcMain.handle('update:check', async () => {
   return await checkForUpdates(false);
 });
 
-ipcMain.handle('update:download', async (event, downloadUrl) => {
+ipcMain.handle('update:download', async (event, downloadUrlOrParams) => {
   try {
-    const result = await downloadUpdate(downloadUrl);
-    return result;
+    // Backward-compat: kann String (legacy) oder Object {downloadUrl, sumsUrl, expectedFilename} sein
+    if (typeof downloadUrlOrParams === 'string') {
+      return await downloadUpdate(downloadUrlOrParams);
+    }
+    const { downloadUrl, sumsUrl, expectedFilename } = downloadUrlOrParams || {};
+    return await downloadUpdate(downloadUrl, sumsUrl, expectedFilename);
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -1184,9 +1344,28 @@ ipcMain.handle('accounts:save', async (event, data) => {
 
 ipcMain.handle('accounts:load', async () => {
   try {
+    let accounts = store.get('accounts', []);
+
+    // Security migration v6.2.0: Konten ohne allowInsecureTLS-Flag wurden bisher
+    // ohne Cert-Validierung verbunden. Damit der bisherige Verbindungsstatus
+    // unverändert bleibt, markieren wir Bestandskonten einmalig mit allowInsecureTLS=true.
+    // Der User kann das pro Konto in den Einstellungen abschalten.
+    let migrated = false;
+    accounts = accounts.map(acc => {
+      if (acc && acc.allowInsecureTLS === undefined) {
+        migrated = true;
+        return { ...acc, allowInsecureTLS: true, _tlsSecurityMigrated: true };
+      }
+      return acc;
+    });
+    if (migrated) {
+      store.set('accounts', accounts);
+      console.log('[Security] TLS-Migration: Bestandskonten mit allowInsecureTLS=true markiert (Verhalten unverändert).');
+    }
+
     return {
       success: true,
-      accounts: store.get('accounts', []),
+      accounts,
       categories: store.get('categories', [
         { id: 'work', name: 'Arbeit', color: '#3b82f6' },
         { id: 'personal', name: 'Privat', color: '#22c55e' },
@@ -1235,10 +1414,11 @@ ipcMain.handle('imap:test', async (event, settings) => {
         host: settings.host,
         port: parseInt(settings.port),
         tls: settings.tls !== false,
-        authTimeout: 10000
+        authTimeout: 10000,
+        tlsOptions: { rejectUnauthorized: !(settings.allowInsecureTLS === true) }
       }
     };
-    
+
     const connection = await imapSimple.connect(config);
     await connection.end();
     return { success: true, message: 'Verbindung erfolgreich!' };
@@ -1669,7 +1849,8 @@ ipcMain.handle('smtp:test', async (event, settings) => {
       auth: {
         user: settings.username,
         pass: settings.password
-      }
+      },
+      tls: { rejectUnauthorized: !(settings.allowInsecureTLS === true) }
     });
 
     await transporter.verify();

@@ -1,15 +1,67 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useMemo, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 
 /**
  * Renders email HTML content in an isolated iframe so that any CSS
  * contained in the email (e.g. <style> tags, body rules) cannot leak
  * into the CoreMail UI.
+ *
+ * Security:
+ * - HTML wird mit DOMPurify gegen XSS sanitized.
+ * - Externe http(s)-Bilder werden per default geblockt (Tracking-Schutz),
+ *   data:-Bilder (eingebettete Anhänge) bleiben erhalten.
+ * - Sandbox-Iframe blockt Skripte und Forms zusätzlich.
  */
 function EmailHtmlFrame({ html, fontFamily }) {
   const iframeRef = useRef(null);
+  const [imagesAllowed, setImagesAllowed] = useState(false);
 
-  // Sanitize font to prevent CSS injection (strip everything after first semicolon/brace/quote)
+  // App-weites Setting "Externe Bilder immer laden" beachten
+  const alwaysLoadImages = (() => {
+    try { return localStorage.getItem('emailSettings.alwaysLoadImages') === 'true'; } catch { return false; }
+  })();
+
+  // Reset image-allow flag wenn andere Mail geladen wird
+  useEffect(() => {
+    setImagesAllowed(alwaysLoadImages);
+  }, [html, alwaysLoadImages]);
+
+  // Sanitize font (CSS injection guard)
   const font = (fontFamily || 'Arial, sans-serif').replace(/[;"'{}\\]/g, '');
+
+  // 1) DOMPurify: Sanitize HTML, lasse alle visuellen Elemente, blocke Scripts/Events
+  // 2) Externe Bilder: Wenn nicht erlaubt, src durch transparentes 1px-Pixel ersetzen, Original in data-blocked-src merken
+  const { sanitized, blockedImageCount } = useMemo(() => {
+    if (!html) return { sanitized: '', blockedImageCount: 0 };
+
+    let blockedCount = 0;
+
+    DOMPurify.removeAllHooks();
+    DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+      if (data.attrName !== 'src') return;
+      if (node.tagName !== 'IMG') return;
+      const v = (data.attrValue || '').trim().toLowerCase();
+      // data:- und cid:-Bilder erlauben (eingebettete Anhänge)
+      if (v.startsWith('data:image/') || v.startsWith('cid:')) return;
+      if (v.startsWith('http://') || v.startsWith('https://')) {
+        if (imagesAllowed) return; // User hat externe Bilder freigegeben
+        blockedCount++;
+        // 1×1 transparent gif als Platzhalter
+        node.setAttribute('data-blocked-src', data.attrValue);
+        data.attrValue = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+      }
+    });
+
+    const clean = DOMPurify.sanitize(html, {
+      WHOLE_DOCUMENT: false,
+      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|cid|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+      FORBID_TAGS: ['script', 'object', 'embed', 'base', 'form', 'input', 'button', 'textarea'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onmouseenter', 'srcset'],
+      ADD_ATTR: ['target', 'data-blocked-src']
+    });
+    DOMPurify.removeAllHooks();
+    return { sanitized: clean, blockedImageCount: blockedCount };
+  }, [html, imagesAllowed]);
 
   const srcDoc = `<!DOCTYPE html>
 <html>
@@ -27,11 +79,17 @@ function EmailHtmlFrame({ html, fontFamily }) {
     color: #111;
   }
   img { max-width: 100%; height: auto; }
+  img[data-blocked-src] {
+    background: #f3f4f6;
+    border: 1px dashed #d1d5db;
+    min-width: 32px;
+    min-height: 32px;
+  }
   a { color: #0891b2; }
   pre, code { white-space: pre-wrap; word-break: break-all; }
 </style>
 </head>
-<body>${html}</body>
+<body>${sanitized}</body>
 </html>`;
 
   const handleLoad = useCallback(() => {
@@ -49,16 +107,15 @@ function EmailHtmlFrame({ html, fontFamily }) {
             e.preventDefault();
             const href = link.getAttribute('href');
             if (href && window.electronAPI?.openExternal) {
-              // Block javascript: and other dangerous protocols
               const proto = href.trim().toLowerCase().split(':')[0];
-              if (['http', 'https', 'mailto'].includes(proto)) {
+              if (['http', 'https', 'mailto', 'tel'].includes(proto)) {
                 window.electronAPI.openExternal(href);
               }
             }
           }, { once: true });
         });
 
-        // Kontextmenü-Events an Electron weiterleiten (Kopieren etc.)
+        // Kontextmenü-Events an Electron weiterleiten
         body.addEventListener('contextmenu', (e) => {
           const selection = doc.getSelection()?.toString() || null;
           const linkEl = e.target.closest('a[href]');
@@ -80,21 +137,48 @@ function EmailHtmlFrame({ html, fontFamily }) {
   }, []);
 
   return (
-    <iframe
-      ref={iframeRef}
-      srcDoc={srcDoc}
-      sandbox="allow-same-origin"
-      title="E-Mail Inhalt"
-      style={{
-        width: '100%',
-        border: 'none',
-        minHeight: '200px',
-        display: 'block',
-        borderRadius: '8px',
-        background: 'white',
-      }}
-      onLoad={handleLoad}
-    />
+    <div>
+      {blockedImageCount > 0 && !imagesAllowed && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '12px', padding: '8px 14px', marginBottom: '8px',
+          background: 'rgba(234, 179, 8, 0.10)',
+          border: '1px solid rgba(234, 179, 8, 0.30)',
+          borderRadius: '8px', fontSize: '13px', color: '#fbbf24'
+        }}>
+          <span>
+            <strong>{blockedImageCount}</strong> externe{blockedImageCount === 1 ? 's' : ''} Bild{blockedImageCount === 1 ? '' : 'er'} blockiert (Tracking-Schutz)
+          </span>
+          <button
+            onClick={() => setImagesAllowed(true)}
+            style={{
+              background: 'rgba(234, 179, 8, 0.20)',
+              border: '1px solid rgba(234, 179, 8, 0.50)',
+              color: '#fbbf24', borderRadius: '6px',
+              padding: '4px 12px', cursor: 'pointer', fontSize: '12px',
+              fontFamily: 'inherit'
+            }}
+          >
+            Bilder anzeigen
+          </button>
+        </div>
+      )}
+      <iframe
+        ref={iframeRef}
+        srcDoc={srcDoc}
+        sandbox="allow-same-origin"
+        title="E-Mail Inhalt"
+        style={{
+          width: '100%',
+          border: 'none',
+          minHeight: '200px',
+          display: 'block',
+          borderRadius: '8px',
+          background: 'white',
+        }}
+        onLoad={handleLoad}
+      />
+    </div>
   );
 }
 

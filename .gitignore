@@ -7,3 +7,7 @@ dist/
 .DS_Store
 # App-interne Datendateien — nicht ins Repo
 .abacus.*
+# AppImage extraction (debugging only, never commit)
+squashfs-root/
+# Claude Code session state
+.claude/
