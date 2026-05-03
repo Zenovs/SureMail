@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useSidebar } from '../context/SidebarContext';
-import { Settings, View, ChartBar, Inbox, Edit, Reset } from '@carbon/icons-react';
+import { Settings, View, ChartBar, MailAll, Edit, Reset } from '@carbon/icons-react';
 
 function SidebarSettings() {
   const { currentTheme } = useTheme();
@@ -143,7 +143,7 @@ function SidebarSettings() {
               <div className="text-lg mb-2">📧</div>
               <div className="space-y-2 text-center">
                 <ChartBar size={20} />
-                <Inbox size={20} />
+                <MailAll size={20} />
                 <Edit size={20} />
               </div>
             </div>

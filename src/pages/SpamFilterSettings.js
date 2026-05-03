@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Security, Add, Close, Warning, CheckmarkFilled, Tag, Bullhorn, Misuse, WarningAlt, Debug, SliderAnalog } from '@carbon/icons-react';
+import { Security, Add, Close, Warning, CheckmarkFilled, Tag, Bullhorn, Misuse, WarningAlt, Debug, Equalizer } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { getSpamFilterSettings, saveSpamFilterSettings, TAG_STYLES } from '../utils/SpamFilter';
 
@@ -109,7 +109,7 @@ function SpamFilterSettings() {
         <>
           {/* Sensitivity */}
           <div className={`${c.card} ${c.border} border rounded-xl p-6`}>
-            <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><SliderAnalog size={20} /> Empfindlichkeit</h3>
+            <h3 className={`text-lg font-semibold ${c.text} mb-4 flex items-center gap-2`}><Equalizer size={20} /> Empfindlichkeit</h3>
             <p className={`text-sm ${c.textSecondary} mb-4`}>
               Bestimmt, wie streng der Spam-Filter E-Mails bewertet.
             </p>

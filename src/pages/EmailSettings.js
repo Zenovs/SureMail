@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Email, Cursor1, Renew, Time, DataBase } from '@carbon/icons-react';
+import { Email, Cursor_1, Renew, Time, DataBase } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 
 const MARK_AS_READ_OPTIONS = [
-  { id: 'onClick', name: 'Beim Klick', desc: 'E-Mail wird beim Auswählen als gelesen markiert', Icon: Cursor1 },
+  { id: 'onClick', name: 'Beim Klick', desc: 'E-Mail wird beim Auswählen als gelesen markiert', Icon: Cursor_1 },
   { id: 'onOpen', name: 'Beim Öffnen', desc: 'E-Mail wird beim Öffnen in Vollansicht als gelesen markiert', Icon: Email },
   { id: 'iconOnly', name: 'Nur durch Icon', desc: 'E-Mail wird nur durch Klick auf das Gelesen-Icon markiert', Icon: Email },
 ];

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import {
-  TrashCan, Email, Renew, Inbox, Send, Document,
+  TrashCan, Email, Renew, MailAll, Send, Document,
   WarningAlt, Archive, Folder, DragVertical, Security,
   CheckboxChecked, Checkbox, CloseFilled, ChevronDown, ChevronRight,
   Bullhorn, Misuse, Debug, Tag, Close, Checkmark, CheckmarkFilled, Reply, ReplyAll,
@@ -489,7 +489,7 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
 // Folder icon helper
 const getFolderIcon = (type) => {
   switch (type) {
-    case 'inbox': return <Inbox size={16} />;
+    case 'inbox': return <MailAll size={16} />;
     case 'sent': return <Send size={16} />;
     case 'drafts': return <Document size={16} />;
     case 'trash': return <TrashCan size={16} />;
@@ -2008,7 +2008,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                   currentFolder === 'INBOX' ? c.accent : ''
                 }`}
               >
-                <Inbox size={16} />
+                <MailAll size={16} />
                 Posteingang
                 {unreadCount > 0 && (
                   <span className="ml-auto px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full">
@@ -2231,7 +2231,7 @@ function InboxSplitView({ onFullView, onNavigate }) {
                 </div>
               ) : categoryFilter ? (
                 <div>
-                  <Inbox size={32} className="mx-auto mb-2 opacity-60" />
+                  <MailAll size={32} className="mx-auto mb-2 opacity-60" />
                   <p>Keine E-Mails in dieser Kategorie</p>
                   <button
                     onClick={() => setCategoryFilter(null)}

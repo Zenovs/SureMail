@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import {
   Renew, TrashCan, Download, Search, Close,
-  Rocket, Inbox, Send, Settings, WarningAlt, Information
+  Rocket, MailAll, Send, Settings, WarningAlt, Information
 } from '@carbon/icons-react';
 
 const TYPE_CONFIG = {
   app_start:       { label: 'App-Start',     Icon: Rocket,      color: 'text-cyan-400' },
-  email_received:  { label: 'Empfangen',     Icon: Inbox,       color: 'text-green-400' },
+  email_received:  { label: 'Empfangen',     Icon: MailAll,     color: 'text-green-400' },
   email_sent:      { label: 'Gesendet',      Icon: Send,        color: 'text-blue-400' },
   settings:        { label: 'Einstellungen', Icon: Settings,    color: 'text-yellow-400' },
   update:          { label: 'Update',        Icon: Renew,       color: 'text-purple-400' },
