@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CoreMail Desktop — Schlanker Linux-E-Mail-Client</title>
+  <meta name="description" content="Open-Source-E-Mail-Client für Linux mit IMAP/SMTP- und Microsoft 365-Unterstützung. Schlank, schnell, ohne Cloud-Tracking." />
+  <meta property="og:title" content="CoreMail Desktop" />
+  <meta property="og:description" content="Schlanker Linux-E-Mail-Client mit IMAP/SMTP + Microsoft 365." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://coremail.ch" />
+  <meta property="og:image" content="https://coremail.ch/icon-256.png" />
+  <link rel="icon" type="image/png" href="icon-256.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-0: #0A0A0F;
+      --bg-1: #14141A;
+      --bg-2: #1F1F28;
+      --border: rgba(255, 255, 255, 0.08);
+      --text-1: #F3F4F6;
+      --text-2: #9CA3AF;
+      --text-3: #6B7280;
+      --cyan: #06B6D4;
+      --cyan-light: #22D3EE;
+      --cyan-bg: rgba(6, 182, 212, 0.10);
+      --green: #10B981;
+      --max-w: 1100px;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-0);
+      color: var(--text-1);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    a { color: var(--cyan-light); text-decoration: none; }
+    a:hover { color: var(--cyan); }
+    code, pre { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.95em; }
+
+    /* Header */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: var(--max-w); margin: 0 auto; padding: 16px 24px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .logo-group { display: flex; align-items: center; gap: 12px; }
+    .logo-text { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+    .logo-version { font-size: 12px; color: var(--text-3); margin-left: 6px; }
+    .nav-links { display: flex; gap: 24px; align-items: center; }
+    .nav-links a { color: var(--text-2); font-size: 14px; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--text-1); }
+
+    /* Hero */
+    .hero {
+      max-width: var(--max-w); margin: 0 auto; padding: 80px 24px 64px;
+      text-align: center;
+    }
+    .hero-logo { width: 96px; height: 96px; margin: 0 auto 28px; }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 700; letter-spacing: -0.02em;
+      line-height: 1.05; margin-bottom: 20px;
+    }
+    .hero h1 .accent {
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--cyan-light) 100%);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent;
+    }
+    .hero p {
+      font-size: 19px; color: var(--text-2);
+      max-width: 640px; margin: 0 auto 36px;
+    }
+    .hero-badges {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 0;
+    }
+    .badge {
+      font-size: 12px; padding: 6px 12px; border-radius: 999px;
+      background: var(--bg-1); border: 1px solid var(--border);
+      color: var(--text-2); display: inline-flex; align-items: center; gap: 6px;
+    }
+    .badge-cyan { background: var(--cyan-bg); border-color: rgba(6, 182, 212, 0.30); color: var(--cyan-light); }
+
+    /* Install Card */
+    .install-section {
+      max-width: 760px; margin: 0 auto; padding: 0 24px 64px;
+    }
+    .install-card {
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+    .install-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--cyan-light); margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .install-title {
+      font-size: 18px; font-weight: 600; margin-bottom: 16px;
+    }
+    .terminal {
+      background: var(--bg-0); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; font-family: 'IBM Plex Mono', monospace;
+      display: flex; align-items: flex-start; gap: 12px; font-size: 13px;
+      overflow-x: auto;
+    }
+    .terminal-prompt { color: var(--cyan); user-select: none; flex-shrink: 0; }
+    .terminal-cmd { color: var(--text-1); flex: 1; white-space: nowrap; }
+    .copy-btn {
+      flex-shrink: 0; background: transparent; border: 1px solid var(--border);
+      color: var(--text-2); padding: 4px 10px; border-radius: 6px; cursor: pointer;
+      font-size: 11px; font-family: 'IBM Plex Sans', sans-serif;
+      transition: all 0.15s;
+    }
+    .copy-btn:hover { color: var(--text-1); border-color: var(--cyan); }
+    .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+    .arch-toggle {
+      display: inline-flex; gap: 4px; background: var(--bg-0);
+      padding: 4px; border-radius: 8px; border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .arch-btn {
+      background: transparent; border: none; color: var(--text-2);
+      padding: 6px 14px; border-radius: 6px; cursor: pointer;
+      font-size: 13px; font-family: inherit; font-weight: 500;
+      transition: all 0.15s;
+    }
+    .arch-btn.active { background: var(--cyan); color: white; }
+    .arch-btn:hover:not(.active) { color: var(--text-1); }
+    .auto-detected {
+      font-size: 11px; color: var(--text-3); margin-top: 10px; margin-left: 4px;
+    }
+
+    .or-divider {
+      display: flex; align-items: center; gap: 16px;
+      color: var(--text-3); font-size: 12px; text-transform: uppercase;
+      letter-spacing: 0.1em; margin: 28px 0 24px;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    .download-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .download-btn {
+      display: flex; flex-direction: column; gap: 4px;
+      background: var(--bg-2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; color: var(--text-1); transition: all 0.15s; cursor: pointer;
+      text-align: left;
+    }
+    .download-btn:hover { border-color: var(--cyan); transform: translateY(-1px); }
+    .download-btn.recommended { border-color: var(--cyan); }
+    .download-btn-label { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .download-btn-meta { font-size: 11px; color: var(--text-3); }
+    .download-btn-arrow { margin-left: auto; }
+    @media (max-width: 540px) {
+      .download-row { grid-template-columns: 1fr; }
+    }
+
+    /* Features */
+    .features-section {
+      max-width: var(--max-w); margin: 0 auto; padding: 80px 24px;
+    }
+    .section-title {
+      font-size: 32px; font-weight: 700; letter-spacing: -0.01em;
+      margin-bottom: 12px; text-align: center;
+    }
+    .section-subtitle {
+      font-size: 16px; color: var(--text-2);
+      text-align: center; margin-bottom: 48px;
+    }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .feature {
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px;
+      padding: 24px; transition: all 0.15s;
+    }
+    .feature:hover { border-color: rgba(6, 182, 212, 0.30); }
+    .feature-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--cyan-bg); border: 1px solid rgba(6, 182, 212, 0.30);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--cyan-light); margin-bottom: 16px;
+    }
+    .feature h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .feature p { font-size: 14px; color: var(--text-2); line-height: 1.55; }
+
+    /* Privacy */
+    .privacy-section {
+      max-width: var(--max-w); margin: 0 auto; padding: 0 24px 80px;
+    }
+    .privacy-card {
+      background: linear-gradient(135deg, var(--bg-1) 0%, rgba(6, 182, 212, 0.04) 100%);
+      border: 1px solid var(--border); border-radius: 16px; padding: 40px;
+    }
+    .privacy-list {
+      list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px; margin-top: 24px;
+    }
+    .privacy-list li {
+      display: flex; align-items: flex-start; gap: 12px;
+      font-size: 14px; color: var(--text-2);
+    }
+    .privacy-list svg { color: var(--green); flex-shrink: 0; margin-top: 2px; }
+
+    /* System Requirements */
+    .sysreq-section {
+      max-width: var(--max-w); margin: 0 auto; padding: 0 24px 80px;
+    }
+    .sysreq-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .sysreq-item {
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px;
+    }
+    .sysreq-item dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin-bottom: 6px; }
+    .sysreq-item dd { font-size: 16px; font-weight: 500; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-3); font-size: 13px;
+    }
+    footer .links { display: flex; gap: 24px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+    footer .links a { color: var(--text-2); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--bg-2); border: 1px solid var(--green); color: var(--green);
+      padding: 10px 18px; border-radius: 999px; font-size: 13px;
+      opacity: 0; pointer-events: none; transition: all 0.25s;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 640px) {
+      .nav-links { gap: 16px; }
+      .nav-links a:not(.nav-cta) { display: none; }
+      .install-card { padding: 20px; }
+      .privacy-card { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ───── Navigation ───── -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="logo-group">
+      <svg width="32" height="32" viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <linearGradient id="navGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0A0A0F"/>
+            <stop offset="100%" stop-color="#1A1A24"/>
+          </linearGradient>
+        </defs>
+        <rect width="200" height="200" rx="24" fill="url(#navGrad)"/>
+        <g transform="translate(100,100)">
+          <path d="M 40 -55 A 65 65 0 1 0 40 55" fill="none" stroke="#06B6D4" stroke-width="4" stroke-linecap="round"/>
+          <path d="M 32 -45 A 53 53 0 1 0 32 45" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+          <path d="M -50 -8 L -25 0 L -50 8 Z" fill="#06B6D4"/>
+          <circle cx="-35" cy="0" r="2.5" fill="#22D3EE"/>
+          <circle cx="-20" cy="0" r="2.5" fill="#22D3EE"/>
+          <circle cx="-5" cy="0" r="2.5" fill="#22D3EE"/>
+        </g>
+      </svg>
+      <div>
+        <span class="logo-text">CoreMail</span>
+        <span class="logo-version" id="nav-version"></span>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Funktionen</a>
+      <a href="#install">Installation</a>
+      <a href="https://github.com/Zenovs/coremail" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ───── Hero ───── -->
+<header class="hero">
+  <svg class="hero-logo" viewBox="0 0 200 200" aria-hidden="true">
+    <defs>
+      <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0A0A0F"/>
+        <stop offset="100%" stop-color="#1A1A24"/>
+      </linearGradient>
+    </defs>
+    <rect width="200" height="200" rx="32" fill="url(#heroGrad)"/>
+    <g transform="translate(100,100)">
+      <path d="M 40 -55 A 65 65 0 1 0 40 55" fill="none" stroke="#06B6D4" stroke-width="4" stroke-linecap="round"/>
+      <path d="M 32 -45 A 53 53 0 1 0 32 45" fill="none" stroke="#22D3EE" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
+      <path d="M -50 -8 L -25 0 L -50 8 Z" fill="#06B6D4"/>
+      <circle cx="-35" cy="0" r="2.5" fill="#22D3EE"/>
+      <circle cx="-20" cy="0" r="2.5" fill="#22D3EE"/>
+      <circle cx="-5" cy="0" r="2.5" fill="#22D3EE"/>
+    </g>
+  </svg>
+  <h1>Dein E-Mail-Client.<br /><span class="accent">Schlank. Frei. Lokal.</span></h1>
+  <p>
+    CoreMail Desktop ist ein Open-Source-E-Mail-Client für Linux —
+    IMAP/SMTP, Microsoft 365 via Graph API, 11&nbsp;Themes, kein Tracking, keine Cloud.
+  </p>
+  <div class="hero-badges">
+    <span class="badge badge-cyan">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>
+      <span id="hero-version">v6.1.0</span>
+    </span>
+    <span class="badge">MIT License</span>
+    <span class="badge">Linux x64 / arm64</span>
+    <span class="badge">Raspberry Pi 4/5</span>
+  </div>
+</header>
+
+<!-- ───── Install Section ───── -->
+<section class="install-section" id="install">
+  <div class="install-card">
+    <div class="install-label">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1h10v2H3zm0 12h10v2H3zm5-8L3 8l5 3V9l3 1V6L8 7z"/></svg>
+      Empfohlen
+    </div>
+    <h2 class="install-title">Installation per Terminal</h2>
+
+    <div class="arch-toggle" role="tablist">
+      <button class="arch-btn active" data-arch="x64" role="tab">x64 — PC / Laptop</button>
+      <button class="arch-btn" data-arch="arm64" role="tab">arm64 — Raspberry Pi</button>
+    </div>
+
+    <div class="terminal">
+      <span class="terminal-prompt">$</span>
+      <span class="terminal-cmd" id="install-cmd">curl -sSL https://raw.githubusercontent.com/Zenovs/coremail/initial-code/install.sh | bash -s -- --x64</span>
+      <button class="copy-btn" id="copy-btn">Kopieren</button>
+    </div>
+    <p class="auto-detected" id="auto-detected"></p>
+
+    <div class="or-divider">oder direkt herunterladen</div>
+
+    <div class="download-row">
+      <a class="download-btn" id="dl-x64" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
+        <span class="download-btn-label">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 11L3 6h3V1h4v5h3l-5 5zm-6 3v1h12v-1H2z"/></svg>
+          x64 AppImage
+        </span>
+        <span class="download-btn-meta" id="dl-x64-size">ca. 135 MB</span>
+      </a>
+      <a class="download-btn" id="dl-arm64" href="https://github.com/Zenovs/coremail/releases/latest" target="_blank" rel="noopener">
+        <span class="download-btn-label">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 11L3 6h3V1h4v5h3l-5 5zm-6 3v1h12v-1H2z"/></svg>
+          arm64 AppImage
+        </span>
+        <span class="download-btn-meta" id="dl-arm64-size">ca. 135 MB</span>
+      </a>
+    </div>
+    <p class="auto-detected">
+      Direkt-Download startet ohne Skript — danach: <code>chmod +x</code> &amp; ausführen.
+    </p>
+  </div>
+</section>
+
+<!-- ───── Features ───── -->
+<section class="features-section" id="features">
+  <h2 class="section-title">Alles was ein E-Mail-Client braucht.<br />Mehr nicht.</h2>
+  <p class="section-subtitle">
+    Klar strukturiert, ohne Ablenkung, ohne Cloud-Abhängigkeit.
+  </p>
+  <div class="features-grid">
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M28 6H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h24a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-2 18H6V8h20zm-2-12H8v2h16zm0 4H8v2h16zm0 4H8v2h16z"/></svg>
+      </div>
+      <h3>Mehrere Konten</h3>
+      <p>Beliebig viele IMAP/SMTP- und Microsoft 365-Konten parallel — alles in einer Oberfläche.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2zm0 26a12 12 0 1 1 12-12 12 12 0 0 1-12 12zM10 13l2 2 4-4 4 4 2-2-6-6z"/></svg>
+      </div>
+      <h3>Microsoft 365 via Graph</h3>
+      <p>OAuth2-Login direkt mit Microsoft Graph API. Kein App-Passwort, keine Drittanbieter-Tools.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M27 4H5a3 3 0 0 0-3 3v18a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3zM5 6h22a1 1 0 0 1 1 1v3H4V7a1 1 0 0 1 1-1zm22 20H5a1 1 0 0 1-1-1V12h24v13a1 1 0 0 1-1 1z"/></svg>
+      </div>
+      <h3>Split-View &amp; Inline-Antwort</h3>
+      <p>Mailliste und Vorschau nebeneinander, alle Spalten verstellbar. Antworten ohne Seitenwechsel.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M27 14h-2V8a4 4 0 0 0-4-4h-1V2h-2v2H14V2h-2v2h-1a4 4 0 0 0-4 4v6H5a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3v-9a3 3 0 0 0-3-3zM9 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v6H9zm19 18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h22a1 1 0 0 1 1 1z"/></svg>
+      </div>
+      <h3>Lokaler Spam-Filter</h3>
+      <p>Heuristische Erkennung von Werbung, Spam, Phishing &amp; Schadanhängen — komplett offline.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M22 6h-4V4H8a2 2 0 0 0-2 2v20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V10zm-4 0V4l4 4zm-2 14h-4v-2h4zm0-4h-4v-2h4zm-4-4v-2h4v2z"/></svg>
+      </div>
+      <h3>HTML-Vorlagen</h3>
+      <p>Newsletter, Angebot, formeller Brief — fertig formatiert, oder eigenes HTML einfügen.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M21 12h-2V8a3 3 0 0 0-6 0v4h-2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2zm-7-4a1 1 0 0 1 2 0v4h-2zm7 14H11v-8h10z"/></svg>
+      </div>
+      <h3>Carbon Design System</h3>
+      <p>Einheitliche, monochrome Icons (IBM Carbon) und IBM Plex Sans für maximale Lesbarkeit.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M28 8H6.83l3.58-3.59L9 3 3 9l6 6 1.41-1.41L6.83 10H28v18H6v-8H4v8a2 2 0 0 0 2 2h22a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2z"/></svg>
+      </div>
+      <h3>Übersetzung integriert</h3>
+      <p>Mails mit einem Klick in deine Sprache übersetzen. Über frei konfigurierbaren Endpoint.</p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="currentColor"><path d="M26 4H6a2 2 0 0 0-2 2v20l4.7-4.7L13 26l3.3-4.7L21 26l1.3-1.3-1.4-1.4L18 19l-3.3 4.7L11 19l-3.3 4.7L4 26V6h22v18l2 2V6a2 2 0 0 0-2-2zM11 14a3 3 0 1 0-3-3 3 3 0 0 0 3 3z"/></svg>
+      </div>
+      <h3>11 Themes</h3>
+      <p>Dark, Light, Minimal, Glas, Retro, Foundations, Lollipop, Nerd, Indie und mehr.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ───── Privacy ───── -->
+<section class="privacy-section">
+  <div class="privacy-card">
+    <h2 class="section-title" style="text-align:left;font-size:24px;margin-bottom:8px;">Datenschutz ohne Kompromisse</h2>
+    <p style="color:var(--text-2);font-size:15px;">
+      CoreMail spricht ausschliesslich mit deinen eigenen E-Mail-Servern. Keine Telemetrie, keine Cloud-KI, kein Tracking.
+    </p>
+    <ul class="privacy-list">
+      <li><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>Alle Daten lokal auf deinem Computer</li>
+      <li><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>Kontodaten AES-verschlüsselt gespeichert</li>
+      <li><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>Keine Telemetrie, kein Analytics</li>
+      <li><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>Quellcode vollständig öffentlich (MIT)</li>
+      <li><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>Keine externen KI- oder Cloud-Dienste</li>
+      <li><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>Funktioniert offline mit lokalem Cache</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ───── System Requirements ───── -->
+<section class="sysreq-section">
+  <h2 class="section-title">Systemanforderungen</h2>
+  <p class="section-subtitle">Läuft auch auf sehr ressourcenarmen Geräten.</p>
+  <dl class="sysreq-grid">
+    <div class="sysreq-item"><dt>Betriebssystem</dt><dd>Linux x64 / arm64</dd></div>
+    <div class="sysreq-item"><dt>Speicher</dt><dd>~200 MB</dd></div>
+    <div class="sysreq-item"><dt>Arbeitsspeicher</dt><dd>min. 512 MB</dd></div>
+    <div class="sysreq-item"><dt>CPU</dt><dd>Beliebig — auch Pi 4/5</dd></div>
+  </dl>
+</section>
+
+<!-- ───── Footer ───── -->
+<footer>
+  <div class="links">
+    <a href="https://github.com/Zenovs/coremail" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/Zenovs/coremail/releases" target="_blank" rel="noopener">Releases</a>
+    <a href="https://github.com/Zenovs/coremail/issues" target="_blank" rel="noopener">Issues</a>
+    <a href="https://github.com/Zenovs/coremail/blob/initial-code/LICENSE" target="_blank" rel="noopener">MIT License</a>
+  </div>
+  <div>© 2026 Dario Zenhäusern · CoreMail Desktop · Open Source</div>
+</footer>
+
+<div class="toast" id="toast">
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M3 8l3 3 7-7-1-1-6 6-2-2z"/></svg>
+  In Zwischenablage kopiert
+</div>
+
+<script>
+(() => {
+  const REPO = 'Zenovs/coremail';
+  const FALLBACK_VERSION = '6.1.0';
+
+  const cmdEl = document.getElementById('install-cmd');
+  const copyBtn = document.getElementById('copy-btn');
+  const toast = document.getElementById('toast');
+  const archBtns = document.querySelectorAll('.arch-btn');
+  const autoDetectedEl = document.getElementById('auto-detected');
+  const dlX64 = document.getElementById('dl-x64');
+  const dlArm64 = document.getElementById('dl-arm64');
+  const dlX64Size = document.getElementById('dl-x64-size');
+  const dlArm64Size = document.getElementById('dl-arm64-size');
+  const heroVersion = document.getElementById('hero-version');
+  const navVersion = document.getElementById('nav-version');
+
+  // 1) Architecture detection from UA
+  const ua = (navigator.userAgent || '').toLowerCase();
+  const isArm = /aarch64|arm64|armv8/.test(ua);
+  const detectedArch = isArm ? 'arm64' : 'x64';
+  let currentArch = detectedArch;
+
+  // Highlight detected arch
+  archBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.arch === detectedArch);
+  });
+  autoDetectedEl.textContent = `Erkannt: ${detectedArch === 'arm64' ? 'arm64 (ARM-Prozessor)' : 'x64 (Intel/AMD)'}. Falls falsch — oben umstellen.`;
+  if (detectedArch === 'arm64') {
+    dlArm64.classList.add('recommended');
+  } else {
+    dlX64.classList.add('recommended');
+  }
+
+  function buildCmd(arch) {
+    return `curl -sSL https://raw.githubusercontent.com/${REPO}/initial-code/install.sh | bash -s -- --${arch}`;
+  }
+
+  function setArch(arch) {
+    currentArch = arch;
+    cmdEl.textContent = buildCmd(arch);
+    archBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.arch === arch));
+  }
+  setArch(detectedArch);
+
+  archBtns.forEach(btn => btn.addEventListener('click', () => setArch(btn.dataset.arch)));
+
+  // 2) Copy command
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(cmdEl.textContent);
+      copyBtn.textContent = 'Kopiert';
+      copyBtn.classList.add('copied');
+      toast.classList.add('show');
+      setTimeout(() => {
+        copyBtn.textContent = 'Kopieren';
+        copyBtn.classList.remove('copied');
+        toast.classList.remove('show');
+      }, 1800);
+    } catch (e) {
+      // Fallback: select text
+      const range = document.createRange();
+      range.selectNode(cmdEl);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+    }
+  });
+
+  // 3) Fetch latest release info from GitHub
+  fetch(`https://api.github.com/repos/${REPO}/releases/latest`)
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(data => {
+      const version = (data.tag_name || `v${FALLBACK_VERSION}`).replace(/^v/, '');
+      heroVersion.textContent = `v${version}`;
+      navVersion.textContent = `v${version}`;
+
+      const x64Asset = data.assets.find(a => /x86[_-]?64|x64/i.test(a.name));
+      const arm64Asset = data.assets.find(a => /arm64|aarch64/i.test(a.name));
+
+      if (x64Asset) {
+        dlX64.href = x64Asset.browser_download_url;
+        dlX64Size.textContent = `${(x64Asset.size / 1024 / 1024).toFixed(1)} MB`;
+      }
+      if (arm64Asset) {
+        dlArm64.href = arm64Asset.browser_download_url;
+        dlArm64Size.textContent = `${(arm64Asset.size / 1024 / 1024).toFixed(1)} MB`;
+      }
+    })
+    .catch(() => {
+      heroVersion.textContent = `v${FALLBACK_VERSION}`;
+      navVersion.textContent = `v${FALLBACK_VERSION}`;
+    });
+})();
+</script>
+
+</body>
+</html>
