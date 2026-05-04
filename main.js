@@ -119,7 +119,10 @@ try {
   // Lese-Test: prüft ob der Key korrekt ist
   store.get('accounts', []);
 } catch (_) {
-  // Config wurde mit altem Key verschlüsselt → migrieren
+  // Initiale Entschlüsselung gescheitert. Mögliche Ursachen:
+  //   1) Legacy-Key (alt < v4.5.6) → unten migrieren
+  //   2) safeStorage-Random-Key (v6.2.0–v6.3.0) → Recovery in app.whenReady() (recoverFromSafeStorageStore)
+  // Wir LÖSCHEN die Config-Datei NIE. Lieber leerer Fallback-Store als Datenverlust.
   try {
     const legacyStore = new Store({ encryptionKey: LEGACY_ENCRYPTION_KEY, name: 'coremail-config' });
     const legacyData = legacyStore.store; // Gesamten Inhalt lesen
@@ -127,19 +130,12 @@ try {
     store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
     store.store = legacyData;
     console.log('[Store] Migration von Legacy-Key auf benutzerspezifischen Key erfolgreich.');
-  } catch (migErr) {
-    // Migration fehlgeschlagen — Konfigurationsdatei löschen und neu erstellen
-    console.error('[Store] Migrationsfehler, Konfiguration wird zurückgesetzt:', migErr.message);
-    try {
-      const configPath = require('path').join(require('os').homedir(), '.config', 'coremail-desktop', 'coremail-config.json');
-      if (require('fs').existsSync(configPath)) {
-        require('fs').unlinkSync(configPath);
-        console.log('[Store] Konfigurationsdatei gelöscht, neuer Store wird erstellt.');
-      }
-    } catch (delErr) {
-      console.error('[Store] Fehler beim Löschen der Konfigurationsdatei:', delErr.message);
-    }
-    store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
+  } catch (_) {
+    // Weder derived noch legacy → wahrscheinlich safeStorage-verschlüsselt
+    // Recovery erfolgt in app.whenReady(). Hier nur ein Fallback-Store mit anderem Namen,
+    // damit der globale `store` zumindest valide Methoden hat (set/get) und nichts überschreibt.
+    console.warn('[Store] Initial-Open fehlgeschlagen — Recovery wird in app.whenReady() versucht. Config wird NICHT gelöscht.');
+    store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config-pending' });
   }
 }
 
@@ -435,71 +431,86 @@ function createWindow() {
 app.setName('coremail-desktop');
 app.setAppUserModelId('com.coremail.desktop');
 
-// Security v6.2.0: SafeStorage-Migration — verschlüsselt den Store-Key mit dem
-// OS-Keyring (libsecret/KWallet auf Linux, Keychain auf macOS, DPAPI auf Windows)
-// statt aus os.homedir() abzuleiten. Migration ist atomar mit Verifikation;
-// bei Fehlschlag bleibt der Store mit dem abgeleiteten Key bestehen.
-async function migrateToSafeStorage() {
-  let canUseSafeStorage = false;
-  try { canUseSafeStorage = safeStorage.isEncryptionAvailable(); } catch (_) {}
-  if (!canUseSafeStorage) {
-    console.log('[SafeStorage] Nicht verfügbar (kein Keyring) — derived-key wird weiter verwendet.');
-    return;
-  }
-
+// v6.3.1 — Rollback der safeStorage-Migration aus v6.2.0.
+// Grund: wenn safeStorage später nicht mehr entschlüsseln kann (Keyring-Reset,
+// neue Linux-Session, Wallet-Neuinstallation), war die Config nicht mehr lesbar
+// und Konten gingen verloren.
+//
+// Diese Recovery-Funktion:
+//   1) Falls coremail-keyring.enc existiert → safeStorage entschlüsseln, Daten lesen,
+//      mit derived-key neu speichern, Keyring-Datei wegräumen.
+//   2) Sollte safeStorage scheitern, aber die Config-Datei ist mit derived-key
+//      lesbar (z.B. weil v6.2.0 nie wirklich migriert hat) → nichts tun.
+//   3) Sind beide Pfade tot, lassen wir die Datei in Ruhe (kein destruktives Reset).
+async function recoverFromSafeStorageStore() {
   const userDataPath = app.getPath('userData');
   const keyFilePath = path.join(userDataPath, 'coremail-keyring.enc');
 
-  // Pfad 1: Keyring-Datei existiert → entschlüsseln und Store damit neu öffnen
-  if (fs.existsSync(keyFilePath)) {
-    try {
-      const encryptedKey = fs.readFileSync(keyFilePath);
-      const realKey = safeStorage.decryptString(encryptedKey);
-      const protectedStore = new Store({ encryptionKey: realKey, name: 'coremail-config' });
-      protectedStore.get('accounts', []); // Read-Test
-      store = protectedStore;
-      console.log('[SafeStorage] Store mit OS-Keyring entschlüsselt.');
-      return;
-    } catch (e) {
-      console.warn('[SafeStorage] Keyring-Datei beschädigt, fällt auf derived-key zurück:', e.message);
-      return;
-    }
+  // Wenn keine Keyring-Datei vorhanden ist → nichts zu tun, derived-key passt
+  if (!fs.existsSync(keyFilePath)) {
+    return;
   }
 
-  // Pfad 2: Erstmalige Migration vom derived-key zum safeStorage-Key
+  console.log('[Store-Recovery] Keyring-Datei gefunden — versuche Recovery der safeStorage-Daten…');
+
+  let canUseSafeStorage = false;
+  try { canUseSafeStorage = safeStorage.isEncryptionAvailable(); } catch (_) {}
+
+  if (!canUseSafeStorage) {
+    console.warn('[Store-Recovery] safeStorage nicht verfügbar — Daten können nicht entschlüsselt werden.');
+    console.warn('[Store-Recovery] Keyring-Datei bleibt erhalten für späteren Recovery-Versuch.');
+    return;
+  }
+
+  let recoveredData = null;
   try {
-    const oldData = store.store; // Alle Daten lesen (entschlüsselt mit derived-key)
-    const newKey = crypto.randomBytes(32).toString('hex');
-    const encryptedKey = safeStorage.encryptString(newKey);
+    const encryptedKey = fs.readFileSync(keyFilePath);
+    const safeKey = safeStorage.decryptString(encryptedKey);
+    const safeStore = new Store({ encryptionKey: safeKey, name: 'coremail-config' });
+    recoveredData = safeStore.store;
+    if (!recoveredData || (typeof recoveredData === 'object' && Object.keys(recoveredData).length === 0)) {
+      throw new Error('Wiederhergestellte Daten sind leer');
+    }
+  } catch (e) {
+    console.warn('[Store-Recovery] safeStorage-Entschlüsselung fehlgeschlagen:', e.message);
+    return; // Keyring-Datei bleibt — vielleicht klappt es nach OS-Reboot
+  }
 
-    // 1) Keyring-Datei schreiben (atomar via fs.writeFileSync)
-    fs.writeFileSync(keyFilePath, encryptedKey, { mode: 0o600 });
-
-    // 2) Alte Config-Datei löschen, damit electron-store sie mit neuem Key neu schreibt
+  // Daten sind gerettet — jetzt mit derived-key neu speichern
+  try {
+    // Atomarer Tausch: alte Datei behalten bis neue verifiziert ist
     const configPath = path.join(userDataPath, 'coremail-config.json');
-    if (fs.existsSync(configPath)) fs.unlinkSync(configPath);
-
-    // 3) Store mit neuem Key öffnen, alte Daten zurückschreiben
-    const newStore = new Store({ encryptionKey: newKey, name: 'coremail-config' });
-    newStore.store = oldData;
-
-    // 4) Verifikation: konnten wir alle Konten zurücklesen?
-    const verifyAccounts = newStore.get('accounts', null);
-    if (!Array.isArray(verifyAccounts) && oldData.accounts) {
-      throw new Error('Verifikation fehlgeschlagen — accounts nicht lesbar');
+    const backupPath = configPath + '.safestorage-backup';
+    if (fs.existsSync(configPath)) {
+      fs.copyFileSync(configPath, backupPath);
     }
 
-    store = newStore;
-    console.log('[SafeStorage] Migration zum OS-Keyring erfolgreich.');
+    const derivedStore = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
+    derivedStore.store = recoveredData;
+
+    // Verifikation
+    const verifyAccounts = derivedStore.get('accounts', null);
+    const expectedCount = (recoveredData.accounts || []).length;
+    if (!Array.isArray(verifyAccounts) || verifyAccounts.length !== expectedCount) {
+      throw new Error(`Verifikation fehlgeschlagen — accounts: ${verifyAccounts?.length} statt ${expectedCount}`);
+    }
+
+    store = derivedStore;
+    // Keyring-Datei wegräumen (Rollback abgeschlossen) und Backup behalten als Sicherung
+    try { fs.unlinkSync(keyFilePath); } catch (_) {}
+    console.log(`[Store-Recovery] ${expectedCount} Konten erfolgreich zum derived-key zurückmigriert.`);
   } catch (e) {
-    console.error('[SafeStorage] Migration fehlgeschlagen, derived-key bleibt aktiv:', e.message);
-    // Halb-geschriebene Keyring-Datei aufräumen, damit nächster Boot sauber retried
-    try { if (fs.existsSync(keyFilePath)) fs.unlinkSync(keyFilePath); } catch (_) {}
+    console.error('[Store-Recovery] Rückmigration fehlgeschlagen:', e.message);
   }
 }
 
 app.whenReady().then(async () => {
-  await migrateToSafeStorage();
+  await recoverFromSafeStorageStore();
+  // Aufräumen: leerer Fallback-Store aus Modul-Load (falls vorhanden)
+  try {
+    const pendingPath = path.join(app.getPath('userData'), 'coremail-config-pending.json');
+    if (fs.existsSync(pendingPath)) fs.unlinkSync(pendingPath);
+  } catch (_) {}
   initSearchIndex();
   createWindow();
   // Sync system launcher icons in background (non-blocking)
