@@ -572,7 +572,7 @@ function syncSystemIcons() {
           'Name=CoreMail Desktop',
           'Comment=E-Mail Client für Linux',
           // --no-sandbox is required on GNOME/Ubuntu without user namespaces
-          `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ${appImagePath} --no-sandbox`,
+          `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ${appImagePath}`,
           `Icon=${pixIconPath}`,
           'Terminal=false',
           'Categories=Network;Email;Office;',
@@ -1275,7 +1275,7 @@ ipcMain.handle('update:install', async (event, filePath) => {
         'Type=Application',
         'Name=CoreMail Desktop',
         'Comment=E-Mail Client für Linux',
-        `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ${installTarget} --no-sandbox`,
+        `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ${installTarget}`,
         `Icon=${pixIconPath}`,
         'Terminal=false',
         'Categories=Network;Email;Office;',

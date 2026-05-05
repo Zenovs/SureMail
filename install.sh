@@ -155,7 +155,7 @@ Version=1.0
 Type=Application
 Name=CoreMail Desktop
 Comment=E-Mail Client für Linux
-Exec=env APPIMAGE_EXTRACT_AND_RUN=1 $HOME/.local/bin/coremail-desktop --no-sandbox
+Exec=env APPIMAGE_EXTRACT_AND_RUN=1 $HOME/.local/bin/coremail-desktop
 Icon=$HOME/.local/share/pixmaps/coremail.png
 Terminal=false
 Categories=Network;Email;Office;
@@ -195,5 +195,5 @@ read -p "Möchtest du CoreMail jetzt starten? (j/n) " -n 1 -r < /dev/tty
 echo
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
     echo "🚀 Starte CoreMail Desktop..."
-    APPIMAGE_EXTRACT_AND_RUN=1 ~/.local/bin/coremail-desktop --no-sandbox &
+    APPIMAGE_EXTRACT_AND_RUN=1 ~/.local/bin/coremail-desktop &
 fi
