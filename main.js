@@ -74,27 +74,17 @@ process.on('unhandledRejection', (reason) => {
 // Must be called before app.whenReady()
 app.commandLine.appendSwitch('no-sandbox');
 
-// ============ GPU/OPENGL FIX (v1.5.2) ============
-// Completely disable GPU/OpenGL to prevent "GetVSyncParametersIfAvailable() failed" errors
-// This MUST be called before app.whenReady() - it's the most reliable fix
+// ============ GPU/OPENGL FIX (v6.3.3) ============
+// Disable hardware GPU to prevent "GetVSyncParametersIfAvailable() failed" errors on Linux.
+// WICHTIG: disable-gpu-compositing und VizDisplayCompositor NICHT deaktivieren —
+// der Compositor ist nötig damit der Fensterinhalt überhaupt gezeichnet wird.
+// Ohne ihn erscheint nur ein schwarzes Fenster.
 app.disableHardwareAcceleration();
-
-// Additional command line flags for complete GPU suppression
 app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-gpu-compositing');
 app.commandLine.appendSwitch('disable-gpu-vsync');
-app.commandLine.appendSwitch('disable-frame-rate-limit');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
-app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor');
-app.commandLine.appendSwitch('use-gl', 'swiftshader');
-app.commandLine.appendSwitch('enable-features', 'VaapiVideoDecoder');
 // Fix for /dev/shm ESRCH error on ARM64/Kali Linux:
-// Use /tmp for shared memory instead of /dev/shm
 app.commandLine.appendSwitch('disable-dev-shm-usage');
-
-// Suppress GPU-related logging
-app.commandLine.appendSwitch('disable-logging');
-app.commandLine.appendSwitch('log-level', '3'); // Only fatal errors
 
 // App Version - read from package.json
 const APP_VERSION = require('./package.json').version;
