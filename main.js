@@ -73,10 +73,19 @@ process.on('unhandledRejection', (reason) => {
 // Required for AppImage on Ubuntu/GNOME where FUSE sandbox is not available
 // Must be called before app.whenReady()
 app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('disable-setuid-sandbox');
 
-// Hinweis: disable-dev-shm-usage NICHT setzen auf x86_64/Ubuntu —
-// es zwingt Chromium /tmp zu nutzen, was mit ESRCH fehlschlägt und
-// Shared Memory für den Renderer verhindert → schwarzes Fenster.
+// ============ TMPDIR FIX (v6.3.6) ============
+// Problem: AppImage extrahiert sich nach /tmp/appimage_extracted_xxx/.
+// Ubuntu's Kernel verhindert, dass Prozesse die aus /tmp stammen, neue
+// Shared-Memory-Dateien in /tmp erstellen → ESRCH → Renderer crasht → schwarzes Fenster.
+// Lösung: TMPDIR auf ~/.cache/coremail-tmp umleiten, bevor der Renderer gespawnt wird.
+// Chromium erbt TMPDIR und erstellt Shared Memory dort statt in /tmp.
+{
+  const tmpDir = path.join(os.homedir(), '.cache', 'coremail-tmp');
+  try { fs.mkdirSync(tmpDir, { recursive: true }); } catch (_) {}
+  process.env.TMPDIR = tmpDir;
+}
 
 // App Version - read from package.json
 const APP_VERSION = require('./package.json').version;
@@ -331,16 +340,20 @@ function createWindow() {
     console.log('[CoreMail] Page loaded successfully');
   });
   
-  // Handle render process crashes (v2.4.1)
+  // Handle render process crashes
+  let crashCount = 0;
   mainWindow.webContents.on('render-process-gone', (event, details) => {
     console.error('[CoreMail] Render process gone:', details.reason);
-    // Attempt to reload
-    if (details.reason !== 'killed') {
+    crashCount++;
+    // Max 3 Neustarts, danach aufgeben (verhindert Endlosschleife bei TMPDIR-Fehler)
+    if (details.reason !== 'killed' && crashCount <= 3) {
       setTimeout(() => {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.reload();
         }
       }, 1000);
+    } else if (crashCount > 3) {
+      console.error('[CoreMail] Renderer crasht wiederholt — kein weiterer Neustart.');
     }
   });
   
@@ -359,9 +372,6 @@ function createWindow() {
     // Production: Load from build directory (v2.4.1 - improved path handling)
     const indexPath = path.join(__dirname, 'build', 'index.html');
     console.log('[CoreMail] Loading production build from:', indexPath);
-
-    // DEBUG v6.3.4: DevTools immer öffnen um schwarzes-Fenster-Problem zu diagnostizieren
-    mainWindow.webContents.openDevTools();
 
     // Check if file exists
     if (fs.existsSync(indexPath)) {
