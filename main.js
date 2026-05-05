@@ -559,7 +559,7 @@ function syncSystemIcons() {
           'Type=Application',
           'Name=CoreMail Desktop',
           'Comment=E-Mail Client für Linux',
-          `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR=${extractTmpDir} ${appImagePath}`,
+          `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR=${extractTmpDir} ${appImagePath} --no-sandbox`,
           `Icon=${pixIconPath}`,
           'Terminal=false',
           'Categories=Network;Email;Office;',
