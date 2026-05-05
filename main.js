@@ -74,15 +74,6 @@ process.on('unhandledRejection', (reason) => {
 // Must be called before app.whenReady()
 app.commandLine.appendSwitch('no-sandbox');
 
-// ============ GPU/OPENGL FIX (v6.3.3) ============
-// Disable hardware GPU to prevent "GetVSyncParametersIfAvailable() failed" errors on Linux.
-// WICHTIG: disable-gpu-compositing und VizDisplayCompositor NICHT deaktivieren —
-// der Compositor ist nötig damit der Fensterinhalt überhaupt gezeichnet wird.
-// Ohne ihn erscheint nur ein schwarzes Fenster.
-app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('disable-gpu');
-app.commandLine.appendSwitch('disable-gpu-vsync');
-app.commandLine.appendSwitch('disable-gpu-sandbox');
 // Fix for /dev/shm ESRCH error on ARM64/Kali Linux:
 app.commandLine.appendSwitch('disable-dev-shm-usage');
 
@@ -367,7 +358,10 @@ function createWindow() {
     // Production: Load from build directory (v2.4.1 - improved path handling)
     const indexPath = path.join(__dirname, 'build', 'index.html');
     console.log('[CoreMail] Loading production build from:', indexPath);
-    
+
+    // DEBUG v6.3.4: DevTools immer öffnen um schwarzes-Fenster-Problem zu diagnostizieren
+    mainWindow.webContents.openDevTools();
+
     // Check if file exists
     if (fs.existsSync(indexPath)) {
       mainWindow.loadFile(indexPath).catch(err => {
@@ -376,7 +370,7 @@ function createWindow() {
     } else {
       console.error('[CoreMail] index.html not found at:', indexPath);
       // Show error in window
-      mainWindow.loadURL(`data:text/html,<h1>Error: Build not found</h1><p>Please run 'npm run build' first.</p>`);
+      mainWindow.loadURL(`data:text/html,<h1>Error: Build not found</h1><p>Expected: ${indexPath}</p>`);
     }
   }
 
