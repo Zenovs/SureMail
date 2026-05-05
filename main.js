@@ -75,17 +75,6 @@ process.on('unhandledRejection', (reason) => {
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('disable-setuid-sandbox');
 
-// ============ TMPDIR FIX (v6.3.6) ============
-// Problem: AppImage extrahiert sich nach /tmp/appimage_extracted_xxx/.
-// Ubuntu's Kernel verhindert, dass Prozesse die aus /tmp stammen, neue
-// Shared-Memory-Dateien in /tmp erstellen → ESRCH → Renderer crasht → schwarzes Fenster.
-// Lösung: TMPDIR auf ~/.cache/coremail-tmp umleiten, bevor der Renderer gespawnt wird.
-// Chromium erbt TMPDIR und erstellt Shared Memory dort statt in /tmp.
-{
-  const tmpDir = path.join(os.homedir(), '.cache', 'coremail-tmp');
-  try { fs.mkdirSync(tmpDir, { recursive: true }); } catch (_) {}
-  process.env.TMPDIR = tmpDir;
-}
 
 // App Version - read from package.json
 const APP_VERSION = require('./package.json').version;
@@ -560,14 +549,17 @@ function syncSystemIcons() {
         if (!fs.existsSync(desktopDir)) fs.mkdirSync(desktopDir, { recursive: true });
         const desktopFile = path.join(desktopDir, 'coremail.desktop');
         const appImagePath = path.join(home, '.local/bin/coremail-desktop');
+        // v6.3.6: TMPDIR auf ~/.cache setzen damit AppImage-Extraktion nicht in /tmp landet.
+        // t2linux/Ubuntu-Kernel blockiert ESRCH für Shared Memory aus /tmp-Prozessen.
+        const extractTmpDir = path.join(home, '.cache', 'coremail-extract');
+        try { fs.mkdirSync(extractTmpDir, { recursive: true }); } catch (_) {}
         const desktopContent = [
           '[Desktop Entry]',
           'Version=1.0',
           'Type=Application',
           'Name=CoreMail Desktop',
           'Comment=E-Mail Client für Linux',
-          // --no-sandbox is required on GNOME/Ubuntu without user namespaces
-          `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 ${appImagePath}`,
+          `Exec=env APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR=${extractTmpDir} ${appImagePath}`,
           `Icon=${pixIconPath}`,
           'Terminal=false',
           'Categories=Network;Email;Office;',

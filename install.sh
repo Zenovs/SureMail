@@ -147,6 +147,9 @@ EOF
 
 echo -e "${GREEN}✅ Icon-Theme-Datei erstellt${NC}"
 
+# Extraktions-Cache-Verzeichnis erstellen (verhindert /tmp-ESRCH auf t2linux)
+mkdir -p "$HOME/.cache/coremail-extract"
+
 # .desktop-Datei erstellen
 echo "📝 Erstelle Desktop-Eintrag..."
 cat > ~/.local/share/applications/coremail.desktop << EOF
@@ -155,7 +158,7 @@ Version=1.0
 Type=Application
 Name=CoreMail Desktop
 Comment=E-Mail Client für Linux
-Exec=env APPIMAGE_EXTRACT_AND_RUN=1 $HOME/.local/bin/coremail-desktop
+Exec=env APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR=$HOME/.cache/coremail-extract $HOME/.local/bin/coremail-desktop
 Icon=$HOME/.local/share/pixmaps/coremail.png
 Terminal=false
 Categories=Network;Email;Office;
@@ -195,5 +198,5 @@ read -p "Möchtest du CoreMail jetzt starten? (j/n) " -n 1 -r < /dev/tty
 echo
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
     echo "🚀 Starte CoreMail Desktop..."
-    APPIMAGE_EXTRACT_AND_RUN=1 ~/.local/bin/coremail-desktop &
+    APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR="$HOME/.cache/coremail-extract" ~/.local/bin/coremail-desktop &
 fi
