@@ -74,8 +74,9 @@ process.on('unhandledRejection', (reason) => {
 // Must be called before app.whenReady()
 app.commandLine.appendSwitch('no-sandbox');
 
-// Fix for /dev/shm ESRCH error on ARM64/Kali Linux:
-app.commandLine.appendSwitch('disable-dev-shm-usage');
+// Hinweis: disable-dev-shm-usage NICHT setzen auf x86_64/Ubuntu —
+// es zwingt Chromium /tmp zu nutzen, was mit ESRCH fehlschlägt und
+// Shared Memory für den Renderer verhindert → schwarzes Fenster.
 
 // App Version - read from package.json
 const APP_VERSION = require('./package.json').version;
