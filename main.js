@@ -446,8 +446,7 @@ async function recoverFromSafeStorageStore() {
   try { canUseSafeStorage = safeStorage.isEncryptionAvailable(); } catch (_) {}
 
   if (!canUseSafeStorage) {
-    console.warn('[Store-Recovery] safeStorage nicht verfügbar — Daten können nicht entschlüsselt werden.');
-    console.warn('[Store-Recovery] Keyring-Datei bleibt erhalten für späteren Recovery-Versuch.');
+    console.warn('[Store-Recovery] safeStorage nicht verfügbar — Keyring-Datei bleibt für späteren Recovery-Versuch.');
     return;
   }
 
@@ -462,7 +461,7 @@ async function recoverFromSafeStorageStore() {
     }
   } catch (e) {
     console.warn('[Store-Recovery] safeStorage-Entschlüsselung fehlgeschlagen:', e.message);
-    return; // Keyring-Datei bleibt — vielleicht klappt es nach OS-Reboot
+    return;
   }
 
   // Daten sind gerettet — jetzt mit derived-key neu speichern
@@ -470,20 +469,15 @@ async function recoverFromSafeStorageStore() {
     const configPath = path.join(userDataPath, 'coremail-config.json');
     const backupPath = configPath + '.safestorage-backup';
 
-    // Backup der safeStorage-verschlüsselten Datei anlegen
     if (fs.existsSync(configPath)) {
       fs.copyFileSync(configPath, backupPath);
     }
 
-    // WICHTIG: Die alte Datei muss zuerst gelöscht werden, damit electron-store
-    // beim Öffnen nicht versucht sie mit dem falschen (derived) Key zu entschlüsseln
-    // was einen Fehler wirft und die Migration abbricht.
     try { fs.unlinkSync(configPath); } catch (_) {}
 
     const derivedStore = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
     derivedStore.store = recoveredData;
 
-    // Verifikation — weniger strikt: prüft nur ob accounts ein Array ist
     const verifyAccounts = derivedStore.get('accounts', null);
     if (!Array.isArray(verifyAccounts)) {
       throw new Error(`Verifikation fehlgeschlagen — accounts ist kein Array`);
@@ -494,7 +488,6 @@ async function recoverFromSafeStorageStore() {
     console.log(`[Store-Recovery] ${verifyAccounts.length} Konten erfolgreich zum derived-key zurückmigriert.`);
   } catch (e) {
     console.error('[Store-Recovery] Rückmigration fehlgeschlagen:', e.message);
-    // Backup wiederherstellen falls vorhanden
     const configPath = path.join(userDataPath, 'coremail-config.json');
     const backupPath = configPath + '.safestorage-backup';
     if (!fs.existsSync(configPath) && fs.existsSync(backupPath)) {

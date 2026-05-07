@@ -198,5 +198,5 @@ read -p "Möchtest du CoreMail jetzt starten? (j/n) " -n 1 -r < /dev/tty
 echo
 if [[ $REPLY =~ ^[JjYy]$ ]]; then
     echo "🚀 Starte CoreMail Desktop..."
-    APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR="$HOME/.cache/coremail-extract" ~/.local/bin/coremail-desktop --no-sandbox &
+    APPIMAGE_EXTRACT_AND_RUN=1 TMPDIR="$HOME/.cache/coremail-extract" ~/.local/bin/coremail-desktop &
 fi
