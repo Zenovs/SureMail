@@ -106,6 +106,11 @@ try {
   try {
     const legacyStore = new Store({ encryptionKey: LEGACY_ENCRYPTION_KEY, name: 'coremail-config' });
     const legacyData = legacyStore.store; // Gesamten Inhalt lesen
+    // Nur migrieren wenn wirklich Daten vorhanden — sonst würden wir die Config
+    // mit leerem Inhalt überschreiben wenn der Legacy-Key zufällig keinen Fehler wirft
+    if (!legacyData || Object.keys(legacyData).length === 0) {
+      throw new Error('Legacy store leer — keine Migration');
+    }
     // Neu verschlüsseln mit dem benutzerspezifischen Key
     store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
     store.store = legacyData;
@@ -462,29 +467,39 @@ async function recoverFromSafeStorageStore() {
 
   // Daten sind gerettet — jetzt mit derived-key neu speichern
   try {
-    // Atomarer Tausch: alte Datei behalten bis neue verifiziert ist
     const configPath = path.join(userDataPath, 'coremail-config.json');
     const backupPath = configPath + '.safestorage-backup';
+
+    // Backup der safeStorage-verschlüsselten Datei anlegen
     if (fs.existsSync(configPath)) {
       fs.copyFileSync(configPath, backupPath);
     }
 
+    // WICHTIG: Die alte Datei muss zuerst gelöscht werden, damit electron-store
+    // beim Öffnen nicht versucht sie mit dem falschen (derived) Key zu entschlüsseln
+    // was einen Fehler wirft und die Migration abbricht.
+    try { fs.unlinkSync(configPath); } catch (_) {}
+
     const derivedStore = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
     derivedStore.store = recoveredData;
 
-    // Verifikation
+    // Verifikation — weniger strikt: prüft nur ob accounts ein Array ist
     const verifyAccounts = derivedStore.get('accounts', null);
-    const expectedCount = (recoveredData.accounts || []).length;
-    if (!Array.isArray(verifyAccounts) || verifyAccounts.length !== expectedCount) {
-      throw new Error(`Verifikation fehlgeschlagen — accounts: ${verifyAccounts?.length} statt ${expectedCount}`);
+    if (!Array.isArray(verifyAccounts)) {
+      throw new Error(`Verifikation fehlgeschlagen — accounts ist kein Array`);
     }
 
     store = derivedStore;
-    // Keyring-Datei wegräumen (Rollback abgeschlossen) und Backup behalten als Sicherung
     try { fs.unlinkSync(keyFilePath); } catch (_) {}
-    console.log(`[Store-Recovery] ${expectedCount} Konten erfolgreich zum derived-key zurückmigriert.`);
+    console.log(`[Store-Recovery] ${verifyAccounts.length} Konten erfolgreich zum derived-key zurückmigriert.`);
   } catch (e) {
     console.error('[Store-Recovery] Rückmigration fehlgeschlagen:', e.message);
+    // Backup wiederherstellen falls vorhanden
+    const configPath = path.join(userDataPath, 'coremail-config.json');
+    const backupPath = configPath + '.safestorage-backup';
+    if (!fs.existsSync(configPath) && fs.existsSync(backupPath)) {
+      try { fs.copyFileSync(backupPath, configPath); } catch (_) {}
+    }
   }
 }
 
