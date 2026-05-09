@@ -4,12 +4,13 @@ import {
   WarningAlt, Archive, Folder, DragVertical, Security,
   CheckboxChecked, Checkbox, CloseFilled, ChevronDown, ChevronRight,
   Bullhorn, Misuse, Debug, Tag, Close, Checkmark, CheckmarkFilled, Reply, ReplyAll, SendAlt,
-  Download, FolderOpen, Earth, InProgress, FolderAdd, Edit, Attachment, WarningFilled
+  Download, FolderOpen, Earth, InProgress, FolderAdd, Edit, Attachment, WarningFilled, Time
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmailHtmlFrame from '../components/EmailHtmlFrame';
+import SnoozeMenu from '../components/SnoozeMenu';
 import { getCurrentFont } from './FontSettings';
 import { analyzeEmails, getSpamFilterSettings, TAG_STYLES } from '../utils/SpamFilter';
 import SenderCategoryManager from '../services/SenderCategoryManager';
@@ -576,6 +577,14 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
   // v1.14.0: Spam filter analysis results (moved up to avoid TDZ in filteredEmails)
   const [spamResults, setSpamResults] = useState(new Map());
+
+  // v6.6.0: Snooze — Set von "accountId|folder|uid", die aktuell gesnoozt sind.
+  // Filtert betroffene Mails aus dem Inbox-View. Wird per IPC bei Mount,
+  // Account-/Folder-Wechsel und beim 'snooze:woke'-Event aktualisiert.
+  const [snoozedKeys, setSnoozedKeys] = useState(() => new Set());
+  const [snoozeMenuOpen, setSnoozeMenuOpen] = useState(false);
+  const [snoozeAnchorRect, setSnoozeAnchorRect] = useState(null);
+  const snoozeBtnRef = useRef(null);
   
   // Resizable folder column (v1.8.1)
   const [folderWidth, setFolderWidth] = useState(() => {
@@ -1062,6 +1071,27 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     fetchEmails(true);
   }, [currentFolder, fetchEmails]);
 
+  // v6.6.0: Aktive Snoozes laden + bei Wake-up neu laden
+  useEffect(() => {
+    let cancelled = false;
+    const refreshSnoozes = async () => {
+      if (!window.electronAPI?.snoozeActive) return;
+      try {
+        const r = await window.electronAPI.snoozeActive();
+        if (cancelled || !r?.success) return;
+        setSnoozedKeys(new Set(r.items.map(s => `${s.accountId}|${s.folder}|${s.uid}`)));
+      } catch (_) {}
+    };
+    refreshSnoozes();
+    if (window.electronAPI?.onSnoozeWoke) {
+      window.electronAPI.onSnoozeWoke(() => { refreshSnoozes(); fetchEmails(true); });
+    }
+    return () => {
+      cancelled = true;
+      window.electronAPI?.removeSnoozeListeners?.();
+    };
+  }, [activeAccountId, fetchEmails]);
+
   // v2.9.9: Receive background sync results from App.js global timer
   // The timer runs in App.js (always active), dispatches 'coremail:bgSync' events.
   // InboxSplitView merges incoming data into state + memory cache when visible.
@@ -1172,9 +1202,14 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
   // Visibility filter — moved before handleSelectEmail to avoid TDZ
   const filteredEmails = useMemo(() => {
-    if (!showUnreadOnly) return categoryFilteredEmails;
-    return categoryFilteredEmails.filter(email => !email.seen);
-  }, [categoryFilteredEmails, showUnreadOnly]);
+    let list = categoryFilteredEmails;
+    if (showUnreadOnly) list = list.filter(email => !email.seen);
+    // v6.6.0: gesnoozte Mails ausblenden (key = "accountId|folder|uid")
+    if (snoozedKeys.size > 0 && activeAccountId) {
+      list = list.filter(e => !snoozedKeys.has(`${activeAccountId}|${currentFolder}|${e.uid}`));
+    }
+    return list;
+  }, [categoryFilteredEmails, showUnreadOnly, snoozedKeys, activeAccountId, currentFolder]);
 
   const handleSelectEmail = useCallback((index) => {
     setSelectedIndex(index);
@@ -1186,6 +1221,32 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       }
     }
   }, [filteredEmails, loadEmailPreview, handleToggleRead]);
+
+  // v6.6.0: Snooze — Mail bis zum gewählten Zeitpunkt aus dem Posteingang ausblenden,
+  // dann Desktop-Notification + Wiedereinblenden via processSnoozes() im Backend.
+  const handleSnoozePick = useCallback(async (wakeAtMs) => {
+    setSnoozeMenuOpen(false);
+    if (!selectedEmail || !activeAccountId || !window.electronAPI?.snoozeAdd) return;
+    const result = await window.electronAPI.snoozeAdd({
+      accountId: activeAccountId,
+      folder: currentFolder,
+      uid: selectedEmail.uid,
+      messageId: selectedEmail.messageId || null,
+      subject: selectedEmail.subject || '',
+      from: selectedEmail.from || '',
+      wakeAt: wakeAtMs
+    });
+    if (!result?.success) {
+      setError('Snooze fehlgeschlagen: ' + (result?.error || 'unbekannter Fehler'));
+      return;
+    }
+    setSnoozedKeys(prev => {
+      const next = new Set(prev);
+      next.add(`${activeAccountId}|${currentFolder}|${selectedEmail.uid}`);
+      return next;
+    });
+    setSelectedEmail(null);
+  }, [selectedEmail, activeAccountId, currentFolder]);
 
   // Email Actions
   // v1.12.1: Fixed - now also removes from IndexedDB to prevent deleted emails from reappearing
@@ -1835,6 +1896,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
   return (
     <div className={`flex-1 flex flex-col overflow-hidden min-h-0 ${c.bg}`}>
+      {/* v6.6.0: Snooze-Menu (fixed position, anchored to button) */}
+      <SnoozeMenu
+        open={snoozeMenuOpen}
+        onClose={() => setSnoozeMenuOpen(false)}
+        onPick={handleSnoozePick}
+        anchorRect={snoozeAnchorRect}
+      />
       {/* IndexedDB quota warning */}
       {showQuotaWarning && (
         <div className="flex items-center gap-3 px-4 py-2 bg-yellow-500/20 border-b border-yellow-500/40 text-yellow-300 text-sm flex-shrink-0">
@@ -2388,6 +2456,19 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                   >
                     <SendAlt size={16} />
                     <span className="hidden xl:inline">Weiterleiten</span>
+                  </button>
+                  <button
+                    ref={snoozeBtnRef}
+                    onClick={() => {
+                      const rect = snoozeBtnRef.current?.getBoundingClientRect() || null;
+                      setSnoozeAnchorRect(rect);
+                      setSnoozeMenuOpen(v => !v);
+                    }}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 text-sm ${snoozeMenuOpen ? `${c.accentBg} text-white` : `${c.hover} ${c.textSecondary}`}`}
+                    title="Erinnern"
+                  >
+                    <Time size={16} />
+                    <span className="hidden xl:inline">Erinnern</span>
                   </button>
                   <div className={`w-px h-5 ${c.border} border-l mx-1`} />
                   <button

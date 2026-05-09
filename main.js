@@ -511,7 +511,12 @@ app.whenReady().then(async () => {
   addLogEntry('app_start', `CoreMail v${APP_VERSION} gestartet`, `Plattform: ${process.platform}`);
   // Zeitversetzt senden: alle 30s prüfen
   const scheduledEmailInterval = setInterval(() => processScheduledEmails(), 30000);
-  app.on('before-quit', () => clearInterval(scheduledEmailInterval));
+  // v6.6.0: Snooze-Erinnerungen — gleicher Tick wie scheduledEmails
+  const snoozeInterval = setInterval(() => processSnoozes(), 30000);
+  app.on('before-quit', () => {
+    clearInterval(scheduledEmailInterval);
+    clearInterval(snoozeInterval);
+  });
 });
 
 // v3.0.3: Refresh Linux system launcher icons from GitHub so the correct icon
@@ -3511,6 +3516,101 @@ ipcMain.handle('scheduled:list', async () => {
 ipcMain.handle('scheduled:cancel', async (event, id) => {
   const scheduled = store.get(SCHEDULED_KEY, []).filter(e => e.id !== id);
   store.set(SCHEDULED_KEY, scheduled);
+  return { success: true };
+});
+
+// ============================================================
+// SNOOZE / ERINNERUNGEN  (v6.6.0)
+// ============================================================
+// Speichert pro snooze {id, accountId, folder, uid, messageId, subject, from,
+// snoozedAt, wakeAt}. Beim Wake-up:
+//   1) Desktop-Notification ("Erinnerung: <subject>")
+//   2) IPC 'snooze:woke' an den Renderer → Inbox-Refresh
+//   3) Eintrag aus der Liste entfernen → Mail erscheint wieder im Posteingang
+const SNOOZE_KEY = 'snoozes';
+
+async function processSnoozes() {
+  const snoozes = store.get(SNOOZE_KEY, []);
+  if (snoozes.length === 0) return;
+  const now = Date.now();
+  const due = snoozes.filter(s => s.wakeAt <= now);
+  if (due.length === 0) return;
+
+  for (const snz of due) {
+    try {
+      const subj = snz.subject || '(Kein Betreff)';
+      const from = snz.from || '';
+      showNotification(
+        'Erinnerung',
+        from ? `${subj}\nVon: ${from}` : subj,
+        () => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainWindow.focus();
+            mainWindow.webContents.send('snooze:open', {
+              accountId: snz.accountId, folder: snz.folder, uid: snz.uid
+            });
+          }
+        }
+      );
+      addLogEntry('snooze_woke', `Erinnerung: ${subj}`, `Konto: ${snz.accountId}`);
+    } catch (e) {
+      console.error('[Snooze] wake error:', e.message);
+    }
+  }
+  store.set(SNOOZE_KEY, snoozes.filter(s => s.wakeAt > now));
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('snooze:woke', { count: due.length });
+  }
+}
+
+ipcMain.handle('snooze:add', async (event, data) => {
+  if (!data?.accountId || !data?.uid || !data?.wakeAt) {
+    return { success: false, error: 'accountId, uid und wakeAt sind erforderlich' };
+  }
+  if (data.wakeAt <= Date.now()) {
+    return { success: false, error: 'wakeAt muss in der Zukunft liegen' };
+  }
+  const snoozes = store.get(SNOOZE_KEY, []);
+  // Existiert bereits eine Snooze für (accountId, folder, uid)? Dann ersetzen.
+  const without = snoozes.filter(s =>
+    !(s.accountId === data.accountId && s.folder === data.folder && s.uid === data.uid)
+  );
+  without.push({
+    id: `snz_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    accountId: data.accountId,
+    folder: data.folder || 'INBOX',
+    uid: data.uid,
+    messageId: data.messageId || null,
+    subject: data.subject || '',
+    from: data.from || '',
+    snoozedAt: Date.now(),
+    wakeAt: data.wakeAt
+  });
+  store.set(SNOOZE_KEY, without);
+  return { success: true };
+});
+
+ipcMain.handle('snooze:list', async () => {
+  const snoozes = store.get(SNOOZE_KEY, []);
+  // Sortiert nach Wake-Up-Zeit aufsteigend
+  return { success: true, items: snoozes.slice().sort((a, b) => a.wakeAt - b.wakeAt) };
+});
+
+// Liefert nur die Identifier — der Renderer filtert damit den Inbox-View.
+ipcMain.handle('snooze:active', async () => {
+  const snoozes = store.get(SNOOZE_KEY, []);
+  return {
+    success: true,
+    items: snoozes.map(s => ({
+      accountId: s.accountId, folder: s.folder, uid: s.uid, wakeAt: s.wakeAt
+    }))
+  };
+});
+
+ipcMain.handle('snooze:cancel', async (event, id) => {
+  const snoozes = store.get(SNOOZE_KEY, []).filter(s => s.id !== id);
+  store.set(SNOOZE_KEY, snoozes);
   return { success: true };
 });
 

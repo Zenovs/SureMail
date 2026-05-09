@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, MailAll, Edit, Calendar, Group, Settings, Book, ChevronRight } from '@carbon/icons-react';
+import { Search, MailAll, Edit, Calendar, Group, Settings, Book, ChevronRight, Time } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -7,9 +7,10 @@ import { useSearch } from '../context/SearchContext';
 import { getCategoryIcon } from '../pages/CategorySettings';
 
 const NAV_ITEMS = [
-  { id: 'inbox',    label: 'Posteingang', Icon: MailAll    },
-  { id: 'compose',  label: 'Verfassen',   Icon: Edit     },
-  { id: 'calendar', label: 'Kalender',    Icon: Calendar },
+  { id: 'inbox',    label: 'Posteingang',  Icon: MailAll  },
+  { id: 'compose',  label: 'Verfassen',    Icon: Edit     },
+  { id: 'snoozed',  label: 'Erinnerungen', Icon: Time     },
+  { id: 'calendar', label: 'Kalender',     Icon: Calendar },
 ];
 
 function SidebarV2({ currentView, onNavigate }) {

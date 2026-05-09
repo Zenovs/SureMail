@@ -14,6 +14,7 @@ import Logbuch from './pages/Logbuch';
 import AccountManager from './pages/AccountManager';
 import EmailView from './pages/EmailView';
 import CalendarView from './pages/CalendarView';
+import SnoozedView from './pages/SnoozedView';
 import { applySavedFont } from './pages/FontSettings';
 
 class ErrorBoundary extends Component {
@@ -249,6 +250,14 @@ function AppContent() {
         return <Logbuch />;
       case 'calendar':
         return <CalendarView />;
+      case 'snoozed':
+        return <SnoozedView onOpenEmail={({ accountId, folder, uid }) => {
+          if (accountId) setActiveAccountId(accountId);
+          // Mail-Stub mit accountId/folder/uid — EmailView lädt den Rest
+          setFullViewEmail({ uid, accountId, folder: folder || 'INBOX' });
+          setCurrentFolder(folder || 'INBOX');
+          setCurrentView('emailView');
+        }} />;
       case 'emailView':
         return (
           <EmailView

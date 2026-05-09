@@ -129,6 +129,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   scheduledList: () => ipcRenderer.invoke('scheduled:list'),
   scheduledCancel: (id) => ipcRenderer.invoke('scheduled:cancel', id),
 
+  // Snooze / Erinnerungen (v6.6.0)
+  snoozeAdd: (data) => ipcRenderer.invoke('snooze:add', data),
+  snoozeList: () => ipcRenderer.invoke('snooze:list'),
+  snoozeActive: () => ipcRenderer.invoke('snooze:active'),
+  snoozeCancel: (id) => ipcRenderer.invoke('snooze:cancel', id),
+  onSnoozeWoke: (callback) => ipcRenderer.on('snooze:woke', (event, data) => callback(data)),
+  onSnoozeOpen: (callback) => ipcRenderer.on('snooze:open', (event, data) => callback(data)),
+  removeSnoozeListeners: () => {
+    ipcRenderer.removeAllListeners('snooze:woke');
+    ipcRenderer.removeAllListeners('snooze:open');
+  },
+
   // Kalender (v4.4.0)
   calendarGetEvents: (accountId, options) => ipcRenderer.invoke('calendar:getEvents', accountId, options),
   calendarCreateEvent: (accountId, eventData) => ipcRenderer.invoke('calendar:createEvent', accountId, eventData),
