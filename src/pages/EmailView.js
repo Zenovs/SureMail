@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   TrashCan, Email, Reply, ReplyAll, SendAlt, ArrowLeft, InProgress,
   WarningFilled, WarningAlt, Close, Checkmark, Attachment, Download, FolderOpen, View,
-  Image, DocumentPdf, DocumentBlank, Music, Video, Box, NotificationOff
+  Image, DocumentPdf, DocumentBlank, Music, Video, Box, NotificationOff, Bot
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
@@ -23,7 +23,47 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
   const [isRead, setIsRead] = useState(email?.seen ?? true);
   const [unsubscribing, setUnsubscribing] = useState(false);
   const [unsubscribeResult, setUnsubscribeResult] = useState(null); // { success, message } | null
+  // v6.6.0: AI Smart Compose
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTone, setAiTone] = useState('neutral');
+  const [aiLength, setAiLength] = useState('medium');
+  const [aiIntent, setAiIntent] = useState('custom');
+  const [aiHint, setAiHint] = useState('');
+  const [aiDraft, setAiDraft] = useState(null); // { draft, gaps, tone_used, length_used }
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
   const c = currentTheme.colors;
+
+  const handleGenerateDraft = async () => {
+    if (!window.electronAPI?.aiSmartCompose) {
+      setAiError('AI-API nicht verfügbar');
+      return;
+    }
+    setAiLoading(true);
+    setAiError(null);
+    setAiDraft(null);
+    const original = fullEmail || email;
+    const r = await window.electronAPI.aiSmartCompose({
+      originalEmail: {
+        from: original.from || '', subject: original.subject || '',
+        text: original.text || (original.html ? original.html.replace(/<[^>]+>/g, ' ') : '')
+      },
+      intent: aiIntent, tone: aiTone, length: aiLength, userHint: aiHint
+    });
+    setAiLoading(false);
+    if (r?.success && r.result?.draft) {
+      setAiDraft(r.result);
+    } else {
+      setAiError(r?.error || 'Konnte keinen Vorschlag generieren');
+    }
+  };
+
+  const handleApplyDraft = () => {
+    if (!aiDraft?.draft || !onReply) return;
+    onReply(fullEmail || email, { aiDraft: aiDraft.draft });
+    setAiOpen(false);
+    setAiDraft(null);
+  };
 
   const handleUnsubscribe = async () => {
     if (!fullEmail?.listUnsubscribe || unsubscribing) return;
@@ -368,9 +408,128 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               <SendAlt size={20} />
             </button>
 
+            {/* v6.6.0: AI Antwort vorschlagen */}
+            <button
+              onClick={() => setAiOpen(v => !v)}
+              className={`p-2 rounded-lg transition-colors ${aiOpen ? c.accentBg + ' text-white' : `${c.hover} ${c.textSecondary} hover:${c.accent}`}`}
+              title="Antwort vorschlagen (AI)"
+            >
+              <Bot size={20} />
+            </button>
+
           </div>
         </div>
       </header>
+
+      {/* v6.6.0: Smart-Compose Panel */}
+      {aiOpen && (
+        <div className={`mx-6 mt-4 px-4 py-3 rounded-lg ${c.bgSecondary} ${c.border} border`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className={`text-sm font-medium ${c.text} flex items-center gap-2`}>
+              <Bot size={16} className={c.accent} /> Antwort vorschlagen
+            </h3>
+            <button onClick={() => { setAiOpen(false); setAiDraft(null); setAiError(null); }} className={`p-1 ${c.hover} rounded ${c.textSecondary}`}>
+              <Close size={16} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div>
+              <label className={`block text-xs ${c.textSecondary} mb-1`}>Absicht</label>
+              <select
+                value={aiIntent}
+                onChange={(e) => setAiIntent(e.target.value)}
+                className={`w-full px-2 py-1.5 ${c.bgTertiary} ${c.text} ${c.border} border rounded-md text-sm outline-none`}
+              >
+                <option value="custom">Frei</option>
+                <option value="accept">Zusagen</option>
+                <option value="decline">Ablehnen</option>
+                <option value="defer">Verschieben</option>
+                <option value="ask_clarification">Nachfragen</option>
+                <option value="acknowledge">Bestätigen</option>
+              </select>
+            </div>
+            <div>
+              <label className={`block text-xs ${c.textSecondary} mb-1`}>Tonfall</label>
+              <select
+                value={aiTone}
+                onChange={(e) => setAiTone(e.target.value)}
+                className={`w-full px-2 py-1.5 ${c.bgTertiary} ${c.text} ${c.border} border rounded-md text-sm outline-none`}
+              >
+                <option value="formal">Formell</option>
+                <option value="neutral">Neutral</option>
+                <option value="casual">Locker</option>
+              </select>
+            </div>
+            <div>
+              <label className={`block text-xs ${c.textSecondary} mb-1`}>Länge</label>
+              <select
+                value={aiLength}
+                onChange={(e) => setAiLength(e.target.value)}
+                className={`w-full px-2 py-1.5 ${c.bgTertiary} ${c.text} ${c.border} border rounded-md text-sm outline-none`}
+              >
+                <option value="short">Kurz</option>
+                <option value="medium">Mittel</option>
+                <option value="long">Ausführlich</option>
+              </select>
+            </div>
+          </div>
+
+          <input
+            type="text"
+            value={aiHint}
+            onChange={(e) => setAiHint(e.target.value)}
+            placeholder="Optional: Hinweis (z.B. 'Termin am Donnerstag 14h zusagen')"
+            className={`w-full px-3 py-2 ${c.bgTertiary} ${c.text} ${c.border} border rounded-md text-sm outline-none mb-3`}
+          />
+
+          <button
+            onClick={handleGenerateDraft}
+            disabled={aiLoading}
+            className={`px-3 py-1.5 ${c.accentBg} ${c.accentHover} text-white text-sm rounded-lg flex items-center gap-2 disabled:opacity-50`}
+          >
+            {aiLoading ? <InProgress size={14} className="animate-spin" /> : <Bot size={14} />}
+            {aiLoading ? 'Generiere…' : (aiDraft ? 'Neu generieren' : 'Vorschlag generieren')}
+          </button>
+
+          {aiError && (
+            <div className="mt-3 p-2 rounded-md bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{aiError}</div>
+          )}
+
+          {aiDraft && (
+            <div className="mt-3 space-y-2">
+              <textarea
+                value={aiDraft.draft}
+                onChange={(e) => setAiDraft({ ...aiDraft, draft: e.target.value })}
+                rows={Math.min(15, Math.max(5, (aiDraft.draft.match(/\n/g) || []).length + 2))}
+                className={`w-full px-3 py-2 ${c.bgTertiary} ${c.text} ${c.border} border rounded-md text-sm outline-none font-sans resize-y whitespace-pre-wrap`}
+              />
+              {aiDraft.gaps?.length > 0 && (
+                <div className="p-2 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300">
+                  <strong>Lücken die du noch ergänzen musst:</strong>
+                  <ul className="list-disc list-inside mt-1">
+                    {aiDraft.gaps.map((g, i) => <li key={i}>{g}</li>)}
+                  </ul>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleApplyDraft}
+                  className={`px-3 py-1.5 ${c.accentBg} ${c.accentHover} text-white text-sm rounded-lg flex items-center gap-2`}
+                >
+                  <Checkmark size={14} /> Übernehmen + öffnen
+                </button>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(aiDraft.draft); }}
+                  className={`px-3 py-1.5 ${c.bgTertiary} ${c.hover} ${c.text} text-sm rounded-lg`}
+                >
+                  In Zwischenablage
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Action Error Banner */}
       {actionError && (

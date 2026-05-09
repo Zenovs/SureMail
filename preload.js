@@ -140,6 +140,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   rulesSave: (rule) => ipcRenderer.invoke('rules:save', rule),
   rulesDelete: (id) => ipcRenderer.invoke('rules:delete', id),
   rulesApplyNow: (accountId, folder) => ipcRenderer.invoke('rules:applyNow', accountId, folder),
+
+  // AI-Layer / Mail-Assistant (v6.6.0)
+  aiGetSettings: () => ipcRenderer.invoke('ai:getSettings'),
+  aiSaveSettings: (partial) => ipcRenderer.invoke('ai:saveSettings', partial),
+  aiTestConnection: () => ipcRenderer.invoke('ai:testConnection'),
+  aiTriageMail: (payload) => ipcRenderer.invoke('ai:triageMail', payload),
+  aiTriageBatch: (payload) => ipcRenderer.invoke('ai:triageBatch', payload),
+  aiGetTriageMap: (accountId, folder) => ipcRenderer.invoke('ai:getTriageMap', accountId, folder),
+  aiSmartCompose: (payload) => ipcRenderer.invoke('ai:smartCompose', payload),
+  onAiTriageProgress: (cb) => ipcRenderer.on('ai:triageProgress', (e, data) => cb(data)),
+  removeAiListeners: () => ipcRenderer.removeAllListeners('ai:triageProgress'),
   onSnoozeWoke: (callback) => ipcRenderer.on('snooze:woke', (event, data) => callback(data)),
   onSnoozeOpen: (callback) => ipcRenderer.on('snooze:open', (event, data) => callback(data)),
   removeSnoozeListeners: () => {

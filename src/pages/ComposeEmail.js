@@ -319,12 +319,16 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       const quoted = replyTo.html
         ? replyTo.html
         : (replyTo.text || '').replace(/\n/g, '<br>');
+      // v6.6.0: Smart-Compose-Vorschlag, falls vorhanden, oben einfügen
+      const aiPrefix = composeData?.aiDraft
+        ? `<div>${composeData.aiDraft.replace(/\n/g, '<br>')}</div><br>`
+        : '<p></p><br>';
       if (isForward) {
         editorRef.current.innerHTML =
-          `<p></p><br><hr><p><strong>Weitergeleitete Nachricht</strong><br>Von: ${replyTo.from || ''}<br>An: ${replyTo.to || ''}<br>Datum: ${replyTo.date ? new Date(replyTo.date).toLocaleString('de-DE') : ''}<br>Betreff: ${replyTo.subject || ''}</p>${quoted}`;
+          `${aiPrefix}<hr><p><strong>Weitergeleitete Nachricht</strong><br>Von: ${replyTo.from || ''}<br>An: ${replyTo.to || ''}<br>Datum: ${replyTo.date ? new Date(replyTo.date).toLocaleString('de-DE') : ''}<br>Betreff: ${replyTo.subject || ''}</p>${quoted}`;
       } else {
         editorRef.current.innerHTML =
-          `<p></p><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${quoted}</blockquote>`;
+          `${aiPrefix}<blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${quoted}</blockquote>`;
       }
     }
   }, [replyTo, isForward]); // eslint-disable-line

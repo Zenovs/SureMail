@@ -3972,3 +3972,289 @@ ipcMain.handle('calendar:deleteEvent', async (event, accountId, eventId) => {
     return { success: false, error: err.message };
   }
 });
+
+// ============================================================
+// AI-LAYER (Mail-Assistant)  v6.6.0
+// ============================================================
+// Provider-Abstraktion: lokales Ollama (default) + Anthropic Cloud-Fallback.
+// Alle Mail-Inhalte gehen nur dann an die Cloud, wenn der User explizit
+// Anthropic gewählt hat. Settings im store unter 'aiSettings'.
+
+const AI_SETTINGS_KEY = 'aiSettings';
+const AI_TRIAGE_KEY   = 'aiTriage'; // { "accountId|folder|uid": { category, confidence, reasoning, signals, ts } }
+
+const AI_DEFAULT_SETTINGS = {
+  provider: 'ollama',                      // 'ollama' | 'anthropic'
+  ollamaEndpoint: 'http://localhost:11434',
+  ollamaModel: 'llama3.1:8b',
+  anthropicApiKey: '',
+  anthropicModel: 'claude-haiku-4-5-20251001',
+  enabled: false                           // erst aktivieren wenn konfiguriert
+};
+
+function getAiSettings() {
+  return { ...AI_DEFAULT_SETTINGS, ...(store.get(AI_SETTINGS_KEY, {})) };
+}
+
+const AI_SYSTEM_PROMPT = `Du bist der AI-Layer eines Mail-Clients. Du analysierst E-Mails und generierst Antworten.
+
+Grundprinzipien:
+- Transparenz: jede Einstufung und jeder Vorschlag muss begründbar sein
+- User overrides everything: du schlägst vor, der User entscheidet
+- Datensparsam: nur das Nötigste verarbeiten
+- Sprache: antworte in der Sprache der Mail
+- Keine erfundenen Fakten — wenn Info fehlt, markiere Lücken mit [...]
+
+Antworte IMMER als valides JSON ohne Markdown-Codeblöcke und ohne Prosa drumherum.`;
+
+// Liefert den parsed-JSON-Output. Wirft bei Fehler.
+async function aiComplete({ system = '', user = '', maxTokens = 1500, temperature = 0.4 }) {
+  const settings = getAiSettings();
+  if (!settings.enabled) {
+    throw new Error('AI ist nicht aktiviert (siehe AI-Einstellungen)');
+  }
+
+  const fullSystem = (system ? system + '\n\n' : '') + AI_SYSTEM_PROMPT;
+
+  if (settings.provider === 'ollama') {
+    const url = (settings.ollamaEndpoint || AI_DEFAULT_SETTINGS.ollamaEndpoint).replace(/\/$/, '') + '/api/chat';
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: settings.ollamaModel,
+          messages: [
+            { role: 'system', content: fullSystem },
+            { role: 'user',   content: user }
+          ],
+          stream: false,
+          format: 'json',
+          options: { temperature, num_predict: maxTokens }
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      if (!resp.ok) throw new Error(`Ollama HTTP ${resp.status}`);
+      const data = await resp.json();
+      const text = data?.message?.content || '';
+      return parseAiJson(text);
+    } catch (e) {
+      clearTimeout(timer);
+      const msg = e.name === 'AbortError'
+        ? 'Ollama-Timeout (60s) — Server erreichbar?'
+        : (e.message?.includes('ECONNREFUSED') ? `Ollama nicht erreichbar unter ${settings.ollamaEndpoint} — läuft 'ollama serve'?` : e.message);
+      throw new Error(msg);
+    }
+  }
+
+  if (settings.provider === 'anthropic') {
+    if (!settings.anthropicApiKey) throw new Error('Anthropic API-Key fehlt');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': settings.anthropicApiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: settings.anthropicModel,
+          max_tokens: maxTokens,
+          system: fullSystem,
+          messages: [{ role: 'user', content: user }],
+          temperature
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        throw new Error(`Anthropic HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
+      }
+      const data = await resp.json();
+      const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+      return parseAiJson(text);
+    } catch (e) {
+      clearTimeout(timer);
+      throw new Error(e.name === 'AbortError' ? 'Anthropic-Timeout (60s)' : e.message);
+    }
+  }
+
+  throw new Error(`Unbekannter AI-Provider: ${settings.provider}`);
+}
+
+// Robustes Parsing: zieht ggf. JSON aus Markdown-Codefences, akzeptiert sowohl
+// Objekt als auch Array.
+function parseAiJson(text) {
+  if (!text) throw new Error('Leere AI-Antwort');
+  const trimmed = text.trim();
+  // Codefence entfernen (manche Modelle schicken trotz Anweisung Markdown)
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  const candidate = fenced ? fenced[1].trim() : trimmed;
+  try {
+    return JSON.parse(candidate);
+  } catch (e) {
+    // Letzter Versuch: erstes { ... } oder [ ... ] greifen
+    const obj = candidate.match(/\{[\s\S]*\}/);
+    const arr = candidate.match(/\[[\s\S]*\]/);
+    const slice = obj?.[0] || arr?.[0];
+    if (slice) {
+      try { return JSON.parse(slice); } catch (_) {}
+    }
+    throw new Error('AI-Antwort ist kein gültiges JSON: ' + candidate.slice(0, 200));
+  }
+}
+
+ipcMain.handle('ai:getSettings', async () => ({ success: true, settings: getAiSettings() }));
+
+ipcMain.handle('ai:saveSettings', async (event, partial) => {
+  const next = { ...getAiSettings(), ...(partial || {}) };
+  store.set(AI_SETTINGS_KEY, next);
+  return { success: true, settings: next };
+});
+
+// Verbindungstest — versucht ein triviales JSON-Echo. Schnell & günstig.
+ipcMain.handle('ai:testConnection', async () => {
+  try {
+    const r = await aiComplete({
+      user: 'Antworte nur mit {"ok": true}.',
+      temperature: 0,
+      maxTokens: 30
+    });
+    if (r && (r.ok === true || JSON.stringify(r).includes('"ok"'))) {
+      return { success: true };
+    }
+    return { success: true, warning: 'Verbindung steht, aber unerwartete Antwort: ' + JSON.stringify(r).slice(0, 200) };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+// ── Triage ──────────────────────────────────────────────────────────────────
+function triageCacheGet(accountId, folder, uid) {
+  const all = store.get(AI_TRIAGE_KEY, {});
+  return all[`${accountId}|${folder}|${uid}`] || null;
+}
+function triageCachePut(accountId, folder, uid, value) {
+  const all = store.get(AI_TRIAGE_KEY, {});
+  all[`${accountId}|${folder}|${uid}`] = { ...value, ts: Date.now() };
+  store.set(AI_TRIAGE_KEY, all);
+}
+
+async function triageOneEmail(email) {
+  const userPrompt = `Stufe diese E-Mail ein. Kategorien: urgent, important, informational, newsletter, automated.
+
+Mail:
+Von: ${email.from || ''}
+An: ${email.to || ''}
+Betreff: ${email.subject || ''}
+Datum: ${email.date || ''}
+${email.preview || email.text ? '\nVorschau:\n' + (email.preview || (email.text || '').slice(0, 800)) : ''}
+
+Antworte exakt in diesem JSON-Format:
+{
+  "category": "urgent" | "important" | "informational" | "newsletter" | "automated",
+  "confidence": 0.0-1.0,
+  "reasoning": "ein knapper Satz mit konkreten Hinweisen aus der Mail",
+  "signals": ["max 4 kurze Signal-Tags wie direct_reply, open_question, known_sender, marketing_template, automated_sender"]
+}`;
+  return await aiComplete({ user: userPrompt, temperature: 0.2, maxTokens: 250 });
+}
+
+ipcMain.handle('ai:triageMail', async (event, payload) => {
+  try {
+    const { accountId, folder, uid, email } = payload || {};
+    if (!accountId || !uid || !email) return { success: false, error: 'accountId/uid/email fehlt' };
+    const cached = triageCacheGet(accountId, folder, uid);
+    if (cached) return { success: true, result: cached, fromCache: true };
+    const result = await triageOneEmail(email);
+    triageCachePut(accountId, folder, uid, result);
+    return { success: true, result };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('ai:triageBatch', async (event, payload) => {
+  const { items = [] } = payload || {};
+  let processed = 0, fromCache = 0, errors = 0;
+  const results = {};
+  // Sequenziell — Ollama ist single-stream, Anthropic hat Rate-Limits.
+  for (const it of items) {
+    const cached = triageCacheGet(it.accountId, it.folder, it.uid);
+    if (cached) {
+      results[`${it.accountId}|${it.folder}|${it.uid}`] = cached;
+      fromCache++;
+      continue;
+    }
+    try {
+      const r = await triageOneEmail(it.email);
+      triageCachePut(it.accountId, it.folder, it.uid, r);
+      results[`${it.accountId}|${it.folder}|${it.uid}`] = { ...r, ts: Date.now() };
+      processed++;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('ai:triageProgress', { processed, total: items.length, fromCache });
+      }
+    } catch (e) {
+      errors++;
+      console.warn('[AI] triage error:', e.message);
+      // Bei wiederholten Fehlern abbrechen — sonst geht das nie zu Ende
+      if (errors >= 3) {
+        return { success: false, error: e.message, processed, fromCache, errors };
+      }
+    }
+  }
+  return { success: true, processed, fromCache, errors, results };
+});
+
+ipcMain.handle('ai:getTriageMap', async (event, accountId, folder = 'INBOX') => {
+  const all = store.get(AI_TRIAGE_KEY, {});
+  const out = {};
+  const prefix = `${accountId}|${folder}|`;
+  for (const k of Object.keys(all)) {
+    if (k.startsWith(prefix)) out[k.slice(prefix.length)] = all[k];
+  }
+  return { success: true, map: out };
+});
+
+// ── Smart Compose ───────────────────────────────────────────────────────────
+ipcMain.handle('ai:smartCompose', async (event, payload) => {
+  try {
+    const { originalEmail = {}, intent = 'custom', tone = 'neutral', length = 'medium', userHint = '' } = payload || {};
+    const userPrompt = `Generiere einen Antwortvorschlag.
+
+Original-Mail:
+Von: ${originalEmail.from || ''}
+Betreff: ${originalEmail.subject || ''}
+${originalEmail.text ? originalEmail.text.slice(0, 3000) : ''}
+
+Vorgaben:
+- intent: ${intent}        (accept | decline | defer | ask_clarification | acknowledge | custom)
+- tone:   ${tone}          (formal | neutral | casual)
+- length: ${length}        (short=1-2 Sätze | medium=Absatz | long=ausführlich)
+${userHint ? '- user_hint: ' + userHint : ''}
+
+Regeln:
+- Übernimm den Anrede-Stil aus der Original-Mail
+- Keine erfundenen Fakten — fehlende Infos mit [...] markieren
+- Bei decline: höflich aber klar, keine schwammigen Ausreden
+- Bei accept: konkret bestätigen was zugesagt wird
+
+Antworte exakt in diesem JSON-Format:
+{
+  "draft": "der eigentliche Antworttext, mehrzeilig erlaubt",
+  "tone_used": "${tone}",
+  "length_used": "${length}",
+  "gaps": ["Liste fehlender Infos die der User noch ergänzen muss, leer wenn keine"]
+}`;
+    const result = await aiComplete({ user: userPrompt, temperature: 0.6, maxTokens: 800 });
+    return { success: true, result };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});

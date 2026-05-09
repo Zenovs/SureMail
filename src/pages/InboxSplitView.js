@@ -4,7 +4,7 @@ import {
   WarningAlt, Archive, Folder, DragVertical, Security,
   CheckboxChecked, Checkbox, CloseFilled, ChevronDown, ChevronRight,
   Bullhorn, Misuse, Debug, Tag, Close, Checkmark, CheckmarkFilled, Reply, ReplyAll, SendAlt,
-  Download, FolderOpen, Earth, InProgress, FolderAdd, Edit, Attachment, WarningFilled, Time
+  Download, FolderOpen, Earth, InProgress, FolderAdd, Edit, Attachment, WarningFilled, Time, Bot
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
@@ -363,7 +363,29 @@ const SpamTagBadge = memo(({ category }) => {
 
 // v2.3.0: Improved Email List Item with multi-select checkbox
 // v1.14.0: Added spam filter tags
-const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes, isSentFolder, onDragStart }) => {
+// v6.6.0: Triage-Badge mit Farb-Codierung der AI-Kategorisierung
+const TRIAGE_STYLE = {
+  urgent:        { bg: 'bg-red-500/15',    text: 'text-red-300',    label: 'Dringend' },
+  important:     { bg: 'bg-amber-500/15',  text: 'text-amber-300',  label: 'Wichtig' },
+  informational: { bg: 'bg-cyan-500/15',   text: 'text-cyan-300',   label: 'Info' },
+  newsletter:    { bg: 'bg-slate-500/15',  text: 'text-slate-300',  label: 'Newsletter' },
+  automated:     { bg: 'bg-gray-500/15',   text: 'text-gray-300',   label: 'Auto' }
+};
+const TriageBadge = memo(({ triage }) => {
+  if (!triage?.category) return null;
+  const s = TRIAGE_STYLE[triage.category];
+  if (!s) return null;
+  return (
+    <span
+      className={`px-1.5 py-0.5 ${s.bg} ${s.text} text-xs rounded-full font-medium`}
+      title={triage.reasoning ? `${triage.reasoning} (${Math.round((triage.confidence || 0) * 100)}%)` : ''}
+    >
+      {s.label}
+    </span>
+  );
+});
+
+const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes, isSentFolder, onDragStart, triage }) => {
   const isUnread = !email.seen;
   const spamCategory = spamAnalysis?.category;
   const spamTags = spamAnalysis?.tags || [];
@@ -452,6 +474,8 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             {spamCategory && spamCategory !== 'sicher' && spamCategory !== 'whitelist' && (
               <SpamTagBadge category={spamCategory} />
             )}
+            {/* v6.6.0: AI-Triage-Badge */}
+            <TriageBadge triage={triage} />
           </div>
         </div>
         
@@ -577,6 +601,11 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
   // v1.14.0: Spam filter analysis results (moved up to avoid TDZ in filteredEmails)
   const [spamResults, setSpamResults] = useState(new Map());
+
+  // v6.6.0: AI-Triage — Map<uid, {category, confidence, reasoning, signals, ts}>
+  const [triageMap, setTriageMap] = useState(() => new Map());
+  const [triageRunning, setTriageRunning] = useState(false);
+  const [triageProgress, setTriageProgress] = useState(null); // {processed, total} | null
 
   // v6.6.0: Snooze — Set von "accountId|folder|uid", die aktuell gesnoozt sind.
   // Filtert betroffene Mails aus dem Inbox-View. Wird per IPC bei Mount,
@@ -1070,6 +1099,74 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setSelectedEmail(null);
     fetchEmails(true);
   }, [currentFolder, fetchEmails]);
+
+  // v6.6.0: AI-Triage-Map laden bei Account-/Folder-Wechsel + Live-Updates
+  useEffect(() => {
+    let cancelled = false;
+    const refreshTriage = async () => {
+      if (!activeAccountId || !window.electronAPI?.aiGetTriageMap) return;
+      try {
+        const r = await window.electronAPI.aiGetTriageMap(activeAccountId, currentFolder);
+        if (cancelled || !r?.success) return;
+        const m = new Map();
+        for (const [uidStr, value] of Object.entries(r.map || {})) {
+          m.set(parseInt(uidStr, 10), value);
+          // Bei Microsoft Graph ist uid keine Zahl → fallback string-key
+          m.set(uidStr, value);
+        }
+        setTriageMap(m);
+      } catch (_) {}
+    };
+    refreshTriage();
+    if (window.electronAPI?.onAiTriageProgress) {
+      window.electronAPI.onAiTriageProgress((data) => {
+        setTriageProgress({ processed: data.processed, total: data.total });
+      });
+    }
+    return () => {
+      cancelled = true;
+      window.electronAPI?.removeAiListeners?.();
+    };
+  }, [activeAccountId, currentFolder]);
+
+  const handleRunTriage = useCallback(async () => {
+    if (!activeAccountId || !window.electronAPI?.aiTriageBatch) return;
+    if (filteredEmails.length === 0) return;
+    setTriageRunning(true);
+    setTriageProgress({ processed: 0, total: filteredEmails.length });
+    const items = filteredEmails.map(e => ({
+      accountId: activeAccountId,
+      folder: currentFolder,
+      uid: e.uid,
+      email: {
+        from: e.from, to: e.to, cc: e.cc || '',
+        subject: e.subject, date: e.date,
+        preview: e.preview || ''
+      }
+    }));
+    try {
+      const r = await window.electronAPI.aiTriageBatch({ items });
+      if (r?.success) {
+        // Triage-Map mergen
+        const r2 = await window.electronAPI.aiGetTriageMap(activeAccountId, currentFolder);
+        if (r2?.success) {
+          const m = new Map();
+          for (const [uidStr, value] of Object.entries(r2.map || {})) {
+            m.set(parseInt(uidStr, 10), value);
+            m.set(uidStr, value);
+          }
+          setTriageMap(m);
+        }
+      } else {
+        setError('Triage fehlgeschlagen: ' + (r?.error || 'unbekannt'));
+      }
+    } catch (e) {
+      setError('Triage-Fehler: ' + e.message);
+    } finally {
+      setTriageRunning(false);
+      setTimeout(() => setTriageProgress(null), 2000);
+    }
+  }, [activeAccountId, currentFolder, filteredEmails]);
 
   // v6.6.0: Aktive Snoozes laden + bei Wake-up neu laden
   useEffect(() => {
@@ -2237,8 +2334,22 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
               >
                 <Renew size={16} />
               </button>
+              {/* v6.6.0: AI-Triage */}
+              <button
+                onClick={handleRunTriage}
+                disabled={triageRunning || filteredEmails.length === 0}
+                className={`p-2 rounded-lg transition-colors ${triageRunning ? c.accentBg + ' text-white' : `${c.hover} ${c.textSecondary}`} disabled:opacity-50`}
+                title="Mails durch AI einstufen"
+              >
+                {triageRunning ? <InProgress size={16} className="animate-spin" /> : <Bot size={16} />}
+              </button>
             </div>
           </div>
+          {triageProgress && (
+            <p className={`mt-2 text-xs ${c.textSecondary}`}>
+              AI-Triage: {triageProgress.processed} / {triageProgress.total} verarbeitet…
+            </p>
+          )}
           
           {/* v2.3.0: Multi-Select Controls */}
           {showCheckboxes && (
@@ -2339,6 +2450,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                     showCheckboxes={showCheckboxes}
                     isSentFolder={isSentFolder}
                     onDragStart={setDraggedEmail}
+                    triage={triageMap.get(email.uid)}
                   />
                 );
               })}

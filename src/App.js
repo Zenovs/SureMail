@@ -16,6 +16,7 @@ import EmailView from './pages/EmailView';
 import CalendarView from './pages/CalendarView';
 import SnoozedView from './pages/SnoozedView';
 import MailRules from './pages/MailRules';
+import AISettings from './pages/AISettings';
 import { applySavedFont } from './pages/FontSettings';
 
 class ErrorBoundary extends Component {
@@ -212,7 +213,8 @@ function AppContent() {
   const handleReply = (email, options = {}) => {
     setComposeData({
       type: options.forward ? 'forward' : (options.replyAll ? 'replyAll' : 'reply'),
-      originalEmail: email
+      originalEmail: email,
+      aiDraft: options.aiDraft || null
     });
     setCurrentView('compose');
   };
@@ -253,6 +255,8 @@ function AppContent() {
         return <CalendarView />;
       case 'rules':
         return <MailRules />;
+      case 'ai':
+        return <AISettings />;
       case 'snoozed':
         return <SnoozedView onOpenEmail={({ accountId, folder, uid }) => {
           if (accountId) setActiveAccountId(accountId);
