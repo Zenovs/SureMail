@@ -1129,7 +1129,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     };
   }, [activeAccountId, currentFolder]);
 
-  const handleRunTriage = useCallback(async () => {
+  // v6.6.0 fix: keine useCallback-Bindung an filteredEmails — würde TDZ
+  // werfen, da filteredEmails als const weiter unten deklariert ist. Plain
+  // Arrow-Function reicht (wird nur aus dem Bot-Button-onClick aufgerufen).
+  const handleRunTriage = async () => {
     if (!activeAccountId || !window.electronAPI?.aiTriageBatch) return;
     if (filteredEmails.length === 0) return;
     setTriageRunning(true);
@@ -1147,7 +1150,6 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     try {
       const r = await window.electronAPI.aiTriageBatch({ items });
       if (r?.success) {
-        // Triage-Map mergen
         const r2 = await window.electronAPI.aiGetTriageMap(activeAccountId, currentFolder);
         if (r2?.success) {
           const m = new Map();
@@ -1166,7 +1168,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setTriageRunning(false);
       setTimeout(() => setTriageProgress(null), 2000);
     }
-  }, [activeAccountId, currentFolder, filteredEmails]);
+  };
 
   // v6.6.0: Aktive Snoozes laden + bei Wake-up neu laden
   useEffect(() => {
