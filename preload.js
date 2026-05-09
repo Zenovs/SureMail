@@ -134,6 +134,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   snoozeList: () => ipcRenderer.invoke('snooze:list'),
   snoozeActive: () => ipcRenderer.invoke('snooze:active'),
   snoozeCancel: (id) => ipcRenderer.invoke('snooze:cancel', id),
+
+  // Mail-Regeln / Filter (v6.6.0)
+  rulesList: () => ipcRenderer.invoke('rules:list'),
+  rulesSave: (rule) => ipcRenderer.invoke('rules:save', rule),
+  rulesDelete: (id) => ipcRenderer.invoke('rules:delete', id),
+  rulesApplyNow: (accountId, folder) => ipcRenderer.invoke('rules:applyNow', accountId, folder),
   onSnoozeWoke: (callback) => ipcRenderer.on('snooze:woke', (event, data) => callback(data)),
   onSnoozeOpen: (callback) => ipcRenderer.on('snooze:open', (event, data) => callback(data)),
   removeSnoozeListeners: () => {

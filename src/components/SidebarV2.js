@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, MailAll, Edit, Calendar, Group, Settings, Book, ChevronRight, Time } from '@carbon/icons-react';
+import { Search, MailAll, Edit, Calendar, Group, Settings, Book, ChevronRight, Time, Filter } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -78,6 +78,7 @@ function SidebarV2({ currentView, onNavigate }) {
   const handleNavItemClick = useCallback((id) => onNavigate(id), [onNavigate]);
 
   const bottomItems = [
+    { id: 'rules',    label: 'Mail-Regeln',   Icon: Filter   },
     { id: 'accounts', label: 'Konten',        Icon: Group    },
     { id: 'settings', label: 'Einstellungen', Icon: Settings },
     { id: 'logbuch',  label: 'Logbuch',       Icon: Book     },

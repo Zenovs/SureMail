@@ -1924,9 +1924,14 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
 
     store.set(`unreadCount_${accountId}`, unreadCount);
 
+    // v6.6.0: Mail-Regeln auf neue Mails anwenden (markRead/move/delete/snooze).
+    // Verschobene/gelöschte Mails werden aus emails entfernt — der Renderer
+    // sieht sie also gar nicht erst.
+    const filtered = await runRulesOnFetchedEmails(account, folder, emails, 'imap', connection);
+
     return {
       success: true,
-      emails,
+      emails: filtered,
       unreadCount,
       total: allMessages.length,
       hasMore: limit > 0 ? (offset + limit < allMessages.length) : false
@@ -3083,13 +3088,18 @@ ipcMain.handle('msauth:logout', async (event, accountId) => {
 ipcMain.handle('graph:fetchEmails', async (event, accountId, { folder = 'INBOX', limit = 50, skip = 0 } = {}) => {
   try {
     const graphFolder = GRAPH_FOLDER_MAP[folder] || folder;
-    const select = 'id,subject,from,toRecipients,receivedDateTime,isRead,hasAttachments,bodyPreview';
+    const select = 'id,subject,from,toRecipients,ccRecipients,receivedDateTime,isRead,hasAttachments,bodyPreview';
     const data = await graphRequest(
       accountId, 'GET',
       `/me/mailFolders/${graphFolder}/messages?$top=${limit}&$skip=${skip}&$select=${select}&$orderby=receivedDateTime desc`
     );
     const emails = (data?.value || []).map(normalizeGraphEmail);
-    return { success: true, emails, hasMore: !!(data['@odata.nextLink']), total: emails.length };
+    // v6.6.0: Mail-Regeln auch auf Graph-Konten anwenden
+    const account = getAccountById(accountId);
+    const filtered = account
+      ? await runRulesOnFetchedEmails(account, folder, emails, 'graph')
+      : emails;
+    return { success: true, emails: filtered, hasMore: !!(data['@odata.nextLink']), total: filtered.length };
   } catch (error) {
     console.error('[Graph] fetchEmails:', error.message);
     if (error.message === 'TOKEN_EXPIRED') return { success: false, error: 'TOKEN_EXPIRED', emails: [] };
@@ -3612,6 +3622,272 @@ ipcMain.handle('snooze:cancel', async (event, id) => {
   const snoozes = store.get(SNOOZE_KEY, []).filter(s => s.id !== id);
   store.set(SNOOZE_KEY, snoozes);
   return { success: true };
+});
+
+// ============================================================
+// MAIL-REGELN / FILTER  (v6.6.0)
+// ============================================================
+// Regel-Schema:
+// {
+//   id, name, enabled, appliesToAccount: 'all' | accountId,
+//   matchAll: bool,                              // true=AND, false=OR
+//   conditions: [{ field, op, value }],          // field: from|to|subject; op: contains|equals|startsWith|endsWith
+//   actions: [{ type, ...params }],              // type: markRead|moveToFolder|delete|snoozeHours
+// }
+//
+// Ausführung: nach jedem fetchEmailsForAccount/graph:fetchEmails über die
+// neu geladenen Mails laufen. processedRulesCache verhindert, dass dieselbe
+// UID mehrfach in einer App-Session verarbeitet wird (cache resettet beim
+// Neustart — Aktionen sind grösstenteils idempotent oder löschen die Quelle).
+const RULES_KEY = 'mailRules';
+const processedRulesCache = new Set(); // "accountId|folder|uid"
+
+function matchCondition(email, condition) {
+  const { field, op = 'contains', value = '' } = condition || {};
+  if (!value) return false;
+  let haystack = '';
+  if (field === 'from')         haystack = (email.from || '');
+  else if (field === 'to')      haystack = (email.to || '') + ' ' + (email.cc || '');
+  else if (field === 'subject') haystack = (email.subject || '');
+  else return false;
+  const a = haystack.toLowerCase();
+  const b = value.toLowerCase();
+  switch (op) {
+    case 'equals':     return a === b;
+    case 'startsWith': return a.startsWith(b);
+    case 'endsWith':   return a.endsWith(b);
+    case 'contains':
+    default:           return a.includes(b);
+  }
+}
+
+function matchRule(email, rule) {
+  if (!rule.enabled) return false;
+  const conds = Array.isArray(rule.conditions) ? rule.conditions : [];
+  if (conds.length === 0) return false;
+  if (rule.matchAll === false) return conds.some(c => matchCondition(email, c));
+  return conds.every(c => matchCondition(email, c));
+}
+
+// IMAP-Aktion ausführen. Liefert { removed: bool, seen?: bool } — removed
+// bedeutet, die Mail soll aus dem zurückgegebenen Listen-Array entfernt werden
+// (verschoben oder gelöscht).
+async function applyImapRuleAction(connection, account, folder, email, action) {
+  try {
+    if (action.type === 'markRead') {
+      await new Promise((resolve, reject) => {
+        connection.imap.addFlags(email.uid, '\\Seen', (err) => err ? reject(err) : resolve());
+      });
+      return { seen: true };
+    }
+    if (action.type === 'delete') {
+      await new Promise((resolve, reject) => {
+        connection.imap.addFlags(email.uid, '\\Deleted', (err) => err ? reject(err) : resolve());
+      });
+      try { await new Promise((resolve) => connection.imap.expunge(() => resolve())); } catch (_) {}
+      return { removed: true };
+    }
+    if (action.type === 'moveToFolder' && action.folder && action.folder !== folder) {
+      await connection.moveMessage(email.uid, action.folder);
+      return { removed: true };
+    }
+    if (action.type === 'snoozeHours' && action.hours > 0) {
+      const snoozes = store.get(SNOOZE_KEY, []);
+      const without = snoozes.filter(s =>
+        !(s.accountId === account.id && s.folder === folder && s.uid === email.uid)
+      );
+      without.push({
+        id: `snz_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        accountId: account.id, folder, uid: email.uid,
+        messageId: email.messageId || null,
+        subject: email.subject || '', from: email.from || '',
+        snoozedAt: Date.now(),
+        wakeAt: Date.now() + action.hours * 3600 * 1000
+      });
+      store.set(SNOOZE_KEY, without);
+      return { removed: true }; // aus der Liste verstecken bis Wake-up
+    }
+  } catch (e) {
+    console.warn(`[Rules] IMAP-Action ${action.type} fehlgeschlagen:`, e.message);
+  }
+  return {};
+}
+
+// Graph-Aktion. Reuse existing graphRequest.
+async function applyGraphRuleAction(account, folder, email, action) {
+  try {
+    if (action.type === 'markRead') {
+      await graphRequest(account.id, 'PATCH', `/me/messages/${email.uid}`, { isRead: true });
+      return { seen: true };
+    }
+    if (action.type === 'delete') {
+      await graphRequest(account.id, 'DELETE', `/me/messages/${email.uid}`);
+      return { removed: true };
+    }
+    if (action.type === 'moveToFolder' && action.folder && action.folder !== folder) {
+      // Bei Graph ist action.folder die Folder-ID
+      await graphRequest(account.id, 'POST', `/me/messages/${email.uid}/move`, { destinationId: action.folder });
+      return { removed: true };
+    }
+    if (action.type === 'snoozeHours' && action.hours > 0) {
+      const snoozes = store.get(SNOOZE_KEY, []);
+      const without = snoozes.filter(s =>
+        !(s.accountId === account.id && s.folder === folder && s.uid === email.uid)
+      );
+      without.push({
+        id: `snz_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        accountId: account.id, folder, uid: email.uid,
+        messageId: email.messageId || null,
+        subject: email.subject || '', from: email.from || '',
+        snoozedAt: Date.now(),
+        wakeAt: Date.now() + action.hours * 3600 * 1000
+      });
+      store.set(SNOOZE_KEY, without);
+      return { removed: true };
+    }
+  } catch (e) {
+    console.warn(`[Rules] Graph-Action ${action.type} fehlgeschlagen:`, e.message);
+  }
+  return {};
+}
+
+// Filter Mails durch Regeln. Liefert die bereinigte Liste zurück (ohne
+// move/delete-betroffene Einträge, mit aktualisiertem .seen-Flag).
+async function runRulesOnFetchedEmails(account, folder, emails, kind, imapConnection = null, opts = {}) {
+  const allRules = store.get(RULES_KEY, []);
+  const accountRules = allRules.filter(r =>
+    r.enabled !== false &&
+    (r.appliesToAccount === 'all' || r.appliesToAccount === account.id)
+  );
+  if (accountRules.length === 0) return emails;
+
+  const force = !!opts.force;
+  const out = [];
+  let appliedCount = 0;
+  for (const email of emails) {
+    const cacheKey = `${account.id}|${folder}|${email.uid}`;
+    if (!force && processedRulesCache.has(cacheKey)) {
+      out.push(email);
+      continue;
+    }
+    let removed = false;
+    let updatedEmail = email;
+    for (const rule of accountRules) {
+      if (!matchRule(email, rule)) continue;
+      for (const action of (rule.actions || [])) {
+        const res = kind === 'graph'
+          ? await applyGraphRuleAction(account, folder, email, action)
+          : await applyImapRuleAction(imapConnection, account, folder, email, action);
+        if (res.seen) updatedEmail = { ...updatedEmail, seen: true };
+        if (res.removed) { removed = true; break; }
+      }
+      if (removed) break;
+    }
+    processedRulesCache.add(cacheKey);
+    if (removed) {
+      appliedCount++;
+      addLogEntry('rule_applied', `Regel auf Mail angewendet`, `${updatedEmail.subject || '(kein Betreff)'} — ${updatedEmail.from || ''}`);
+    } else {
+      out.push(updatedEmail);
+    }
+  }
+  if (appliedCount > 0) console.log(`[Rules] ${appliedCount} Mail(s) durch Regeln verschoben/gelöscht/gesnoozt in ${folder}`);
+  return out;
+}
+
+ipcMain.handle('rules:list', async () => ({ success: true, items: store.get(RULES_KEY, []) }));
+
+ipcMain.handle('rules:save', async (event, rule) => {
+  if (!rule || !Array.isArray(rule.conditions) || !Array.isArray(rule.actions)) {
+    return { success: false, error: 'Ungültige Regel' };
+  }
+  const all = store.get(RULES_KEY, []);
+  if (rule.id) {
+    const idx = all.findIndex(r => r.id === rule.id);
+    if (idx >= 0) all[idx] = rule;
+    else all.push(rule);
+  } else {
+    rule.id = `rule_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    all.push(rule);
+  }
+  store.set(RULES_KEY, all);
+  // Cache leeren — neue/geänderte Regeln sollen beim nächsten Fetch greifen
+  processedRulesCache.clear();
+  return { success: true, rule };
+});
+
+ipcMain.handle('rules:delete', async (event, id) => {
+  store.set(RULES_KEY, store.get(RULES_KEY, []).filter(r => r.id !== id));
+  return { success: true };
+});
+
+// Regeln auf den aktuellen Posteingang eines Kontos anwenden — nützlich nach
+// dem Anlegen einer neuen Regel.
+ipcMain.handle('rules:applyNow', async (event, accountId, folder = 'INBOX') => {
+  const account = getAccountById(accountId);
+  if (!account) return { success: false, error: 'Konto nicht gefunden' };
+
+  // processedRulesCache für dieses Konto+Folder leeren, damit die Regeln greifen
+  for (const key of Array.from(processedRulesCache)) {
+    if (key.startsWith(`${accountId}|${folder}|`)) processedRulesCache.delete(key);
+  }
+
+  if (account.type === 'microsoft') {
+    try {
+      const data = await graphRequest(accountId, 'GET',
+        `/me/mailFolders/${folder === 'INBOX' ? 'inbox' : folder}/messages?$select=id,subject,from,toRecipients,ccRecipients,isRead&$top=200`
+      );
+      const emails = (data.value || []).map(m => ({
+        uid: m.id,
+        subject: m.subject || '',
+        from: m.from?.emailAddress?.address || '',
+        to: (m.toRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+        cc: (m.ccRecipients || []).map(r => r.emailAddress?.address).filter(Boolean).join(', '),
+        seen: m.isRead
+      }));
+      const before = emails.length;
+      const after = await runRulesOnFetchedEmails(account, folder, emails, 'graph', null, { force: true });
+      return { success: true, total: before, applied: before - after.length };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  // IMAP
+  let connection;
+  let usedPool = false;
+  try {
+    try { connection = await getPooledImapConnection(account); usedPool = true; }
+    catch (_) { connection = await imapSimple.connect(getImapConfigForAccount(account)); }
+    await connection.openBox(folder);
+    const messages = await connection.search(['ALL'], {
+      bodies: ['HEADER.FIELDS (FROM TO CC SUBJECT)'],
+      markSeen: false, struct: false
+    });
+    const emails = messages.map(msg => {
+      const header = msg.parts.find(p => p.which.includes('HEADER'));
+      const h = header?.body || {};
+      return {
+        uid: msg.attributes.uid,
+        subject: (h.subject || [''])[0],
+        from: (h.from || [''])[0],
+        to: (h.to || [''])[0],
+        cc: (h.cc || [''])[0],
+        seen: msg.attributes.flags.includes('\\Seen')
+      };
+    });
+    const before = emails.length;
+    const after = await runRulesOnFetchedEmails(account, folder, emails, 'imap', connection, { force: true });
+    return { success: true, total: before, applied: before - after.length };
+  } catch (e) {
+    if (usedPool) releaseImapConnection(accountId, true);
+    return { success: false, error: e.message };
+  } finally {
+    if (connection) {
+      if (usedPool) releaseImapConnection(accountId);
+      else try { await connection.end(); } catch (_) {}
+    }
+  }
 });
 
 // --- IPC: Kalender (v4.4.0) ---

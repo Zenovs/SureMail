@@ -15,6 +15,7 @@ import AccountManager from './pages/AccountManager';
 import EmailView from './pages/EmailView';
 import CalendarView from './pages/CalendarView';
 import SnoozedView from './pages/SnoozedView';
+import MailRules from './pages/MailRules';
 import { applySavedFont } from './pages/FontSettings';
 
 class ErrorBoundary extends Component {
@@ -250,6 +251,8 @@ function AppContent() {
         return <Logbuch />;
       case 'calendar':
         return <CalendarView />;
+      case 'rules':
+        return <MailRules />;
       case 'snoozed':
         return <SnoozedView onOpenEmail={({ accountId, folder, uid }) => {
           if (accountId) setActiveAccountId(accountId);
