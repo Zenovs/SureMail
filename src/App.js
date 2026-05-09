@@ -233,7 +233,7 @@ function AppContent() {
   const renderContent = () => {
     switch (currentView) {
       case 'inbox':
-        return <InboxSplitView onFullView={handleFullView} onNavigate={setCurrentView} />;
+        return <InboxSplitView onFullView={handleFullView} onNavigate={setCurrentView} onForward={handleForward} />;
       case 'compose':
         return (
           <ComposeEmail
@@ -261,7 +261,7 @@ function AppContent() {
           />
         );
       default:
-        return <InboxSplitView onFullView={handleFullView} onNavigate={setCurrentView} />;
+        return <InboxSplitView onFullView={handleFullView} onNavigate={setCurrentView} onForward={handleForward} />;
     }
   };
 

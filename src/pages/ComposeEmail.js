@@ -321,13 +321,29 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
         : (replyTo.text || '').replace(/\n/g, '<br>');
       if (isForward) {
         editorRef.current.innerHTML =
-          `<p></p><br><hr><p><strong>Weitergeleitete Nachricht</strong><br>Von: ${replyTo.from || ''}<br>Betreff: ${replyTo.subject || ''}</p>${quoted}`;
+          `<p></p><br><hr><p><strong>Weitergeleitete Nachricht</strong><br>Von: ${replyTo.from || ''}<br>An: ${replyTo.to || ''}<br>Datum: ${replyTo.date ? new Date(replyTo.date).toLocaleString('de-DE') : ''}<br>Betreff: ${replyTo.subject || ''}</p>${quoted}`;
       } else {
         editorRef.current.innerHTML =
           `<p></p><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${quoted}</blockquote>`;
       }
     }
   }, [replyTo, isForward]); // eslint-disable-line
+
+  // Beim Weiterleiten: Originalanhänge übernehmen (nur einmal beim Mount)
+  useEffect(() => {
+    if (!isForward || !Array.isArray(replyTo?.attachments) || replyTo.attachments.length === 0) return;
+    const carried = replyTo.attachments
+      .filter(att => att && att.content && att.filename)
+      .map(att => ({
+        id: `fwd-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        filename: att.filename,
+        contentType: att.contentType || 'application/octet-stream',
+        size: att.size || 0,
+        content: att.content,
+        loaded: true
+      }));
+    if (carried.length > 0) setAttachments(prev => [...carried, ...prev]);
+  }, []); // eslint-disable-line
 
   const loadSignatures = async () => {
     if (window.electronAPI?.loadSignatures) {

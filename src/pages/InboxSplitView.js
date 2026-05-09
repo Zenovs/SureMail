@@ -3,7 +3,7 @@ import {
   TrashCan, Email, Renew, MailAll, Send, Document,
   WarningAlt, Archive, Folder, DragVertical, Security,
   CheckboxChecked, Checkbox, CloseFilled, ChevronDown, ChevronRight,
-  Bullhorn, Misuse, Debug, Tag, Close, Checkmark, CheckmarkFilled, Reply, ReplyAll,
+  Bullhorn, Misuse, Debug, Tag, Close, Checkmark, CheckmarkFilled, Reply, ReplyAll, SendAlt,
   Download, FolderOpen, Earth, InProgress, FolderAdd, Edit, Attachment, WarningFilled
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
@@ -500,7 +500,7 @@ const getFolderIcon = (type) => {
 };
 
 
-function InboxSplitView({ onFullView, onNavigate }) {
+function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount, accounts, updateAccountStats } = useAccounts();
   const [emails, setEmails] = useState([]);
@@ -2380,6 +2380,14 @@ function InboxSplitView({ onFullView, onNavigate }) {
                   >
                     <ReplyAll size={16} />
                     <span className="hidden xl:inline">Allen</span>
+                  </button>
+                  <button
+                    onClick={() => onForward && onForward(selectedEmail)}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 text-sm ${c.hover} ${c.textSecondary}`}
+                    title="Weiterleiten"
+                  >
+                    <SendAlt size={16} />
+                    <span className="hidden xl:inline">Weiterleiten</span>
                   </button>
                   <div className={`w-px h-5 ${c.border} border-l mx-1`} />
                   <button
