@@ -865,6 +865,36 @@ function getNotificationIconPath() {
 
 // ============ UPDATE FUNCTIONS ============
 
+// v6.5.0: Plattform-spezifische Asset-Suche im GitHub Release.
+// Linux  → .AppImage (Arch x86_64/arm64) — In-App-Update mit Hash-Check
+// macOS  → .dmg      (Arch arm64/x64)    — wird an Finder übergeben
+// Windows → .exe     (Arch x64)          — wird an NSIS-Installer übergeben
+function getPlatformAssetMatcher() {
+  const platform = process.platform;
+  if (platform === 'linux') {
+    return {
+      ext: '.appimage',
+      archSuffix: process.arch === 'arm64' ? 'arm64' : 'x86_64',
+      kind: 'appimage'
+    };
+  }
+  if (platform === 'darwin') {
+    return {
+      ext: '.dmg',
+      archSuffix: process.arch === 'arm64' ? 'arm64' : 'x64',
+      kind: 'dmg'
+    };
+  }
+  if (platform === 'win32') {
+    return {
+      ext: '.exe',
+      archSuffix: 'x64',
+      kind: 'exe'
+    };
+  }
+  return null;
+}
+
 async function checkForUpdates(silent = false) {
   // 15-second hard timeout — raw https.get has no timeout and hangs indefinitely
   const controller = new AbortController();
@@ -880,24 +910,29 @@ async function checkForUpdates(silent = false) {
     const release = await resp.json();
 
     const latestVersion = release.tag_name?.replace('v', '') || '';
-    const archSuffix = process.arch === 'arm64' ? 'arm64' : 'x86_64';
-    const appImageAsset = (release.assets || []).find(a =>
-      a.name?.toLowerCase().endsWith('.appimage') &&
-      a.name.toLowerCase().includes(archSuffix.toLowerCase()) &&
-      a.browser_download_url
-    );
-    const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0 && !!appImageAsset;
-    const downloadUrl = appImageAsset?.browser_download_url || null;
+    const matcher = getPlatformAssetMatcher();
+    const platformAsset = matcher
+      ? (release.assets || []).find(a => {
+          const name = (a.name || '').toLowerCase();
+          return name.endsWith(matcher.ext) &&
+            name.includes(matcher.archSuffix.toLowerCase()) &&
+            a.browser_download_url;
+        })
+      : null;
+    const hasUpdate = compareVersions(latestVersion, APP_VERSION) > 0 && !!platformAsset;
+    const downloadUrl = platformAsset?.browser_download_url || null;
     // Security v6.2.0: SHA256SUMS-Manifest aus dem Release fürs Update-Verify
     const sumsAsset = (release.assets || []).find(a => a.name === 'SHA256SUMS.txt');
     const sumsUrl = sumsAsset?.browser_download_url || null;
-    const expectedFilename = appImageAsset?.name || null;
+    const expectedFilename = platformAsset?.name || null;
+    const releaseUrl = release.html_url || null;
+    const assetKind = matcher?.kind || null;
 
     if (hasUpdate && !silent && mainWindow) {
-      mainWindow.webContents.send('update:available', { version: latestVersion, notes: release.body || '', downloadUrl, sumsUrl, expectedFilename });
+      mainWindow.webContents.send('update:available', { version: latestVersion, notes: release.body || '', downloadUrl, sumsUrl, expectedFilename, releaseUrl, assetKind });
     }
 
-    return { success: true, currentVersion: APP_VERSION, latestVersion, hasUpdate, releaseNotes: release.body || '', downloadUrl, sumsUrl, expectedFilename, publishedAt: release.published_at };
+    return { success: true, currentVersion: APP_VERSION, latestVersion, hasUpdate, releaseNotes: release.body || '', downloadUrl, sumsUrl, expectedFilename, releaseUrl, assetKind, publishedAt: release.published_at };
   } catch (e) {
     clearTimeout(timer);
     const msg = e.name === 'AbortError' ? 'Timeout — GitHub API nicht erreichbar (>15s)' : e.message;
@@ -951,7 +986,11 @@ async function computeFileSha256(filePath) {
 
 async function downloadUpdate(downloadUrl, sumsUrl = null, expectedFilename = null) {
   const downloadDir = app.getPath('downloads');
-  const filename = 'CoreMail-Desktop-update.AppImage';
+  // v6.5.0: Dateiname richtet sich nach der erwarteten Asset-Endung —
+  // damit Mac-Finder die .dmg mountet und Windows-Explorer die .exe als Installer erkennt.
+  const matcher = getPlatformAssetMatcher();
+  const ext = matcher?.ext || '.AppImage';
+  const filename = expectedFilename || `CoreMail-Desktop-update${ext}`;
   const filePath = path.join(downloadDir, filename);
 
   // Remove existing partial download
@@ -1204,10 +1243,37 @@ ipcMain.handle('update:install', async (event, filePath) => {
     }
 
     const stats = fs.statSync(filePath);
-    if (stats.size < 1024 * 1024) { // AppImage must be at least 1 MB
-      return { success: false, error: `Update-Datei zu klein (${stats.size} Bytes) – kein gültiges AppImage` };
+    if (stats.size < 1024 * 1024) {
+      return { success: false, error: `Update-Datei zu klein (${stats.size} Bytes) — Download unvollständig` };
     }
 
+    // v6.5.0: Mac/Windows übergeben die Installation an das OS — Replace eines
+    // laufenden .app/.exe ist riskant, der Installer/Finder macht's sauber.
+    if (process.platform === 'darwin' || process.platform === 'win32') {
+      try {
+        // Auf macOS öffnet das die .dmg im Finder (mountet das Volume) — User zieht
+        // die neue .app ins Applications-Verzeichnis. Auf Windows startet das den
+        // NSIS-Installer.
+        const openErr = await shell.openPath(filePath);
+        if (openErr) {
+          return { success: false, error: `OS-Installer konnte nicht gestartet werden: ${openErr}` };
+        }
+      } catch (openExc) {
+        return { success: false, error: 'Konnte Installer nicht öffnen: ' + openExc.message };
+      }
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update:restart-required');
+      }
+      // Auf Mac: User muss die neue .app rüberziehen und CoreMail manuell beenden,
+      // damit /Applications/CoreMail Desktop.app ersetzt werden kann.
+      // Auf Windows: NSIS verlangt, dass die laufende Instanz beendet ist.
+      // Beide → wir geben dem User 5s und beenden dann sauber.
+      setTimeout(() => app.quit(), 5000);
+      return { success: true, restartRequired: true, handedOffToOS: true };
+    }
+
+    // ── Linux: AppImage in-place ersetzen ─────────────────────────────────────
     // Validate ELF magic bytes: AppImage starts with 0x7f 'E' 'L' 'F'
     const fd = fs.openSync(filePath, 'r');
     const magic = Buffer.alloc(4);
