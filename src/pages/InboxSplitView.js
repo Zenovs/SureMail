@@ -11,7 +11,7 @@ import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmailHtmlFrame from '../components/EmailHtmlFrame';
 import SnoozeMenu from '../components/SnoozeMenu';
-import { usePanelMode } from '../utils/usePanelMode';
+import { usePanelMode, PANEL_TRANSITION } from '../utils/usePanelMode';
 
 // v6.6.2: Kollabierte Spaltenbreiten — schmal genug damit Icons noch klickbar sind
 const FOLDER_COLLAPSED_WIDTH    = 48;
@@ -2061,7 +2061,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           minWidth: folderPanel.isExpanded ? `${FOLDER_MIN_WIDTH}px` : `${FOLDER_COLLAPSED_WIDTH}px`,
           maxWidth: folderPanel.isExpanded ? `${FOLDER_MAX_WIDTH}px` : `${FOLDER_COLLAPSED_WIDTH}px`,
           alignSelf: 'stretch',
-          transition: isResizingFolder ? 'none' : 'width 0.18s ease-out'
+          transition: isResizingFolder ? 'none' : PANEL_TRANSITION
         }}
       >
         <div className={`p-3 ${c.border} border-b flex items-center ${folderPanel.isExpanded ? 'justify-between' : 'justify-center'}`}>
@@ -2337,7 +2337,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           minWidth: mailListPanel.isExpanded ? `${EMAIL_LIST_MIN_WIDTH}px` : `${EMAIL_LIST_COLLAPSED_WIDTH}px`,
           maxWidth: mailListPanel.isExpanded ? `${EMAIL_LIST_MAX_WIDTH}px` : `${EMAIL_LIST_COLLAPSED_WIDTH}px`,
           alignSelf: 'stretch',
-          transition: isResizingEmailList ? 'none' : 'width 0.18s ease-out'
+          transition: isResizingEmailList ? 'none' : PANEL_TRANSITION
         }}
       >
         {!mailListPanel.isExpanded && (

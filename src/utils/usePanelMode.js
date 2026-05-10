@@ -21,8 +21,12 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 
 export const PANEL_MODES = ['auto', 'open', 'closed'];
 
-const EXPAND_DELAY_MS   = 500;
+const EXPAND_DELAY_MS   = 700;
 const COLLAPSE_DELAY_MS = 3000;
+
+// CSS-Transition für die Width-Animation, exportiert damit alle Spalten
+// einheitlich aussehen. Quint-Out-Easing wirkt smoother als ease-out.
+export const PANEL_TRANSITION = 'width 0.55s cubic-bezier(0.22, 1, 0.36, 1)';
 
 export function usePanelMode(storageKey, defaultMode = 'auto') {
   const [mode, setModeState] = useState(() => {

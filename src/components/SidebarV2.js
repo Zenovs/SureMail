@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, MailAll, Edit, Calendar, Group, Settings, Book, ChevronRight, Time, Filter, Bot, Pin, Locked } from '@carbon/icons-react';
-import { usePanelMode } from '../utils/usePanelMode';
+import { usePanelMode, PANEL_TRANSITION } from '../utils/usePanelMode';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -104,7 +104,7 @@ function SidebarV2({ currentView, onNavigate }) {
         width: displayWidth,
         minWidth: compact ? 64 : settings.minWidth,
         maxWidth: settings.maxWidth,
-        transition: isResizing ? 'none' : 'width 0.2s ease-out'
+        transition: isResizing ? 'none' : PANEL_TRANSITION
       }}
     >
       {/* Logo */}
