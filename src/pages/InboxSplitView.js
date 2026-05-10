@@ -15,7 +15,24 @@ import { usePanelMode } from '../utils/usePanelMode';
 
 // v6.6.2: Kollabierte Spaltenbreiten — schmal genug damit Icons noch klickbar sind
 const FOLDER_COLLAPSED_WIDTH    = 48;
-const EMAIL_LIST_COLLAPSED_WIDTH = 56;
+const EMAIL_LIST_COLLAPSED_WIDTH = 64;
+
+// Deterministische Farb-Palette für Avatar-Hintergründe (Initiale-Avatare im
+// kollabierten Mail-Listen-Modus). Hash auf Absender → stabile Farbe pro Person.
+const AVATAR_COLORS = [
+  'bg-cyan-600', 'bg-blue-600', 'bg-indigo-600', 'bg-violet-600',
+  'bg-purple-600', 'bg-pink-600', 'bg-rose-600', 'bg-orange-600',
+  'bg-amber-600', 'bg-emerald-600', 'bg-teal-600', 'bg-sky-600'
+];
+function avatarFor(email) {
+  const raw = (email.fromName || email.from || '?').replace(/^["']+|["']+$/g, '').trim();
+  // Erste sinnvolle Initiale: nicht von Adressen wie "<x@y>" verwirren
+  const cleaned = raw.replace(/<[^>]*>/g, '').trim() || raw;
+  const initial = (cleaned[0] || '?').toUpperCase();
+  let h = 0;
+  for (let i = 0; i < cleaned.length; i++) h = (h * 31 + cleaned.charCodeAt(i)) >>> 0;
+  return { initial, color: AVATAR_COLORS[h % AVATAR_COLORS.length] };
+}
 
 // Kleines Mode-Toggle-Icon (Auto / Pinned / Closed)
 const PanelModeToggle = ({ panel, c }) => {
@@ -2324,14 +2341,47 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         }}
       >
         {!mailListPanel.isExpanded && (
-          // Kollabierter Modus: nur Toggle-Button + ungelesen-Zähler (kein Toolbar-Quetsch)
-          <div className="flex flex-col items-center pt-3 gap-3">
-            <PanelModeToggle panel={mailListPanel} c={c} />
-            {unreadCount > 0 && (
-              <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] rounded-full font-medium min-w-[20px] text-center" title={`${unreadCount} ungelesen`}>
-                {unreadCount > 99 ? '99' : unreadCount}
-              </span>
-            )}
+          // v6.6.2: Kollabierter Modus — Mini-Vorschau mit Avatar-Initialen + Unread-Ring.
+          // Klick wählt die Mail aus (Preview rendert sich neu); Hover öffnet die Spalte
+          // ohnehin nach kurzer Zeit wenn Modus = auto.
+          <div className="flex flex-col h-full overflow-hidden">
+            <div className={`pt-2 pb-1 px-1 ${c.border} border-b flex flex-col items-center gap-1`}>
+              <PanelModeToggle panel={mailListPanel} c={c} />
+              {unreadCount > 0 && (
+                <span className="px-1 py-0.5 bg-blue-500 text-white text-[10px] rounded-full font-medium min-w-[18px] text-center leading-tight" title={`${unreadCount} ungelesen`}>
+                  {unreadCount > 99 ? '99' : unreadCount}
+                </span>
+              )}
+            </div>
+            <div className="flex-1 overflow-y-auto py-1">
+              {filteredEmails.length === 0 ? (
+                <div className={`p-2 text-center ${c.textSecondary} text-[10px]`}>—</div>
+              ) : (
+                filteredEmails.slice(0, 100).map((email, index) => {
+                  const av = avatarFor(email);
+                  const isUnread = !email.seen;
+                  const isSelected = index === selectedIndex;
+                  return (
+                    <button
+                      key={email.uid}
+                      onClick={() => handleSelectEmail(index)}
+                      title={`${email.fromName || email.from}: ${email.subject || '(Kein Betreff)'}`}
+                      className={`w-full px-1 py-1 flex justify-center transition-colors ${
+                        isSelected ? c.bgTertiary : c.hover
+                      }`}
+                    >
+                      <span
+                        className={`relative inline-flex items-center justify-center w-9 h-9 rounded-full text-white text-xs font-semibold ${av.color} ${
+                          isUnread ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-transparent' : ''
+                        } ${isSelected ? 'shadow-[0_0_0_2px_rgba(6,182,212,0.7)]' : ''}`}
+                      >
+                        {av.initial}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
         {mailListPanel.isExpanded && (

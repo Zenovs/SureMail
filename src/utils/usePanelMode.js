@@ -14,12 +14,12 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 //   <div {...panel.hoverProps} style={{ width: panel.isExpanded ? 240 : 56 }}>
 //   <button onClick={panel.cycleMode} title={panel.tooltip}>{panel.icon}</button>
 //
-// Mouse-Leave hat einen kleinen Delay (180ms), damit ein versehentlicher
-// Mouseout (Cursor zwischen zwei Spalten) das Panel nicht sofort schliesst.
+// Mouse-Leave hat einen Delay (3s), damit der Cursor in andere Bereiche
+// kann ohne dass das Panel sofort einklappt — gibt dem User Zeit zum Lesen.
 
 export const PANEL_MODES = ['auto', 'open', 'closed'];
 
-const COLLAPSE_DELAY_MS = 180;
+const COLLAPSE_DELAY_MS = 3000;
 
 export function usePanelMode(storageKey, defaultMode = 'auto') {
   const [mode, setModeState] = useState(() => {
