@@ -65,6 +65,22 @@ function AccountManager() {
     smtp: { host: '', port: '465', username: '', password: '', secure: true, fromEmail: '' }
   });
 
+  // v6.7.1: Wenn die hartcodierte Default-Kategorie 'work' beim User nicht
+  // existiert (umbenannt/gelöscht/eigene Kategorien), zeigt der <select>
+  // optisch die erste verfügbare Option, der State bleibt aber bei 'work'
+  // → ungültige ID landet im neuen Konto → Sidebar gruppiert es nicht.
+  // Wir korrigieren ungültige categoryId-Werte automatisch auf die erste
+  // existierende Kategorie.
+  useEffect(() => {
+    if (categories.length === 0) return;
+    if (!categories.find(c => c.id === categoryId)) {
+      setCategoryId(categories[0].id);
+    }
+    if (!categories.find(c => c.id === accountForm.categoryId)) {
+      setAccountForm(f => ({ ...f, categoryId: categories[0].id }));
+    }
+  }, [categories, categoryId, accountForm.categoryId]);
+
   const currentPreset = useMemo(() => {
     return SERVER_PRESETS.find(p => p.id === selectedPreset);
   }, [selectedPreset]);
@@ -124,10 +140,13 @@ function AccountManager() {
   };
 
   const resetForm = () => {
+    // v6.7.1: erste existierende Kategorie als Default — falls 'work' beim
+    // User nicht (mehr) existiert.
+    const defaultCat = categories[0]?.id || 'work';
     setAccountForm({
       name: '',
       displayName: '',
-      categoryId: 'work',
+      categoryId: defaultCat,
       allowInsecureTLS: false,
       imap: { host: '', port: '993', username: '', password: '', tls: true },
       smtp: { host: '', port: '465', username: '', password: '', secure: true, fromEmail: '' }
@@ -141,7 +160,7 @@ function AccountManager() {
     setMsLoginState('idle');
     setMsLoginError('');
     setMsLoginResult(null);
-    setCategoryId('work');
+    setCategoryId(defaultCat);
   };
 
   // v2.9.0: Microsoft OAuth2 login flow
