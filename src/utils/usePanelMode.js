@@ -14,11 +14,14 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 //   <div {...panel.hoverProps} style={{ width: panel.isExpanded ? 240 : 56 }}>
 //   <button onClick={panel.cycleMode} title={panel.tooltip}>{panel.icon}</button>
 //
-// Mouse-Leave hat einen Delay (3s), damit der Cursor in andere Bereiche
-// kann ohne dass das Panel sofort einklappt — gibt dem User Zeit zum Lesen.
+// Mouse-Enter:  500ms Delay vor dem Öffnen — kurzes Drüberwischen löst kein
+//               Expand aus, nur bewusstes Verweilen.
+// Mouse-Leave: 3000ms Delay vor dem Schliessen — Cursor darf zwischen
+//               Spalten wechseln ohne dass die expandierte Spalte einklappt.
 
 export const PANEL_MODES = ['auto', 'open', 'closed'];
 
+const EXPAND_DELAY_MS   = 500;
 const COLLAPSE_DELAY_MS = 3000;
 
 export function usePanelMode(storageKey, defaultMode = 'auto') {
@@ -30,6 +33,7 @@ export function usePanelMode(storageKey, defaultMode = 'auto') {
   });
   const [hovered, setHovered] = useState(false);
   const collapseTimerRef = useRef(null);
+  const expandTimerRef   = useRef(null);
 
   const setMode = useCallback((next) => {
     if (!PANEL_MODES.includes(next)) return;
@@ -46,16 +50,22 @@ export function usePanelMode(storageKey, defaultMode = 'auto') {
       clearTimeout(collapseTimerRef.current);
       collapseTimerRef.current = null;
     }
-    setHovered(true);
+    if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
+    expandTimerRef.current = setTimeout(() => setHovered(true), EXPAND_DELAY_MS);
   }, []);
 
   const onMouseLeave = useCallback(() => {
+    if (expandTimerRef.current) {
+      clearTimeout(expandTimerRef.current);
+      expandTimerRef.current = null;
+    }
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
     collapseTimerRef.current = setTimeout(() => setHovered(false), COLLAPSE_DELAY_MS);
   }, []);
 
   useEffect(() => () => {
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
+    if (expandTimerRef.current)   clearTimeout(expandTimerRef.current);
   }, []);
 
   const isExpanded = mode === 'open' || (mode === 'auto' && hovered);
