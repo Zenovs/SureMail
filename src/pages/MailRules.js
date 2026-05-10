@@ -63,6 +63,43 @@ function MailRules() {
 
   useEffect(() => { load(); }, [load]);
 
+  // v6.6.2: Folder-Listen für alle Konten laden, die Regeln mit moveToFolder haben.
+  // Damit die Regel-Übersicht den Ordner-NAMEN statt der rohen Graph-ID/IMAP-Pfad zeigt.
+  useEffect(() => {
+    const need = new Set();
+    for (const r of rules) {
+      const moveActs = (r.actions || []).filter(a => a.type === 'moveToFolder');
+      if (moveActs.length === 0) continue;
+      if (r.appliesToAccount === 'all') {
+        accounts.forEach(a => need.add(a.id));
+      } else if (r.appliesToAccount) {
+        need.add(r.appliesToAccount);
+      }
+    }
+    for (const accId of need) {
+      if (!foldersByAccount[accId]) loadFoldersForAccount(accId);
+    }
+  }, [rules, accounts, foldersByAccount, loadFoldersForAccount]);
+
+  // Hilfs-Lookup: Folder-Pfad/-ID → menschenlesbarer Name. Fällt auf einen
+  // generischen Hinweis zurück, falls die Folder-Liste noch nicht geladen
+  // ist oder der Ordner inzwischen gelöscht wurde.
+  const folderLabelFor = useCallback((accountId, folderPath) => {
+    if (!folderPath) return 'Ordner';
+    const tryAccounts = accountId === 'all' ? accounts.map(a => a.id) : [accountId];
+    for (const accId of tryAccounts) {
+      const list = foldersByAccount[accId];
+      if (!list) continue;
+      const hit = list.find(f => f.path === folderPath);
+      if (hit) return hit.name;
+    }
+    // Heuristik: alles was nicht wie ein lesbarer Pfad aussieht (>40 Zeichen
+    // und keine slash-Struktur) ist mit hoher Wahrscheinlichkeit eine Graph-ID
+    // → versteckter Fallback statt unleserliche Folge zu zeigen.
+    if (folderPath.length > 40 && !folderPath.includes('/')) return 'Ordner';
+    return folderPath;
+  }, [accounts, foldersByAccount]);
+
   // Folder-Liste lazy laden, wenn der Editor moveToFolder zeigt
   const loadFoldersForAccount = useCallback(async (accountId) => {
     if (foldersByAccount[accountId]) return;
@@ -183,7 +220,7 @@ function MailRules() {
       return `${f} ${o} "${cn.value}"`;
     }).join(rule.matchAll === false ? ' ODER ' : ' UND ');
     const actText = rule.actions.map(a => {
-      if (a.type === 'moveToFolder') return `→ ${a.folder}`;
+      if (a.type === 'moveToFolder') return `→ ${folderLabelFor(rule.appliesToAccount, a.folder)}`;
       if (a.type === 'snoozeHours')  return `⏱ ${a.hours} Std.`;
       return ACTION_TYPES.find(x => x.id === a.type)?.label || a.type;
     }).join(', ');

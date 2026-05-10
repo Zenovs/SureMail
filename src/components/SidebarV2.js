@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, MailAll, Edit, Calendar, Group, Settings, Book, ChevronRight, Time, Filter, Bot } from '@carbon/icons-react';
+import { Search, MailAll, Edit, Calendar, Group, Settings, Book, ChevronRight, Time, Filter, Bot, Pin, Locked } from '@carbon/icons-react';
+import { usePanelMode } from '../utils/usePanelMode';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import { useSidebar } from '../context/SidebarContext';
@@ -85,17 +86,23 @@ function SidebarV2({ currentView, onNavigate }) {
     { id: 'logbuch',  label: 'Logbuch',       Icon: Book     },
   ];
 
-  // Icons-Only Mode
-  const isIconsOnly = settings.iconsOnly && !isResizing;
-  const displayWidth = settings.collapsed ? 64 : (isIconsOnly ? 64 : settings.width);
+  // v6.6.2: 3-Mode-Hover-Expand. Überschreibt das alte iconsOnly/collapsed-Verhalten.
+  const panel = usePanelMode('panel.mainSidebar', 'auto');
+  const compact = !panel.isExpanded;
+  const isIconsOnly = compact;  // Kompatibilität mit bestehendem JSX
+  const displayWidth = compact ? 64 : settings.width;
+
+  const ModeIcon = panel.isPinned ? Pin : (panel.isClosed ? Locked : Pin);
+  const modeIconClass = panel.isPinned ? c.accent : c.textSecondary;
 
   return (
-    <aside 
+    <aside
       ref={sidebarRef}
+      {...panel.hoverProps}
       className={`${c.sidebar} ${c.border} border-r flex flex-col h-full relative select-none`}
-      style={{ 
+      style={{
         width: displayWidth,
-        minWidth: settings.minWidth,
+        minWidth: compact ? 64 : settings.minWidth,
         maxWidth: settings.maxWidth,
         transition: isResizing ? 'none' : 'width 0.2s ease-out'
       }}
@@ -261,6 +268,17 @@ function SidebarV2({ currentView, onNavigate }) {
 
       {/* Collapsed/Icons-only spacer */}
       {(isIconsOnly || settings.collapsed) && <div className="flex-1" />}
+
+      {/* v6.6.2: Panel-Mode-Toggle (Auto / Pinned / Closed) */}
+      <div className={`px-3 py-1.5 ${c.border} border-t flex ${compact ? 'justify-center' : 'justify-end'}`}>
+        <button
+          onClick={panel.cycleMode}
+          title={panel.tooltip}
+          className={`p-1.5 rounded ${c.hover} ${modeIconClass}`}
+        >
+          <ModeIcon size={14} />
+        </button>
+      </div>
 
       {/* Bottom Navigation */}
       <div className={`p-3 ${c.border} border-t space-y-0.5`}>

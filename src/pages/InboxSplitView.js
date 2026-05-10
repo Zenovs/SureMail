@@ -4,13 +4,33 @@ import {
   WarningAlt, Archive, Folder, DragVertical, Security,
   CheckboxChecked, Checkbox, CloseFilled, ChevronDown, ChevronRight,
   Bullhorn, Misuse, Debug, Tag, Close, Checkmark, CheckmarkFilled, Reply, ReplyAll, SendAlt,
-  Download, FolderOpen, Earth, InProgress, FolderAdd, Edit, Attachment, WarningFilled, Time, Bot
+  Download, FolderOpen, Earth, InProgress, FolderAdd, Edit, Attachment, WarningFilled, Time, Bot, Pin, Locked
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmailHtmlFrame from '../components/EmailHtmlFrame';
 import SnoozeMenu from '../components/SnoozeMenu';
+import { usePanelMode } from '../utils/usePanelMode';
+
+// v6.6.2: Kollabierte Spaltenbreiten — schmal genug damit Icons noch klickbar sind
+const FOLDER_COLLAPSED_WIDTH    = 48;
+const EMAIL_LIST_COLLAPSED_WIDTH = 56;
+
+// Kleines Mode-Toggle-Icon (Auto / Pinned / Closed)
+const PanelModeToggle = ({ panel, c }) => {
+  const Icon = panel.isPinned ? Pin : (panel.isClosed ? Locked : Pin);
+  const colorClass = panel.isPinned ? c.accent : c.textSecondary;
+  return (
+    <button
+      onClick={panel.cycleMode}
+      title={panel.tooltip}
+      className={`p-1 rounded hover:bg-white/10 transition-colors ${colorClass}`}
+    >
+      <Icon size={14} className={panel.isAuto ? 'opacity-50' : ''} />
+    </button>
+  );
+};
 import { getCurrentFont } from './FontSettings';
 import { analyzeEmails, getSpamFilterSettings, TAG_STYLES } from '../utils/SpamFilter';
 import SenderCategoryManager from '../services/SenderCategoryManager';
@@ -606,6 +626,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const [triageMap, setTriageMap] = useState(() => new Map());
   const [triageRunning, setTriageRunning] = useState(false);
   const [triageProgress, setTriageProgress] = useState(null); // {processed, total} | null
+
+  // v6.6.2: Hover-Expand für Folder- und Mail-Listen-Spalten
+  const folderPanel   = usePanelMode('panel.folderColumn',   'auto');
+  const mailListPanel = usePanelMode('panel.mailListColumn', 'auto');
 
   // v6.6.0: Snooze — Set von "accountId|folder|uid", die aktuell gesnoozt sind.
   // Filtert betroffene Mails aus dem Inbox-View. Wird per IPC bei Mount,
@@ -2011,28 +2035,40 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         </div>
       )}
     <div className={`flex-1 flex overflow-hidden min-h-0 ${c.bg}`}>
-      {/* Folder List - Resizable (v1.8.1) */}
+      {/* Folder List - Resizable (v1.8.1) + v6.6.2 Hover-Expand */}
       <div
+        {...folderPanel.hoverProps}
         className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden min-h-0 relative`}
-        style={{ width: `${folderWidth}px`, minWidth: `${FOLDER_MIN_WIDTH}px`, maxWidth: `${FOLDER_MAX_WIDTH}px`, alignSelf: 'stretch' }}
+        style={{
+          width: folderPanel.isExpanded ? `${folderWidth}px` : `${FOLDER_COLLAPSED_WIDTH}px`,
+          minWidth: folderPanel.isExpanded ? `${FOLDER_MIN_WIDTH}px` : `${FOLDER_COLLAPSED_WIDTH}px`,
+          maxWidth: folderPanel.isExpanded ? `${FOLDER_MAX_WIDTH}px` : `${FOLDER_COLLAPSED_WIDTH}px`,
+          alignSelf: 'stretch',
+          transition: isResizingFolder ? 'none' : 'width 0.18s ease-out'
+        }}
       >
-        <div className={`p-3 ${c.border} border-b flex items-center justify-between`}>
-          <h3 className={`font-medium ${c.text} text-sm`}>Ordner</h3>
+        <div className={`p-3 ${c.border} border-b flex items-center ${folderPanel.isExpanded ? 'justify-between' : 'justify-center'}`}>
+          {folderPanel.isExpanded && <h3 className={`font-medium ${c.text} text-sm`}>Ordner</h3>}
           <div className="flex items-center gap-1">
-            <button
-              onClick={openCreateFolder}
-              title="Neuer Ordner"
-              className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary} hover:text-cyan-400`}
-            >
-              <FolderAdd size={16} />
-            </button>
-            <button
-              onClick={() => { folderCache.delete(`folders:${activeAccountId}`); loadFolders(true); }}
-              title="Ordner synchronisieren"
-              className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary}`}
-            >
-              <Renew size={16} className={loadingFolders ? 'animate-spin' : ''} />
-            </button>
+            {folderPanel.isExpanded && (
+              <>
+                <button
+                  onClick={openCreateFolder}
+                  title="Neuer Ordner"
+                  className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary} hover:text-cyan-400`}
+                >
+                  <FolderAdd size={16} />
+                </button>
+                <button
+                  onClick={() => { folderCache.delete(`folders:${activeAccountId}`); loadFolders(true); }}
+                  title="Ordner synchronisieren"
+                  className={`p-1 rounded hover:bg-white/10 transition-colors ${c.textSecondary}`}
+                >
+                  <Renew size={16} className={loadingFolders ? 'animate-spin' : ''} />
+                </button>
+              </>
+            )}
+            <PanelModeToggle panel={folderPanel} c={c} />
           </div>
         </div>
         {folderError && (
@@ -2058,17 +2094,18 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 onDragOver={(e) => { e.preventDefault(); setDragOverFolder(folder.path); }}
                 onDragLeave={() => setDragOverFolder(null)}
                 onDrop={() => handleDropOnFolder(folder.path)}
-                className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm transition-colors ${
+                title={folderPanel.isExpanded ? '' : folder.name}
+                className={`w-full text-left ${folderPanel.isExpanded ? 'px-3' : 'px-2 justify-center'} py-2 flex items-center gap-2 text-sm transition-colors ${
                   currentFolder === folder.path && !categoryFilter
                     ? `${c.accentBg} text-white`
                     : dragOverFolder === folder.path
                     ? 'bg-cyan-500/30 scale-[1.02]'
                     : `${c.textSecondary} ${c.hover}`
                 }`}
-                style={{ paddingLeft: `${(folder.depth * 12) + 12}px` }}
+                style={folderPanel.isExpanded ? { paddingLeft: `${(folder.depth * 12) + 12}px` } : undefined}
               >
-                {/* Expand/Collapse arrow for INBOX virtual subfolders */}
-                {folder.path === 'INBOX' ? (
+                {/* Expand/Collapse arrow for INBOX virtual subfolders — nur im offenen Modus */}
+                {folderPanel.isExpanded && (folder.path === 'INBOX' ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2095,16 +2132,16 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                   </button>
                 ) : (
                   <span className="w-4 shrink-0" />
-                )}
+                ))}
                 {getFolderIcon(folder.type)}
-                <span className="truncate flex-1">{folder.name}</span>
-                {/* Unread count badge */}
+                {folderPanel.isExpanded && <span className="truncate flex-1">{folder.name}</span>}
+                {/* Unread count badge — auch im kollabierten Modus zeigen, wenn > 0 */}
                 {folder.path === 'INBOX' && unreadCount > 0 && (
-                  <span className="px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium min-w-[20px] text-center">
-                    {unreadCount}
+                  <span className={`${folderPanel.isExpanded ? 'px-1.5 py-0.5' : 'absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center'} bg-blue-500 text-white text-[10px] rounded-full font-medium min-w-[16px] text-center`}>
+                    {unreadCount > 99 ? '99' : unreadCount}
                   </span>
                 )}
-                {folder.unread > 0 && folder.path !== 'INBOX' && (
+                {folder.unread > 0 && folder.path !== 'INBOX' && folderPanel.isExpanded && (
                   <span className="px-1.5 py-0.5 bg-blue-500/80 text-white text-xs rounded-full font-medium min-w-[20px] text-center">
                     {folder.unread}
                   </span>
@@ -2274,11 +2311,30 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         )}
       </div>
 
-      {/* Email List - v1.12.2: Resizable, v2.3.0: Multi-Select */}
+      {/* Email List - v1.12.2: Resizable, v2.3.0: Multi-Select, v6.6.2: Hover-Expand */}
       <div
+        {...mailListPanel.hoverProps}
         className={`${c.bgSecondary} ${c.border} border-r flex flex-col overflow-hidden min-h-0 relative`}
-        style={{ width: `${emailListWidth}px`, minWidth: `${EMAIL_LIST_MIN_WIDTH}px`, maxWidth: `${EMAIL_LIST_MAX_WIDTH}px`, alignSelf: 'stretch' }}
+        style={{
+          width: mailListPanel.isExpanded ? `${emailListWidth}px` : `${EMAIL_LIST_COLLAPSED_WIDTH}px`,
+          minWidth: mailListPanel.isExpanded ? `${EMAIL_LIST_MIN_WIDTH}px` : `${EMAIL_LIST_COLLAPSED_WIDTH}px`,
+          maxWidth: mailListPanel.isExpanded ? `${EMAIL_LIST_MAX_WIDTH}px` : `${EMAIL_LIST_COLLAPSED_WIDTH}px`,
+          alignSelf: 'stretch',
+          transition: isResizingEmailList ? 'none' : 'width 0.18s ease-out'
+        }}
       >
+        {!mailListPanel.isExpanded && (
+          // Kollabierter Modus: nur Toggle-Button + ungelesen-Zähler (kein Toolbar-Quetsch)
+          <div className="flex flex-col items-center pt-3 gap-3">
+            <PanelModeToggle panel={mailListPanel} c={c} />
+            {unreadCount > 0 && (
+              <span className="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] rounded-full font-medium min-w-[20px] text-center" title={`${unreadCount} ungelesen`}>
+                {unreadCount > 99 ? '99' : unreadCount}
+              </span>
+            )}
+          </div>
+        )}
+        {mailListPanel.isExpanded && (
         <div className={`p-4 ${c.border} border-b`}>
           <div className="flex items-center justify-between">
             <div>
@@ -2345,6 +2401,8 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
               >
                 {triageRunning ? <InProgress size={16} className="animate-spin" /> : <Bot size={16} />}
               </button>
+              {/* v6.6.2: Spalten-Modus Toggle */}
+              <PanelModeToggle panel={mailListPanel} c={c} />
             </div>
           </div>
           {triageProgress && (
@@ -2392,6 +2450,8 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             </div>
           )}
         </div>
+        )}
+        {mailListPanel.isExpanded && (
         <div
           ref={emailScrollRef}
           className="flex-1 overflow-y-auto min-h-0"
@@ -2467,8 +2527,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             </>
           )}
         </div>
-        
-        {/* v1.12.2: Resize Handle for email list column */}
+        )}
+
+        {/* v1.12.2: Resize Handle for email list column — nur im offenen Modus */}
+        {mailListPanel.isExpanded && (
         <div
           onMouseDown={() => setIsResizingEmailList(true)}
           className={`absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-cyan-500/50 transition-colors z-10 ${isResizingEmailList ? 'bg-cyan-500' : ''}`}
@@ -2478,6 +2540,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             <DragVertical size={16} className={`${c.textSecondary} opacity-50`} />
           </div>
         </div>
+        )}
       </div>
 
       {/* Email Preview - v1.12.2: Takes remaining space */}
@@ -2525,16 +2588,23 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 </div>
               );
             })()}
-            <div className={`p-4 ${c.bgSecondary} ${c.border} border-b`}>
+            {/* v6.6.2: Kompakterer Preview-Header — weniger vertikaler Platz für Metadata */}
+            <div className={`px-4 py-2 ${c.bgSecondary} ${c.border} border-b`}>
               <div className="flex justify-between items-start gap-2">
                 <div className="flex-1 min-w-0">
-                  <h2 className={`text-xl font-semibold ${c.text} mb-2 truncate`}>
+                  <h2 className={`text-base font-semibold ${c.text} truncate leading-tight`}>
                     {selectedEmail.subject}
                   </h2>
-                  <p className={`${c.textSecondary} text-sm`}>Von: {selectedEmail.from}</p>
-                  <p className={`${c.textSecondary} text-sm`}>An: {selectedEmail.to}</p>
-                  <p className={`${c.textSecondary} text-xs mt-1`}>
-                    {new Date(selectedEmail.date).toLocaleString('de-DE')}
+                  <p className={`${c.textSecondary} text-xs mt-0.5 truncate`}>
+                    <span className={c.text}>{selectedEmail.from}</span>
+                    <span className="opacity-60"> · </span>
+                    <span>{new Date(selectedEmail.date).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                    {selectedEmail.to && (
+                      <>
+                        <span className="opacity-60"> · an </span>
+                        <span className="truncate">{selectedEmail.to}</span>
+                      </>
+                    )}
                   </p>
                 </div>
                 {/* v2.9.3: Reply buttons + full view */}
