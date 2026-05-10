@@ -4052,37 +4052,56 @@ async function aiComplete({ system = '', user = '', maxTokens = 1500, temperatur
 
   if (settings.provider === 'anthropic') {
     if (!settings.anthropicApiKey) throw new Error('Anthropic API-Key fehlt');
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 60000);
-    try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': settings.anthropicApiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: settings.anthropicModel,
-          max_tokens: maxTokens,
-          system: fullSystem,
-          messages: [{ role: 'user', content: user }],
-          temperature
-        }),
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-      if (!resp.ok) {
-        const errBody = await resp.text();
-        throw new Error(`Anthropic HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
+    // v6.7.0: Auto-Retry bei 429 mit Retry-After-Header (max. 1 Wiederholung,
+    // damit Free-Tier-Bursts nicht sofort scheitern).
+    const callOnce = async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 60000);
+      try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': settings.anthropicApiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: settings.anthropicModel,
+            max_tokens: maxTokens,
+            system: fullSystem,
+            messages: [{ role: 'user', content: user }],
+            temperature
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        return resp;
+      } catch (e) {
+        clearTimeout(timer);
+        if (e.name === 'AbortError') throw new Error('Anthropic-Timeout (60s)');
+        throw e;
       }
-      const data = await resp.json();
-      const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
-      return parseAiJson(text);
-    } catch (e) {
-      clearTimeout(timer);
-      throw new Error(e.name === 'AbortError' ? 'Anthropic-Timeout (60s)' : e.message);
+    };
+
+    let resp = await callOnce();
+    if (resp.status === 429) {
+      const retryAfter = parseInt(resp.headers.get('retry-after') || '0', 10);
+      const waitMs = (retryAfter > 0 && retryAfter < 60 ? retryAfter : 15) * 1000;
+      console.log(`[AI] Anthropic 429 — warte ${waitMs}ms und versuche erneut`);
+      await new Promise(r => setTimeout(r, waitMs));
+      resp = await callOnce();
     }
+    if (!resp.ok) {
+      const errBody = await resp.text();
+      // Bei wiederholtem 429: freundlicherer Hinweis statt rohem JSON-Error
+      if (resp.status === 429) {
+        throw new Error('Rate-Limit erreicht — dein Anthropic-Tarif erlaubt aktuell nicht mehr Anfragen pro Minute. Tipp: Lokales Ollama nutzen für unbegrenzte Triage.');
+      }
+      throw new Error(`Anthropic HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
+    }
+    const data = await resp.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+    return parseAiJson(text);
   }
 
   throw new Error(`Unbekannter AI-Provider: ${settings.provider}`);
@@ -4184,8 +4203,14 @@ ipcMain.handle('ai:triageBatch', async (event, payload) => {
   const { items = [] } = payload || {};
   let processed = 0, fromCache = 0, errors = 0;
   const results = {};
-  // Sequenziell — Ollama ist single-stream, Anthropic hat Rate-Limits.
-  for (const it of items) {
+  // v6.7.0: Pacing — bei Anthropic Free-Tier sind 5 RPM Limit. Wir pausieren
+  // 13s zwischen Aufrufen → max. 4.6 RPM, sicher unter dem Limit. Bei Ollama
+  // (lokal) keine Pause — das ist single-stream sequentiell schnell genug.
+  const settings = getAiSettings();
+  const interCallDelayMs = settings.provider === 'anthropic' ? 13000 : 0;
+
+  for (let idx = 0; idx < items.length; idx++) {
+    const it = items[idx];
     const cached = triageCacheGet(it.accountId, it.folder, it.uid);
     if (cached) {
       results[`${it.accountId}|${it.folder}|${it.uid}`] = cached;
@@ -4199,6 +4224,13 @@ ipcMain.handle('ai:triageBatch', async (event, payload) => {
       processed++;
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('ai:triageProgress', { processed, total: items.length, fromCache });
+      }
+      // Pacing nur wenn weitere uncached-Anfragen folgen
+      if (interCallDelayMs > 0 && idx < items.length - 1) {
+        const remaining = items.slice(idx + 1).filter(x => !triageCacheGet(x.accountId, x.folder, x.uid));
+        if (remaining.length > 0) {
+          await new Promise(r => setTimeout(r, interCallDelayMs));
+        }
       }
     } catch (e) {
       errors++;
