@@ -1,6 +1,6 @@
 {
   "name": "coremail-desktop",
-  "version": "6.7.3",
+  "version": "6.7.4",
   "description": "CoreMail Desktop - Lightweight IMAP/SMTP email client for Linux with Microsoft 365 OAuth2 and dark themes",
   "author": "Dario Zenhäusern",
   "license": "MIT",

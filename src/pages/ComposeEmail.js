@@ -619,7 +619,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   return (
     <div
       ref={dropZoneRef}
-      className={`flex-1 flex flex-col ${c.bg} relative`}
+      className={`flex-1 flex flex-col overflow-hidden min-h-0 ${c.bg} relative`}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
