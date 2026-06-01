@@ -2861,8 +2861,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 </div>
               )}
 
-              {/* Email content */}
-              <div className="p-6">
+              {/* Email content — flex-shrink-0 damit Reply-Panel den Inhalt nicht
+                  zusammenstaucht und der Container scrollen kann (v6.7.2) */}
+              <div className="p-6 flex-shrink-0">
                 {(() => {
                   const fontId = getCurrentFont();
                   const fontFamily = GOOGLE_FONTS[fontId] || 'Inter';
