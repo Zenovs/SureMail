@@ -323,12 +323,16 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       const aiPrefix = composeData?.aiDraft
         ? `<div>${composeData.aiDraft.replace(/\n/g, '<br>')}</div><br>`
         : '<p></p><br>';
+      // v6.7.5: Zitierte Mail in weißen Container wrappen — HTML-Mails
+      // erwarten weißen Hintergrund, Text-Mails wären auf dem dunklen
+      // Editor-Background unleserlich (weiße Text-Farbe vom dark-theme erbt).
+      const quoteWrapStyle = 'background:#ffffff;color:#222;padding:12px 16px;border-radius:6px;margin-top:8px;font-family:sans-serif;';
       if (isForward) {
-        editorRef.current.innerHTML =
-          `${aiPrefix}<hr><p><strong>Weitergeleitete Nachricht</strong><br>Von: ${replyTo.from || ''}<br>An: ${replyTo.to || ''}<br>Datum: ${replyTo.date ? new Date(replyTo.date).toLocaleString('de-DE') : ''}<br>Betreff: ${replyTo.subject || ''}</p>${quoted}`;
+        const header = `<div style="${quoteWrapStyle}font-size:13px;border-left:3px solid #06b6d4;"><p style="margin:0 0 8px 0"><strong>Weitergeleitete Nachricht</strong><br>Von: ${replyTo.from || ''}<br>An: ${replyTo.to || ''}<br>Datum: ${replyTo.date ? new Date(replyTo.date).toLocaleString('de-DE') : ''}<br>Betreff: ${replyTo.subject || ''}</p><div>${quoted}</div></div>`;
+        editorRef.current.innerHTML = `${aiPrefix}<hr>${header}`;
       } else {
         editorRef.current.innerHTML =
-          `${aiPrefix}<blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${quoted}</blockquote>`;
+          `${aiPrefix}<blockquote style="border-left:3px solid #06b6d4;padding:0;margin:0;"><div style="${quoteWrapStyle}">${quoted}</div></blockquote>`;
       }
     }
   }, [replyTo, isForward]); // eslint-disable-line
