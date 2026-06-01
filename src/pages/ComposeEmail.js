@@ -934,14 +934,17 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                 </div>
               )}
 
-              {/* Editor-Inhalt */}
+              {/* Editor-Inhalt — v6.7.3: kein maxHeight/overflow mehr, Editor
+                  wächst mit Inhalt, der äussere Form-Container scrollt. Vermeidet
+                  doppelt verschachtelte Scrollbereiche, die sich beim Wheel anfühlen
+                  als ob nichts scrollt. */}
               {editorMode === 'richtext' && (
                 <div
                   ref={editorRef}
                   contentEditable
                   suppressContentEditableWarning
-                  className={`w-full min-h-64 p-4 ${c.text} focus:outline-none overflow-y-auto`}
-                  style={{ fontSize: '14px', lineHeight: '1.6', maxHeight: '480px' }}
+                  className={`w-full min-h-64 p-4 ${c.text} focus:outline-none`}
+                  style={{ fontSize: '14px', lineHeight: '1.6' }}
                   onKeyDown={e => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       // Standardverhalten: neuer <p>-Block statt <br>
