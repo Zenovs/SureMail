@@ -252,7 +252,7 @@ export default function GlobalSearch({ onSelectEmail }) {
         {/* Error Message */}
         {searchError && (
           <div className="p-4 bg-red-500/10 border-b border-red-500/20">
-            <p className="text-red-400 text-sm">❌ {searchError}</p>
+            <p className="text-red-400 text-sm flex items-center gap-1.5"><WarningAlt size={16} className="flex-shrink-0" /> {searchError}</p>
           </div>
         )}
 

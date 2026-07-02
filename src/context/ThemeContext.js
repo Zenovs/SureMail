@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 const ThemeContext = createContext();
 
@@ -317,17 +317,22 @@ export function ThemeProvider({ children }) {
     }
   }, []);
 
-  const changeTheme = (newTheme) => {
+  const changeTheme = useCallback((newTheme) => {
     if (themes[newTheme]) {
       setTheme(newTheme);
       localStorage.setItem('coremail-theme', newTheme);
       // Update window icon when theme changes (v2.2.0)
       updateThemeIcon(newTheme);
     }
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ theme, themes, currentTheme: themes[theme], changeTheme }),
+    [theme, changeTheme]
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme, themes, currentTheme: themes[theme], changeTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

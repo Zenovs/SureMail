@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react';
 
 const SearchContext = createContext();
 
@@ -186,7 +186,9 @@ export function SearchProvider({ children }) {
     setFilters(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const value = {
+  // Memoisiert — ein frisches Objekt pro Render würde alle Consumer
+  // (inkl. der darunter gemounteten Inbox) bei jedem Tastendruck re-rendern.
+  const value = useMemo(() => ({
     // State
     isSearchOpen,
     searchQuery,
@@ -197,7 +199,7 @@ export function SearchProvider({ children }) {
     searchStats,
     filters,
     showFilters,
-    
+
     // Actions
     openSearch,
     closeSearch,
@@ -208,7 +210,12 @@ export function SearchProvider({ children }) {
     updateFilter,
     resetFilters,
     setSearchResults
-  };
+  }), [
+    isSearchOpen, searchQuery, searchResults, isSearching, searchError,
+    suggestions, searchStats, filters, showFilters,
+    openSearch, closeSearch, toggleSearch, performSearch, updateSearchQuery,
+    updateFilter, resetFilters
+  ]);
 
   return (
     <SearchContext.Provider value={value}>

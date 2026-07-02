@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 const SidebarContext = createContext();
 
@@ -15,12 +15,12 @@ export function SidebarProvider({ children }) {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Laden der Einstellungen beim Start
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  // Ref hält den aktuellen Stand, damit die Action-Callbacks stabil bleiben
+  // (sonst re-rendern alle Consumer bei jeder Settings-Änderung doppelt).
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       if (window.electronAPI?.getAppSettings) {
         const appSettings = await window.electronAPI.getAppSettings();
@@ -31,9 +31,14 @@ export function SidebarProvider({ children }) {
     } catch (error) {
       console.error('Fehler beim Laden der Sidebar-Einstellungen:', error);
     }
-  };
+  }, []);
 
-  const saveSettings = async (newSettings) => {
+  // Laden der Einstellungen beim Start
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const saveSettings = useCallback(async (newSettings) => {
     try {
       if (window.electronAPI?.getAppSettings && window.electronAPI?.saveAppSettings) {
         const appSettings = await window.electronAPI.getAppSettings();
@@ -45,46 +50,49 @@ export function SidebarProvider({ children }) {
     } catch (error) {
       console.error('Fehler beim Speichern der Sidebar-Einstellungen:', error);
     }
-  };
+  }, []);
 
-  const updateWidth = (width) => {
-    const clampedWidth = Math.min(Math.max(width, settings.minWidth), settings.maxWidth);
-    const newSettings = { ...settings, width: clampedWidth };
+  const updateWidth = useCallback((width) => {
+    const s = settingsRef.current;
+    const clampedWidth = Math.min(Math.max(width, s.minWidth), s.maxWidth);
+    const newSettings = { ...s, width: clampedWidth };
     setSettings(newSettings);
     saveSettings(newSettings);
-  };
+  }, [saveSettings]);
 
-  const updateSetting = (key, value) => {
-    const newSettings = { ...settings, [key]: value };
+  const updateSetting = useCallback((key, value) => {
+    const newSettings = { ...settingsRef.current, [key]: value };
     setSettings(newSettings);
     saveSettings(newSettings);
-  };
+  }, [saveSettings]);
 
-  const toggleCollapse = () => {
-    updateSetting('collapsed', !settings.collapsed);
-  };
+  const toggleCollapse = useCallback(() => {
+    updateSetting('collapsed', !settingsRef.current.collapsed);
+  }, [updateSetting]);
 
-  const toggleIconsOnly = () => {
-    updateSetting('iconsOnly', !settings.iconsOnly);
-  };
+  const toggleIconsOnly = useCallback(() => {
+    updateSetting('iconsOnly', !settingsRef.current.iconsOnly);
+  }, [updateSetting]);
 
-  const resetToDefaults = () => {
+  const resetToDefaults = useCallback(() => {
     setSettings(DEFAULT_SETTINGS);
     saveSettings(DEFAULT_SETTINGS);
-  };
+  }, [saveSettings]);
+
+  const value = useMemo(() => ({
+    settings,
+    isResizing,
+    setIsResizing,
+    updateWidth,
+    updateSetting,
+    toggleCollapse,
+    toggleIconsOnly,
+    resetToDefaults,
+    loadSettings
+  }), [settings, isResizing, updateWidth, updateSetting, toggleCollapse, toggleIconsOnly, resetToDefaults, loadSettings]);
 
   return (
-    <SidebarContext.Provider value={{
-      settings,
-      isResizing,
-      setIsResizing,
-      updateWidth,
-      updateSetting,
-      toggleCollapse,
-      toggleIconsOnly,
-      resetToDefaults,
-      loadSettings
-    }}>
+    <SidebarContext.Provider value={value}>
       {children}
     </SidebarContext.Provider>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import {
-  TrashCan, Email, Renew, MailAll, Send, Document,
+  TrashCan, Email, EmailNew, Renew, MailAll, Send, Document,
   WarningAlt, Archive, Folder, DragVertical, Security,
   CheckboxChecked, Checkbox, CloseFilled, ChevronDown, ChevronRight,
   Bullhorn, Misuse, Debug, Tag, Close, Checkmark, CheckmarkFilled, Reply, ReplyAll, SendAlt,
@@ -42,6 +42,7 @@ const PanelModeToggle = ({ panel, c }) => {
     <button
       onClick={panel.cycleMode}
       title={panel.tooltip}
+      aria-label={panel.tooltip}
       className={`p-1 rounded hover:bg-white/10 transition-colors ${colorClass}`}
     >
       <Icon size={14} className={panel.isAuto ? 'opacity-50' : ''} />
@@ -522,11 +523,12 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             onClick={(e) => { e.stopPropagation(); onToggleRead(email.uid, email.seen); }}
             className={`p-1.5 ${c.hover} rounded transition-colors ${c.textSecondary} hover:${c.text}`}
             title={email.seen ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
+            aria-label={email.seen ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
           >
             {actionLoading === `read-${email.uid}` ? (
               <InProgress size={16} className="animate-spin" />
             ) : email.seen ? (
-              <Email size={16} />
+              <EmailNew size={16} />
             ) : (
               <Email size={16} />
             )}
@@ -535,6 +537,7 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             onClick={(e) => { e.stopPropagation(); onDelete(email.uid); }}
             className={`p-1.5 ${c.hover} rounded transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
             title="Löschen"
+            aria-label="Löschen"
           >
             {actionLoading === `delete-${email.uid}` ? (
               <InProgress size={16} className="animate-spin" />
@@ -572,6 +575,8 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState(null); // { uid, message } | null
+  const [replySentToast, setReplySentToast] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [folderError, setFolderError] = useState(null);
   // Folder management modals
@@ -599,6 +604,20 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const [selectedUids, setSelectedUids] = useState(new Set());
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [lastClickedIndex, setLastClickedIndex] = useState(null);
+
+  // Refs spiegeln häufig wechselnden State, damit die Row-Callbacks
+  // (onSelect/onToggleRead/onDelete) stabile Identität behalten — sonst
+  // re-rendert jede Selektion sämtliche memoisierten EmailListItem-Rows.
+  const emailsRef = useRef(emails);
+  emailsRef.current = emails;
+  const selectedEmailRef = useRef(selectedEmail);
+  selectedEmailRef.current = selectedEmail;
+  const selectedIndexRef = useRef(selectedIndex);
+  selectedIndexRef.current = selectedIndex;
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
+  const lastClickedIndexRef = useRef(lastClickedIndex);
+  lastClickedIndexRef.current = lastClickedIndex;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   
@@ -1118,7 +1137,15 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     }
   }, [activeAccountId, currentFolder, isGraphAccount, getCacheKey]);
 
-  // Initial load / account switch
+  // Guard gegen Doppel-Fetches: Kontowechsel änderte bisher sowohl
+  // activeAccountId als auch die fetchEmails-Identität, wodurch beide Effekte
+  // feuerten und dieselbe Mailbox zweimal vom Server geladen wurde.
+  const currentFolderRef = useRef(currentFolder);
+  currentFolderRef.current = currentFolder;
+  const lastFetchKeyRef = useRef(null);
+
+  // Initial load / account switch — der eigentliche Fetch läuft über den
+  // Folder-Effekt darunter (genau einmal pro Konto+Ordner).
   useEffect(() => {
     setSelectedEmail(null);
     setSelectedIndex(0);
@@ -1131,15 +1158,25 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     // useCache=true: zeigt Memory-Cache oder IndexedDB sofort an, kein erneuter Download nötig
     // Mails bleiben leer bis Cache geladen ist (kein falsches Konto sichtbar, da Cache-Key accountId enthält)
     setEmails([]);
-    fetchEmails(true);
+    if (currentFolderRef.current === 'INBOX') {
+      lastFetchKeyRef.current = null; // Folder-Effekt feuert gleich → fetchen lassen
+    } else {
+      // Folder-Effekt feuert in diesem Commit noch mit dem alten Ordner —
+      // diesen veralteten Fetch unterdrücken; der INBOX-Fetch folgt nach
+      // dem setCurrentFolder-Re-Render.
+      lastFetchKeyRef.current = `${activeAccountId}|${currentFolderRef.current}`;
+    }
   }, [activeAccountId]);
 
   // Load emails when folder changes
   useEffect(() => {
+    const key = `${activeAccountId}|${currentFolder}`;
+    if (lastFetchKeyRef.current === key) return;
+    lastFetchKeyRef.current = key;
     setSelectedIndex(0);
     setSelectedEmail(null);
     fetchEmails(true);
-  }, [currentFolder, fetchEmails]);
+  }, [activeAccountId, currentFolder, fetchEmails]);
 
   // v6.6.0: AI-Triage-Map laden bei Account-/Folder-Wechsel + Live-Updates
   useEffect(() => {
@@ -1282,6 +1319,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     // Race guard: discard responses for any earlier request
     previewRequestIdRef.current = uid;
     setLoadingPreview(true);
+    setPreviewError(null);
     try {
       let result;
       if (isGraphAccount()) {
@@ -1290,11 +1328,20 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         result = await window.electronAPI.fetchEmailForAccount(activeAccountId, uid, currentFolder);
       }
       // Only apply result if this is still the latest request
-      if (previewRequestIdRef.current === uid && result?.success) {
-        setSelectedEmail(result.email);
+      if (previewRequestIdRef.current === uid) {
+        if (result?.success) {
+          setSelectedEmail(result.email);
+        } else {
+          // Fehler sichtbar machen statt nur in der Konsole — der Nutzer sah
+          // sonst eine leere/alte Vorschau ohne Erklärung.
+          setPreviewError({ uid, message: result?.error || 'E-Mail konnte nicht geladen werden' });
+        }
       }
     } catch (e) {
       console.error('Error loading email preview', e);
+      if (previewRequestIdRef.current === uid) {
+        setPreviewError({ uid, message: e.message || 'E-Mail konnte nicht geladen werden' });
+      }
     }
     if (previewRequestIdRef.current === uid) {
       setLoadingPreview(false);
@@ -1311,23 +1358,21 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         ? await window.electronAPI.markGraphAsRead(activeAccountId, uid, !currentSeen)
         : await window.electronAPI.markAsRead(activeAccountId, uid, !currentSeen, currentFolder);
       if (result.success) {
-        const newEmails = emails.map(e =>
+        const newEmails = emailsRef.current.map(e =>
           e.uid === uid ? { ...e, seen: !currentSeen } : e
         );
         setEmails(newEmails);
         const cacheKey = getCacheKey(activeAccountId, currentFolder);
-        emailCache.set(cacheKey, { data: newEmails, hasMore, timestamp: Date.now() });
+        emailCache.set(cacheKey, { data: newEmails, hasMore: hasMoreRef.current, timestamp: Date.now() });
         const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
         if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, newEmails);
-        if (selectedEmail?.uid === uid) {
-          setSelectedEmail({ ...selectedEmail, seen: !currentSeen });
-        }
+        setSelectedEmail(prev => prev?.uid === uid ? { ...prev, seen: !currentSeen } : prev);
       }
     } catch (err) {
       console.error('Error toggling read status:', err);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, emails, selectedEmail, hasMore, getCacheKey, isGraphAccount]);
+  }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount]);
 
   // v2.6.0: Category-filtered emails — moved before handleSelectEmail to avoid TDZ
   const categoryFilteredEmails = useMemo(() => {
@@ -1351,16 +1396,48 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     return list;
   }, [categoryFilteredEmails, showUnreadOnly, snoozedKeys, activeAccountId, currentFolder]);
 
+  // Pro UID ein stabiles Analyse-Objekt — ein Inline-Spread im Row-Mapping
+  // würde die memo()-Prüfung jeder kategorisierten Row bei jedem Render brechen.
+  const effectiveAnalysisMap = useMemo(() => {
+    const map = new Map();
+    emails.forEach(email => {
+      const manualCat = manualCategories.get(email.uid);
+      const spamAnalysis = spamResults.get(email.uid);
+      map.set(email.uid, manualCat
+        ? { ...spamAnalysis, category: manualCat, isManual: true }
+        : spamAnalysis);
+    });
+    return map;
+  }, [emails, manualCategories, spamResults]);
+
+  const isSentFolder = useMemo(() => {
+    const folderLower = currentFolder.toLowerCase();
+    return folderLower.includes('sent') || folderLower.includes('gesendet');
+  }, [currentFolder]);
+
+  // Einmal pro Mount statt localStorage-Read bei jedem Preview-Render —
+  // die Schrift ändert sich nur in den FontSettings (anderer View).
+  const previewFontStyle = useMemo(() => {
+    const fontFamily = GOOGLE_FONTS[getCurrentFont()] || 'Inter';
+    return `"${fontFamily}", system-ui, -apple-system, sans-serif`;
+  }, []);
+
+  // Ref statt Dependency — handleSelectEmail bleibt so über Listen-Updates
+  // hinweg stabil und lässt die memoisierten Rows in Ruhe.
+  const filteredEmailsRef = useRef(filteredEmails);
+  filteredEmailsRef.current = filteredEmails;
+
   const handleSelectEmail = useCallback((index) => {
     setSelectedIndex(index);
-    if (filteredEmails[index]) {
-      loadEmailPreview(filteredEmails[index].uid);
+    const email = filteredEmailsRef.current[index];
+    if (email) {
+      loadEmailPreview(email.uid);
       const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
-      if (markMode === 'onClick' && !filteredEmails[index].seen) {
-        handleToggleRead(filteredEmails[index].uid, false);
+      if (markMode === 'onClick' && !email.seen) {
+        handleToggleRead(email.uid, false);
       }
     }
-  }, [filteredEmails, loadEmailPreview, handleToggleRead]);
+  }, [loadEmailPreview, handleToggleRead]);
 
   // v6.6.0: Snooze — Mail bis zum gewählten Zeitpunkt aus dem Posteingang ausblenden,
   // dann Desktop-Notification + Wiedereinblenden via processSnoozes() im Backend.
@@ -1403,22 +1480,23 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         bgLoadAbortRef.current = true;
 
         // Remove from local state and cache
-        const newEmails = emails.filter(e => e.uid !== uid);
+        const newEmails = emailsRef.current.filter(e => e.uid !== uid);
         setEmails(newEmails);
 
         // Update memory cache
         const cacheKey = getCacheKey(activeAccountId, currentFolder);
-        emailCache.set(cacheKey, { data: newEmails, hasMore, timestamp: Date.now() });
+        emailCache.set(cacheKey, { data: newEmails, hasMore: hasMoreRef.current, timestamp: Date.now() });
 
         // v1.12.1: Also remove from IndexedDB to prevent re-fetching
         await removeEmailFromIndexedDB(activeAccountId, currentFolder, uid);
-        
+
         // Select next email
-        if (selectedIndex >= newEmails.length) {
+        const selIdx = selectedIndexRef.current;
+        if (selIdx >= newEmails.length) {
           setSelectedIndex(Math.max(0, newEmails.length - 1));
         }
-        if (newEmails.length > 0 && newEmails[selectedIndex]) {
-          loadEmailPreview(newEmails[selectedIndex].uid);
+        if (newEmails.length > 0 && newEmails[selIdx]) {
+          loadEmailPreview(newEmails[selIdx].uid);
         } else {
           setSelectedEmail(null);
         }
@@ -1429,21 +1507,24 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setError(err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, emails, selectedIndex, hasMore, getCacheKey, isGraphAccount]);
+  }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount, loadEmailPreview]);
 
   // v2.3.0: Multi-Select Handlers
   const handleCheckboxChange = useCallback((uid, shiftKey) => {
+    const list = emailsRef.current;
+    const lastIdx = lastClickedIndexRef.current;
+    const clickedIndex = list.findIndex(e => e.uid === uid);
+
     setSelectedUids(prev => {
       const newSet = new Set(prev);
-      
-      if (shiftKey && lastClickedIndex !== null) {
+
+      if (shiftKey && lastIdx !== null) {
         // Shift+Click: Select range
-        const clickedIndex = emails.findIndex(e => e.uid === uid);
-        const start = Math.min(lastClickedIndex, clickedIndex);
-        const end = Math.max(lastClickedIndex, clickedIndex);
-        
+        const start = Math.min(lastIdx, clickedIndex);
+        const end = Math.max(lastIdx, clickedIndex);
+
         for (let i = start; i <= end; i++) {
-          newSet.add(emails[i].uid);
+          newSet.add(list[i].uid);
         }
       } else {
         // Normal click: Toggle single
@@ -1453,14 +1534,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           newSet.add(uid);
         }
       }
-      
+
       return newSet;
     });
-    
+
     // Track last clicked index for shift-select
-    const clickedIndex = emails.findIndex(e => e.uid === uid);
     setLastClickedIndex(clickedIndex);
-  }, [emails, lastClickedIndex]);
+  }, []);
 
   const handleSelectAll = useCallback(() => {
     if (selectedUids.size === filteredEmails.length) {
@@ -1598,6 +1678,48 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     bgLoadAbortRef.current = false;
   }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, isGraphAccount]);
 
+  // UX: Auswahl als gelesen markieren — häufigste Triage-Aktion für
+  // Newsletter/Benachrichtigungen, bisher nur einzeln möglich.
+  const handleBulkMarkRead = useCallback(async () => {
+    if (!window.electronAPI || !activeAccountId || selectedUids.size === 0) return;
+
+    const uids = Array.from(selectedUids).filter(uid => {
+      const email = emailsRef.current.find(e => e.uid === uid);
+      return email && !email.seen;
+    });
+    if (uids.length === 0) { setSelectedUids(new Set()); return; }
+
+    setActionLoading('bulk-read');
+    try {
+      const results = await Promise.allSettled(
+        uids.map(uid =>
+          isGraphAccount()
+            ? window.electronAPI.markGraphAsRead(activeAccountId, uid, true)
+            : window.electronAPI.markAsRead(activeAccountId, uid, true, currentFolder)
+        )
+      );
+      const successUids = new Set(uids.filter((_, i) =>
+        results[i].status === 'fulfilled' && results[i].value?.success
+      ));
+      if (successUids.size > 0) {
+        const newEmails = emailsRef.current.map(e =>
+          successUids.has(e.uid) ? { ...e, seen: true } : e
+        );
+        setEmails(newEmails);
+        const cacheKey = getCacheKey(activeAccountId, currentFolder);
+        emailCache.set(cacheKey, { data: newEmails, hasMore: hasMoreRef.current, timestamp: Date.now() });
+        const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
+        if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, newEmails);
+        setSelectedEmail(prev => prev && successUids.has(prev.uid) ? { ...prev, seen: true } : prev);
+      }
+      setSelectedUids(new Set());
+    } catch (err) {
+      console.error('Bulk mark-read error:', err);
+      setError('Fehler beim Markieren: ' + err.message);
+    }
+    setActionLoading(null);
+  }, [activeAccountId, currentFolder, selectedUids, getCacheKey, isGraphAccount]);
+
   // v2.6.0: Manual categorization handler - saves sender category and updates ALL matching emails
   const handleCategorize = useCallback((email, category) => {
     if (!email) return;
@@ -1630,7 +1752,18 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       const senderCategory = SenderCategoryManager.getSenderCategory(email.from);
       if (senderCategory) newCategories.set(email.uid, senderCategory);
     });
-    setManualCategories(newCategories);
+    // Referenz nur wechseln, wenn sich inhaltlich etwas geändert hat — sonst
+    // invalidiert jeder Background-Load-Batch die Filter-Memos und die Liste.
+    setManualCategories(prev => {
+      if (prev.size === newCategories.size) {
+        let same = true;
+        for (const [uid, cat] of newCategories) {
+          if (prev.get(uid) !== cat) { same = false; break; }
+        }
+        if (same) return prev;
+      }
+      return newCategories;
+    });
   }, [emails]);
 
   // v2.6.0: Get effective category for an email (manual > spam filter)
@@ -1712,6 +1845,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         setReplyMode(null);
         setReplyAttachments([]);
         if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
+        // Sichtbares Erfolgs-Feedback — das blosse Verschwinden des Panels
+        // war nicht von einem Abbruch unterscheidbar.
+        setReplySentToast(true);
+        setTimeout(() => setReplySentToast(false), 2500);
       } else {
         setReplyError(result?.error || 'Senden fehlgeschlagen');
       }
@@ -1747,6 +1884,16 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     const handleKeyDown = (e) => {
       // Ignore all shortcuts when typing in an input, textarea, or contentEditable (e.g. reply editor)
       if (e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      // Offene Modals: Escape schliesst, alle anderen Listen-Shortcuts sind
+      // gesperrt (sonst löscht die Delete-Taste im Hintergrund Mails).
+      if (showDeleteConfirm || folderModal) {
+        if (e.key === 'Escape') {
+          if (showDeleteConfirm) setShowDeleteConfirm(false);
+          else setFolderModal(null);
+        }
+        return;
+      }
 
       // Ctrl+A or Cmd+A: Select all emails
       if ((e.ctrlKey || e.metaKey) && e.key === 'a' && filteredEmails.length > 0) {
@@ -1786,7 +1933,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids]);
+  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids, showDeleteConfirm, folderModal]);
 
   // Trigger loadMore when user scrolls near the bottom of the email list
   const handleEmailListScroll = useCallback((e) => {
@@ -2398,11 +2545,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                     INBOX_SUBFOLDERS.find(f => f.id === categoryFilter)?.color || 'text-gray-400'
                   }`}>
                     {INBOX_SUBFOLDERS.find(f => f.id === categoryFilter)?.name}
-                    <button 
+                    <button
                       onClick={() => setCategoryFilter(null)}
-                      className="ml-1.5 hover:opacity-70"
+                      className="ml-1.5 hover:opacity-70 inline-flex items-center align-middle"
+                      title="Filter entfernen"
+                      aria-label="Kategorie-Filter entfernen"
                     >
-                      ×
+                      <Close size={12} />
                     </button>
                   </span>
                 )}
@@ -2421,6 +2570,8 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 onClick={() => setShowUnreadOnly(v => !v)}
                 className={`p-2 rounded-lg transition-colors ${showUnreadOnly ? 'bg-blue-500 text-white' : `${c.hover} ${c.textSecondary}`}`}
                 title={showUnreadOnly ? 'Alle E-Mails anzeigen' : 'Nur ungelesene anzeigen'}
+                aria-label={showUnreadOnly ? 'Alle E-Mails anzeigen' : 'Nur ungelesene anzeigen'}
+                aria-pressed={showUnreadOnly}
               >
                 <Email size={16} />
               </button>
@@ -2432,6 +2583,8 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 }}
                 className={`p-2 ${showCheckboxes ? c.accentBg + ' text-white' : c.hover} rounded-lg transition-colors ${c.textSecondary}`}
                 title="Mehrfachauswahl"
+                aria-label="Mehrfachauswahl"
+                aria-pressed={showCheckboxes}
               >
                 <CheckboxChecked size={16} />
               </button>
@@ -2439,6 +2592,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 onClick={() => fetchEmails(false)}
                 className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary}`}
                 title="Aktualisieren"
+                aria-label="Aktualisieren"
               >
                 <Renew size={16} />
               </button>
@@ -2448,6 +2602,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 disabled={triageRunning || filteredEmails.length === 0}
                 className={`p-2 rounded-lg transition-colors ${triageRunning ? c.accentBg + ' text-white' : `${c.hover} ${c.textSecondary}`} disabled:opacity-50`}
                 title="Mails durch AI einstufen"
+                aria-label="Mails durch AI einstufen"
               >
                 {triageRunning ? <InProgress size={16} className="animate-spin" /> : <Bot size={16} />}
               </button>
@@ -2489,13 +2644,26 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
               </div>
               
               {selectedUids.size > 0 && (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5"
-                >
-                  <TrashCan size={16} />
-                  Löschen ({selectedUids.size})
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleBulkMarkRead}
+                    disabled={actionLoading === 'bulk-read'}
+                    className={`px-3 py-1.5 text-xs ${c.hover} rounded-lg transition-colors ${c.textSecondary} flex items-center gap-1.5`}
+                    title="Ausgewählte als gelesen markieren"
+                  >
+                    {actionLoading === 'bulk-read'
+                      ? <InProgress size={16} className="animate-spin" />
+                      : <Email size={16} />}
+                    Gelesen
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    <TrashCan size={16} />
+                    Löschen ({selectedUids.size})
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -2537,35 +2705,26 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             </div>
           ) : (
             <>
-              {filteredEmails.map((email, index) => {
-                const manualCat = manualCategories.get(email.uid);
-                const spamAnalysis = spamResults.get(email.uid);
-                const effectiveAnalysis = manualCat
-                  ? { ...spamAnalysis, category: manualCat, isManual: true }
-                  : spamAnalysis;
-                const folderLower = currentFolder.toLowerCase();
-                const isSentFolder = folderLower.includes('sent') || folderLower.includes('gesendet');
-                return (
-                  <EmailListItem
-                    key={email.uid}
-                    email={email}
-                    index={index}
-                    isSelected={index === selectedIndex}
-                    isChecked={selectedUids.has(email.uid)}
-                    onSelect={handleSelectEmail}
-                    onCheckboxChange={handleCheckboxChange}
-                    onDelete={handleDelete}
-                    onToggleRead={handleToggleRead}
-                    c={c}
-                    actionLoading={actionLoading}
-                    spamAnalysis={effectiveAnalysis}
-                    showCheckboxes={showCheckboxes}
-                    isSentFolder={isSentFolder}
-                    onDragStart={setDraggedEmail}
-                    triage={triageMap.get(email.uid)}
-                  />
-                );
-              })}
+              {filteredEmails.map((email, index) => (
+                <EmailListItem
+                  key={email.uid}
+                  email={email}
+                  index={index}
+                  isSelected={index === selectedIndex}
+                  isChecked={selectedUids.has(email.uid)}
+                  onSelect={handleSelectEmail}
+                  onCheckboxChange={handleCheckboxChange}
+                  onDelete={handleDelete}
+                  onToggleRead={handleToggleRead}
+                  c={c}
+                  actionLoading={actionLoading}
+                  spamAnalysis={effectiveAnalysisMap.get(email.uid)}
+                  showCheckboxes={showCheckboxes}
+                  isSentFolder={isSentFolder}
+                  onDragStart={setDraggedEmail}
+                  triage={triageMap.get(email.uid)}
+                />
+              ))}
               {(hasMore || loadingMore) && (
                 <div className="flex items-center justify-center p-4">
                   {loadingMore
@@ -2595,9 +2754,15 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
       {/* Email Preview - v1.12.2: Takes remaining space */}
       <div
-        className={`flex-1 flex flex-col overflow-hidden min-h-0 ${c.bg}`}
+        className={`relative flex-1 flex flex-col overflow-hidden min-h-0 ${c.bg}`}
         style={{ minWidth: `${PREVIEW_MIN_WIDTH}px` }}
       >
+        {replySentToast && (
+          <div className="absolute bottom-6 right-6 z-50 px-4 py-2.5 bg-green-600 text-white text-sm rounded-lg shadow-lg flex items-center gap-2">
+            <CheckmarkFilled size={16} />
+            Antwort gesendet
+          </div>
+        )}
         {loadingPreview ? (
           // Skeleton loading state for email preview
           <div className="flex-1 p-6 space-y-4 animate-pulse">
@@ -2612,6 +2777,18 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
               <div className={`h-4 w-full rounded ${c.bgSecondary}`} />
               <div className={`h-4 w-3/4 rounded ${c.bgSecondary}`} />
             </div>
+          </div>
+        ) : previewError ? (
+          <div className={`flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center ${c.textSecondary}`}>
+            <WarningAlt size={32} className="text-amber-400" />
+            <p className="text-sm">E-Mail konnte nicht geladen werden</p>
+            <p className="text-xs opacity-70 max-w-sm break-words">{previewError.message}</p>
+            <button
+              onClick={() => loadEmailPreview(previewError.uid)}
+              className={`mt-1 px-4 py-2 text-sm rounded-lg ${c.buttonBg || 'bg-cyan-600 hover:bg-cyan-500'} text-white transition-colors`}
+            >
+              Erneut versuchen
+            </button>
           </div>
         ) : selectedEmail ? (
           <>
@@ -2864,19 +3041,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
               {/* Email content — flex-shrink-0 damit Reply-Panel den Inhalt nicht
                   zusammenstaucht und der Container scrollen kann (v6.7.2) */}
               <div className="p-6 flex-shrink-0">
-                {(() => {
-                  const fontId = getCurrentFont();
-                  const fontFamily = GOOGLE_FONTS[fontId] || 'Inter';
-                  const fontStyle = `"${fontFamily}", system-ui, -apple-system, sans-serif`;
-
-                  return selectedEmail.html ? (
-                    <EmailHtmlFrame html={selectedEmail.html} fontFamily={fontStyle} />
-                  ) : (
-                    <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: fontStyle }}>
-                      {selectedEmail.text}
-                    </pre>
-                  );
-                })()}
+                {selectedEmail.html ? (
+                  <EmailHtmlFrame html={selectedEmail.html} fontFamily={previewFontStyle} />
+                ) : (
+                  <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: previewFontStyle }}>
+                    {selectedEmail.text}
+                  </pre>
+                )}
                 {selectedEmail.attachments?.length > 0 && (
                   <div className={`mt-6 pt-4 ${c.border} border-t`}>
                     <h4 className={`font-medium ${c.text} mb-2`}>Anhänge ({selectedEmail.attachments.length})</h4>
@@ -2943,7 +3114,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             </div>
             
             <p className={`text-sm ${c.textSecondary} mb-6`}>
-              Diese Aktion kann nicht rückgängig gemacht werden. Die E-Mails werden in den Papierkorb verschoben.
+              Bei IMAP-Konten werden die E-Mails endgültig vom Server gelöscht, bei Microsoft-365-Konten in den Papierkorb verschoben.
             </p>
             
             <div className="flex gap-3 justify-end">

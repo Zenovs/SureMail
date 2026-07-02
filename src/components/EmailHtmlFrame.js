@@ -182,4 +182,6 @@ function EmailHtmlFrame({ html, fontFamily }) {
   );
 }
 
-export default EmailHtmlFrame;
+// memo: Re-Render nur bei neuer Mail/Font — Sanitizing + iframe-Rebuild sind
+// zu teuer, um sie bei jedem Parent-Render (Reply-Panel, Progress) zu wiederholen.
+export default React.memo(EmailHtmlFrame);

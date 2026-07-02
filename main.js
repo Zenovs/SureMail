@@ -201,11 +201,14 @@ function htmlToSearchText(html) {
   return decoded.replace(/\s+/g, ' ').trim().slice(0, 50000);
 }
 
+let indexEmailStmt = null; // einmal vorbereitet — prepare() pro Mail ist beim Batch-Indexieren unnötiger Parse-Aufwand
+
 function indexEmailInSearch({ accountId, folder, uid, messageId, subject, from, to, cc, date, body, html, hasAttachments, seen }) {
   if (!searchDbAvailable || !searchDb) return false;
   try {
     const bodyText = (body && String(body).trim().length) ? String(body).slice(0, 50000) : htmlToSearchText(html);
-    const stmt = searchDb.prepare(`
+    if (!indexEmailStmt) {
+      indexEmailStmt = searchDb.prepare(`
       INSERT INTO emails (account_id, folder, uid, message_id, subject, from_addr, to_addr, cc_addr, date, body, has_attachments, seen)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(account_id, folder, uid) DO UPDATE SET
@@ -218,7 +221,8 @@ function indexEmailInSearch({ accountId, folder, uid, messageId, subject, from, 
         has_attachments=excluded.has_attachments,
         seen=excluded.seen
     `);
-    stmt.run(
+    }
+    indexEmailStmt.run(
       String(accountId), String(folder), String(uid), messageId || null,
       subject || '', from || '', to || '', cc || '',
       date ? new Date(date).getTime() : 0,
@@ -712,19 +716,33 @@ async function getPooledImapConnection(account) {
   const connection = await imapSimple.connect(config);
   connection.imap.on('error', (err) => {
     console.warn(`[IMAPPool] socket error for ${account.id}:`, err?.message);
-    imapPool.delete(account.id);
+    const e = imapPool.get(account.id);
+    if (e?.connection === connection) imapPool.delete(account.id);
   });
   connection.imap.on('close', () => {
     const e = imapPool.get(account.id);
     if (e?.connection === connection) imapPool.delete(account.id);
   });
-  imapPool.set(account.id, { connection, busy: true, lastUsed: Date.now() });
+  const current = imapPool.get(account.id);
+  if (current?.busy) {
+    // Pool-Slot ist gerade belegt — Überlauf-Verbindung nicht registrieren,
+    // sonst würde der Release des anderen Aufrufers unsere Verbindung freigeben.
+    connection.__overflow = true;
+  } else {
+    if (current) { try { current.connection.end(); } catch (_) {} }
+    imapPool.set(account.id, { connection, busy: true, lastUsed: Date.now() });
+  }
   return connection;
 }
 
-function releaseImapConnection(accountId, destroy = false) {
+function releaseImapConnection(accountId, destroy = false, connection = null) {
+  if (connection?.__overflow) {
+    try { connection.end(); } catch (_) {}
+    return;
+  }
   const entry = imapPool.get(accountId);
   if (!entry) return;
+  if (connection && entry.connection !== connection) return;
   if (destroy) {
     try { entry.connection.end(); } catch (_) {}
     imapPool.delete(accountId);
@@ -1112,11 +1130,18 @@ function showNotification(title, body, onClick = null) {
 }
 
 function updateBadgeCount(count) {
-  if (process.platform === 'linux') {
-    // Linux uses Unity/GNOME launcher API
-    if (app.setBadgeCount) {
-      app.setBadgeCount(count);
+  try {
+    if (process.platform === 'darwin') {
+      app.dock?.setBadge(count > 0 ? String(count) : '');
+    } else if (process.platform === 'linux') {
+      // Linux uses Unity/GNOME launcher API
+      if (app.setBadgeCount) {
+        app.setBadgeCount(count);
+      }
     }
+    // Windows: kein natives Zahlen-Badge — der Fenstertitel zeigt den Zähler.
+  } catch (e) {
+    console.warn('[Badge] update error:', e.message);
   }
 }
 
@@ -1846,7 +1871,6 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
     }
     await connection.openBox(folder);
 
-    const searchCriteria = ['ALL'];
     // v2.8.3: Header-only fetch for fast listing (full body only when viewing email)
     const fetchOptions = {
       bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
@@ -1854,13 +1878,24 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
       struct: true
     };
 
-    const messages = await connection.search(searchCriteria, fetchOptions);
+    // Erst die UID-Liste holen (nur Zahlen, billig), dann Header nur für die
+    // angefragte Seite — vorher wurden bei jedem Refresh die Header des
+    // gesamten Postfachs geladen und erst danach zugeschnitten.
+    const allUids = await new Promise((resolve, reject) => {
+      connection.imap.search(['ALL'], (err, uids) => err ? reject(err) : resolve(uids || []));
+    });
+    allUids.sort((a, b) => b - a); // newest first (higher UID = newer)
+    const totalCount = allUids.length;
+    const pageUids = limit > 0 ? allUids.slice(offset, offset + limit) : allUids.slice(offset);
 
-    // Sort newest first (by UID descending — higher UID = newer)
-    messages.sort((a, b) => b.attributes.uid - a.attributes.uid);
-
-    const allMessages = messages;
-    const messagesToProcess = limit > 0 ? allMessages.slice(offset, offset + limit) : allMessages.slice(offset);
+    let messagesToProcess = [];
+    if (pageUids.length > 0) {
+      const searchCriteria = pageUids.length === totalCount
+        ? ['ALL']
+        : [['UID', pageUids.join(',')]];
+      messagesToProcess = await connection.search(searchCriteria, fetchOptions);
+      messagesToProcess.sort((a, b) => b.attributes.uid - a.attributes.uid);
+    }
 
     // Track unread count for notifications
     let unreadCount = 0;
@@ -1922,7 +1957,11 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
       }
     }
 
-    store.set(`unreadCount_${accountId}`, unreadCount);
+    // Nur bei Änderung schreiben — store.set schreibt die komplette
+    // verschlüsselte Config synchron, und das hier läuft bei jedem Poll.
+    if (unreadCount !== previousUnread) {
+      store.set(`unreadCount_${accountId}`, unreadCount);
+    }
 
     // v6.6.0: Mail-Regeln auf neue Mails anwenden (markRead/move/delete/snooze).
     // Verschobene/gelöschte Mails werden aus emails entfernt — der Renderer
@@ -1933,16 +1972,16 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
       success: true,
       emails: filtered,
       unreadCount,
-      total: allMessages.length,
-      hasMore: limit > 0 ? (offset + limit < allMessages.length) : false
+      total: totalCount,
+      hasMore: limit > 0 ? (offset + limit < totalCount) : false
     };
   } catch (error) {
     console.error('IMAP Fehler:', error);
-    if (usedPool) releaseImapConnection(accountId, true); // destroy broken connection
+    if (usedPool) releaseImapConnection(accountId, true, connection); // destroy broken connection
     return { success: false, error: error.message };
   } finally {
     if (connection) {
-      if (usedPool) releaseImapConnection(accountId); // return to pool
+      if (usedPool) releaseImapConnection(accountId, false, connection); // return to pool
       else try { await connection.end(); } catch (_) {}
     }
   }
@@ -1955,9 +1994,15 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder
   if (!account) return { success: false, error: 'Konto nicht gefunden' };
 
   let connection;
+  let usedPool = false;
   try {
-    const config = getImapConfigForAccount(account);
-    connection = await imapSimple.connect(config);
+    try {
+      connection = await getPooledImapConnection(account);
+      usedPool = true;
+    } catch (_) {
+      const config = getImapConfigForAccount(account);
+      connection = await imapSimple.connect(config);
+    }
     await connection.openBox(folder);
 
     const messages = await connection.search([['UID', uid]], { bodies: [''], markSeen: true, struct: true });
@@ -1988,9 +2033,13 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder
     };
   } catch (error) {
     console.error('IMAP Fehler:', error);
+    if (usedPool) releaseImapConnection(accountId, true, connection);
     return { success: false, error: error.message };
   } finally {
-    if (connection) try { await connection.end(); } catch (_) {}
+    if (connection) {
+      if (usedPool) releaseImapConnection(accountId, false, connection);
+      else try { await connection.end(); } catch (_) {}
+    }
   }
 });
 
@@ -2630,8 +2679,10 @@ ipcMain.handle('search:globalSearch', async (event, searchParams) => {
         try {
           await connection.openBox(folder);
           const searchCriteria = buildSearchCriteria(searchTerm, filters);
+          // '' enthält bereits die komplette Roh-Mail — HEADER/TEXT zusätzlich
+          // anzufordern würde denselben Inhalt bis zu 3x herunterladen.
           const fetchOptions = {
-            bodies: ['HEADER', 'TEXT', ''],
+            bodies: [''],
             markSeen: false,
             struct: true
           };
@@ -2803,14 +2854,28 @@ function getMatchedFields(parsed, searchTerm) {
   return matched;
 }
 
+// Quick-Search-Cache in-memory — vorher wurde bei jedem Konto-Fetch die
+// komplette verschlüsselte Config gelesen und synchron neu geschrieben.
+let quickCacheMem = null;
+let quickCacheFlushTimer = null;
+function getQuickCache() {
+  if (!quickCacheMem) quickCacheMem = store.get('emailCache', []);
+  return quickCacheMem;
+}
+function flushQuickCache() {
+  if (quickCacheFlushTimer) { clearTimeout(quickCacheFlushTimer); quickCacheFlushTimer = null; }
+  if (quickCacheMem) store.set('emailCache', quickCacheMem);
+}
+app.on('before-quit', flushQuickCache);
+
 // Quick search - Search in local cache first (faster)
 ipcMain.handle('search:quickSearch', async (event, { query, limit = 20 }) => {
   if (!query || query.trim().length < 2) {
     return { success: true, suggestions: [] };
   }
-  
+
   const searchTerm = query.toLowerCase().trim();
-  const cachedEmails = store.get('emailCache', []);
+  const cachedEmails = getQuickCache();
   
   // Search in cached emails
   const suggestions = cachedEmails
@@ -2834,7 +2899,7 @@ ipcMain.handle('search:quickSearch', async (event, { query, limit = 20 }) => {
 // Cache emails for quick search
 ipcMain.handle('search:updateCache', async (event, { accountId, emails }) => {
   try {
-    const cache = store.get('emailCache', []);
+    const cache = getQuickCache();
 
     // Remove old entries for this account
     const filtered = cache.filter(e => e.accountId !== accountId);
@@ -2847,8 +2912,8 @@ ipcMain.handle('search:updateCache', async (event, { accountId, emails }) => {
     }));
 
     // Keep cache manageable (max 1000 entries)
-    const updated = [...newEntries, ...filtered].slice(0, 1000);
-    store.set('emailCache', updated);
+    quickCacheMem = [...newEntries, ...filtered].slice(0, 1000);
+    if (!quickCacheFlushTimer) quickCacheFlushTimer = setTimeout(flushQuickCache, 5000);
 
     return { success: true };
   } catch (error) {
@@ -3332,9 +3397,23 @@ ipcMain.handle('graph:listFolders', async (event, accountId) => {
 const LOG_KEY = 'appLog';
 const LOG_MAX = 2000;
 
+// Log in-memory halten und gebündelt schreiben — store.set schreibt sonst pro
+// Eintrag (z.B. pro Regel-Treffer) die komplette verschlüsselte Config synchron.
+let logEntriesMem = null;
+let logFlushTimer = null;
+function getLogEntries() {
+  if (!logEntriesMem) logEntriesMem = store.get(LOG_KEY, []);
+  return logEntriesMem;
+}
+function flushLog() {
+  if (logFlushTimer) { clearTimeout(logFlushTimer); logFlushTimer = null; }
+  if (logEntriesMem) store.set(LOG_KEY, logEntriesMem);
+}
+app.on('before-quit', flushLog);
+
 function addLogEntry(type, title, detail = '') {
   try {
-    const entries = store.get(LOG_KEY, []);
+    const entries = getLogEntries();
     const entry = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       timestamp: new Date().toISOString(),
@@ -3344,7 +3423,7 @@ function addLogEntry(type, title, detail = '') {
     };
     entries.unshift(entry);
     if (entries.length > LOG_MAX) entries.splice(LOG_MAX);
-    store.set(LOG_KEY, entries);
+    if (!logFlushTimer) logFlushTimer = setTimeout(flushLog, 3000);
   } catch (e) {
     console.error('[Log] addLogEntry error:', e.message);
   }
@@ -3356,10 +3435,11 @@ ipcMain.handle('log:add', async (event, { type, title, detail }) => {
 });
 
 ipcMain.handle('log:getAll', async () => {
-  return { success: true, entries: store.get(LOG_KEY, []) };
+  return { success: true, entries: getLogEntries() };
 });
 
 ipcMain.handle('log:clear', async () => {
+  logEntriesMem = [];
   store.set(LOG_KEY, []);
   return { success: true };
 });
@@ -3641,6 +3721,15 @@ ipcMain.handle('snooze:cancel', async (event, id) => {
 // Neustart — Aktionen sind grösstenteils idempotent oder löschen die Quelle).
 const RULES_KEY = 'mailRules';
 const processedRulesCache = new Set(); // "accountId|folder|uid"
+const PROCESSED_RULES_MAX = 20000; // Obergrenze — sonst wächst der Set über eine lange Session unbegrenzt
+
+// Regeln in-memory cachen — store.get entschlüsselt sonst bei jedem Fetch die
+// komplette Config. Invalidiert bei rules:save/delete.
+let rulesCache = null;
+function getRules() {
+  if (!rulesCache) rulesCache = store.get(RULES_KEY, []);
+  return rulesCache;
+}
 
 function matchCondition(email, condition) {
   const { field, op = 'contains', value = '' } = condition || {};
@@ -3754,7 +3843,7 @@ async function applyGraphRuleAction(account, folder, email, action) {
 // Filter Mails durch Regeln. Liefert die bereinigte Liste zurück (ohne
 // move/delete-betroffene Einträge, mit aktualisiertem .seen-Flag).
 async function runRulesOnFetchedEmails(account, folder, emails, kind, imapConnection = null, opts = {}) {
-  const allRules = store.get(RULES_KEY, []);
+  const allRules = getRules();
   const accountRules = allRules.filter(r =>
     r.enabled !== false &&
     (r.appliesToAccount === 'all' || r.appliesToAccount === account.id)
@@ -3792,10 +3881,16 @@ async function runRulesOnFetchedEmails(account, folder, emails, kind, imapConnec
     }
   }
   if (appliedCount > 0) console.log(`[Rules] ${appliedCount} Mail(s) durch Regeln verschoben/gelöscht/gesnoozt in ${folder}`);
+  if (processedRulesCache.size > PROCESSED_RULES_MAX) {
+    // Älteste Einträge verwerfen (Set iteriert in Einfüge-Reihenfolge)
+    const it = processedRulesCache.values();
+    const drop = Math.floor(PROCESSED_RULES_MAX / 4);
+    for (let i = 0; i < drop; i++) processedRulesCache.delete(it.next().value);
+  }
   return out;
 }
 
-ipcMain.handle('rules:list', async () => ({ success: true, items: store.get(RULES_KEY, []) }));
+ipcMain.handle('rules:list', async () => ({ success: true, items: getRules() }));
 
 ipcMain.handle('rules:save', async (event, rule) => {
   if (!rule || !Array.isArray(rule.conditions) || !Array.isArray(rule.actions)) {
@@ -3811,13 +3906,16 @@ ipcMain.handle('rules:save', async (event, rule) => {
     all.push(rule);
   }
   store.set(RULES_KEY, all);
+  rulesCache = all;
   // Cache leeren — neue/geänderte Regeln sollen beim nächsten Fetch greifen
   processedRulesCache.clear();
   return { success: true, rule };
 });
 
 ipcMain.handle('rules:delete', async (event, id) => {
-  store.set(RULES_KEY, store.get(RULES_KEY, []).filter(r => r.id !== id));
+  const remaining = store.get(RULES_KEY, []).filter(r => r.id !== id);
+  store.set(RULES_KEY, remaining);
+  rulesCache = remaining;
   return { success: true };
 });
 
@@ -3880,11 +3978,11 @@ ipcMain.handle('rules:applyNow', async (event, accountId, folder = 'INBOX') => {
     const after = await runRulesOnFetchedEmails(account, folder, emails, 'imap', connection, { force: true });
     return { success: true, total: before, applied: before - after.length };
   } catch (e) {
-    if (usedPool) releaseImapConnection(accountId, true);
+    if (usedPool) releaseImapConnection(accountId, true, connection);
     return { success: false, error: e.message };
   } finally {
     if (connection) {
-      if (usedPool) releaseImapConnection(accountId);
+      if (usedPool) releaseImapConnection(accountId, false, connection);
       else try { await connection.end(); } catch (_) {}
     }
   }
@@ -4155,15 +4253,30 @@ ipcMain.handle('ai:testConnection', async () => {
 });
 
 // ── Triage ──────────────────────────────────────────────────────────────────
+// Der Triage-Cache lebt in-memory; store.set würde sonst pro Mail die komplette
+// verschlüsselte Config synchron neu schreiben (blockiert den Main-Prozess).
+let triageCacheMem = null;
+let triageFlushTimer = null;
+function getTriageCache() {
+  if (!triageCacheMem) triageCacheMem = store.get(AI_TRIAGE_KEY, {});
+  return triageCacheMem;
+}
+function flushTriageCache() {
+  if (triageFlushTimer) { clearTimeout(triageFlushTimer); triageFlushTimer = null; }
+  if (triageCacheMem) store.set(AI_TRIAGE_KEY, triageCacheMem);
+}
+function scheduleTriageFlush() {
+  if (triageFlushTimer) return;
+  triageFlushTimer = setTimeout(flushTriageCache, 3000);
+}
 function triageCacheGet(accountId, folder, uid) {
-  const all = store.get(AI_TRIAGE_KEY, {});
-  return all[`${accountId}|${folder}|${uid}`] || null;
+  return getTriageCache()[`${accountId}|${folder}|${uid}`] || null;
 }
 function triageCachePut(accountId, folder, uid, value) {
-  const all = store.get(AI_TRIAGE_KEY, {});
-  all[`${accountId}|${folder}|${uid}`] = { ...value, ts: Date.now() };
-  store.set(AI_TRIAGE_KEY, all);
+  getTriageCache()[`${accountId}|${folder}|${uid}`] = { ...value, ts: Date.now() };
+  scheduleTriageFlush();
 }
+app.on('before-quit', flushTriageCache);
 
 async function triageOneEmail(email) {
   const userPrompt = `Stufe diese E-Mail ein. Kategorien: urgent, important, informational, newsletter, automated.
@@ -4245,7 +4358,7 @@ ipcMain.handle('ai:triageBatch', async (event, payload) => {
 });
 
 ipcMain.handle('ai:getTriageMap', async (event, accountId, folder = 'INBOX') => {
-  const all = store.get(AI_TRIAGE_KEY, {});
+  const all = getTriageCache();
   const out = {};
   const prefix = `${accountId}|${folder}|`;
   for (const k of Object.keys(all)) {

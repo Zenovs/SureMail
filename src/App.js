@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, Component, useRef } from 'react';
 import { WarningFilled, WarningAlt, Close, CloudOffline } from '@carbon/icons-react';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { AccountProvider, useAccounts } from './context/AccountContext';
+import { AccountProvider, useAccounts, useAccountStats } from './context/AccountContext';
 import { SidebarProvider } from './context/SidebarContext';
 import { SearchProvider, useSearch } from './context/SearchContext';
 import SidebarV2 from './components/SidebarV2';
@@ -312,12 +312,30 @@ function AppContent() {
   );
 }
 
+// Eigene Komponente statt Teil von AppContent: konsumiert den schnellen
+// Stats-Context, ohne den ganzen App-Baum bei jedem Zähler-Update zu re-rendern.
+function UnreadBadgeSync() {
+  const accountStats = useAccountStats();
+
+  useEffect(() => {
+    const totalUnread = Object.values(accountStats || {})
+      .reduce((sum, s) => sum + (s?.unread || 0), 0);
+    document.title = totalUnread > 0
+      ? `CoreMail Desktop (${totalUnread})`
+      : 'CoreMail Desktop';
+    window.electronAPI?.setBadgeCount?.(totalUnread);
+  }, [accountStats]);
+
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider>
       <AccountProvider>
         <SidebarProvider>
           <SearchProvider>
+            <UnreadBadgeSync />
             <AppContent />
           </SearchProvider>
         </SidebarProvider>

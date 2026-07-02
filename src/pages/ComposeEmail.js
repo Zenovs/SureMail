@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
+import EscapeCloser from '../components/EscapeCloser';
 import {
   TextBold, TextItalic, TextUnderline, TextStrikethrough,
   ListNumbered, ListBulleted,
   TextAlignLeft, TextAlignCenter, TextAlignRight,
   TextClearFormat,
   Document, DocumentBlank, Portfolio, Money, Template, Code,
-  Attachment, Close, Send, Checkmark, InProgress, Edit, PenFountain, View, Time,
+  Attachment, Close, Send, Checkmark, InProgress, Edit, PenFountain, View, Time, Link,
   Image, DocumentPdf, Music, Video, Box
 } from '@carbon/icons-react';
 
@@ -643,7 +644,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       <header className={`px-6 py-3 ${c.border} border-b ${c.bgSecondary} flex-shrink-0`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className={`p-2 ${c.hover} rounded-lg ${c.textSecondary}`}>←</button>
+            <button onClick={onBack} title="Zurück" aria-label="Zurück zum Posteingang" className={`p-2 ${c.hover} rounded-lg ${c.textSecondary}`}>←</button>
             <h2 className={`text-base font-semibold ${c.text}`}>{isForward ? 'Weiterleiten' : replyTo ? 'Antworten' : 'Neue E-Mail'}</h2>
           </div>
           <div className="flex items-center gap-2">
@@ -920,9 +921,10 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                   <button
                     onMouseDown={e => { e.preventDefault(); insertLink(); }}
                     title="Link einfügen"
+                    aria-label="Link einfügen"
                     className={`w-7 h-7 flex items-center justify-center rounded text-xs ${c.hover} ${c.textSecondary} hover:text-cyan-400`}
                   >
-                    🔗
+                    <Link size={16} />
                   </button>
 
                   {/* Schriftfarbe */}
@@ -1015,6 +1017,14 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
         </div>
 
       </div>
+
+      {/* Escape schliesst die Overlays — konsistent mit der globalen Suche */}
+      {(showTemplates || showCustomPaste) && (
+        <EscapeCloser onEscape={() => {
+          if (showCustomPaste) { setShowCustomPaste(false); setCustomHtmlPaste(''); }
+          else setShowTemplates(false);
+        }} />
+      )}
 
       {/* Vorlagen-Panel (Overlay) */}
       {showTemplates && (

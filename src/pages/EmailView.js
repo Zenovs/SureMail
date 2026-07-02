@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  TrashCan, Email, Reply, ReplyAll, SendAlt, ArrowLeft, InProgress,
+  TrashCan, Email, EmailNew, Reply, ReplyAll, SendAlt, ArrowLeft, InProgress,
   WarningFilled, WarningAlt, Close, Checkmark, Attachment, Download, FolderOpen, View,
   Image, DocumentPdf, DocumentBlank, Music, Video, Box, NotificationOff, Bot
 } from '@carbon/icons-react';
@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmailHtmlFrame from '../components/EmailHtmlFrame';
+import EscapeCloser from '../components/EscapeCloser';
 
 const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolder = 'INBOX' }) => {
   const { currentTheme } = useTheme();
@@ -373,7 +374,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               {actionLoading === 'read' ? (
                 <InProgress size={20} className="animate-spin" />
               ) : isRead ? (
-                <Email size={20} />
+                <EmailNew size={20} />
               ) : (
                 <Email size={20} />
               )}
@@ -723,10 +724,11 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
 
       {/* Attachment Preview Modal */}
       {previewAttachment && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-8"
           onClick={() => setPreviewAttachment(null)}
         >
+          <EscapeCloser onEscape={() => setPreviewAttachment(null)} />
           <div 
             className={`max-w-4xl max-h-full ${c.card} rounded-xl overflow-hidden`}
             onClick={e => e.stopPropagation()}
