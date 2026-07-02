@@ -577,6 +577,8 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewError, setPreviewError] = useState(null); // { uid, message } | null
   const [replySentToast, setReplySentToast] = useState(false);
+  const [confirmDeleteUid, setConfirmDeleteUid] = useState(null); // Einzel-Löschen bestätigen
+  const [confirmDiscardReply, setConfirmDiscardReply] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [folderError, setFolderError] = useState(null);
   // Folder management modals
@@ -1277,36 +1279,43 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       const { accountId, folder, emails: serverEmails } = e.detail || {};
       if (accountId !== activeAccountId || folder !== currentFolder) return;
 
-      const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
-      setEmails(prev => {
-        const serverUids = new Set(serverEmails.map(e => e.uid));
-        const prevByUid = new Map(prev.map(e => [e.uid, e]));
+      // v6.8.1: Merge ausserhalb des setState-Updaters (Side-Effects in
+      // Updatern laufen unter StrictMode doppelt → doppelte Log-Einträge und
+      // IndexedDB-Writes) und Skip, wenn sich nichts geändert hat — sonst
+      // löste jeder 5-Minuten-Tick Re-Render, Spam-Reanalyse über bis zu 500
+      // Mails und einen IndexedDB-Write für identische Daten aus.
+      const prev = emailsRef.current;
+      const serverUids = new Set(serverEmails.map(m => m.uid));
+      const prevByUid = new Map(prev.map(m => [m.uid, m]));
 
-        // Logbuch: wirklich neue E-Mails als Einzel-Eintrag protokollieren
-        const trulyNew = serverEmails.filter(e => !prevByUid.has(e.uid));
-        if (trulyNew.length > 0 && window.electronAPI?.logAdd) {
-          const title = trulyNew.length === 1
-            ? `E-Mail empfangen: ${trulyNew[0].subject || '(kein Betreff)'}`
-            : `${trulyNew.length} neue E-Mails empfangen`;
-          const detail = trulyNew.slice(0, 5).map(e => `• ${e.subject || '(kein Betreff)'} — ${e.from || ''}`).join('\n');
-          window.electronAPI.logAdd('email_received', title, `Konto: ${accountId}\n${detail}`).catch(() => {});
-        }
-
-        const merged = serverEmails.map(e => {
-          const local = prevByUid.get(e.uid);
-          return local ? { ...e, seen: local.seen || e.seen } : e;
-        });
-        const olderOnes = prev.filter(e => !serverUids.has(e.uid));
-        const result = [...merged, ...olderOnes];
-
-        // Keep memory cache in sync
-        emailCache.set(getCacheKey(activeAccountId, currentFolder), {
-          data: result, hasMore: false, timestamp: Date.now()
-        });
-        if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, result);
-
-        return result;
+      const trulyNew = serverEmails.filter(m => !prevByUid.has(m.uid));
+      const seenChanged = serverEmails.some(m => {
+        const local = prevByUid.get(m.uid);
+        return local && !local.seen && m.seen;
       });
+      if (trulyNew.length === 0 && !seenChanged) return; // nichts Neues
+
+      if (trulyNew.length > 0 && window.electronAPI?.logAdd) {
+        const title = trulyNew.length === 1
+          ? `E-Mail empfangen: ${trulyNew[0].subject || '(kein Betreff)'}`
+          : `${trulyNew.length} neue E-Mails empfangen`;
+        const detail = trulyNew.slice(0, 5).map(m => `• ${m.subject || '(kein Betreff)'} — ${m.from || ''}`).join('\n');
+        window.electronAPI.logAdd('email_received', title, `Konto: ${accountId}\n${detail}`).catch(() => {});
+      }
+
+      const merged = serverEmails.map(m => {
+        const local = prevByUid.get(m.uid);
+        return local ? { ...m, seen: local.seen || m.seen } : m;
+      });
+      const olderOnes = prev.filter(m => !serverUids.has(m.uid));
+      const result = [...merged, ...olderOnes];
+
+      setEmails(result);
+      emailCache.set(getCacheKey(activeAccountId, currentFolder), {
+        data: result, hasMore: false, timestamp: Date.now()
+      });
+      const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
+      if (localStorageEnabled) saveEmailsToIndexedDB(activeAccountId, currentFolder, result);
     };
 
     window.addEventListener('coremail:bgSync', handleBgSync);
@@ -1508,6 +1517,16 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     }
     setActionLoading(null);
   }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount, loadEmailPreview]);
+
+  // v6.8.1: Einzel-Löschen erst nach Bestätigung — bei IMAP wird endgültig
+  // gelöscht (expunge), ein versehentlicher Klick war nicht rückholbar.
+  const requestDelete = useCallback((uid) => setConfirmDeleteUid(uid), []);
+
+  const confirmSingleDelete = useCallback(() => {
+    const uid = confirmDeleteUid;
+    setConfirmDeleteUid(null);
+    if (uid != null) handleDelete(uid);
+  }, [confirmDeleteUid, handleDelete]);
 
   // v2.3.0: Multi-Select Handlers
   const handleCheckboxChange = useCallback((uid, shiftKey) => {
@@ -1887,9 +1906,11 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
       // Offene Modals: Escape schliesst, alle anderen Listen-Shortcuts sind
       // gesperrt (sonst löscht die Delete-Taste im Hintergrund Mails).
-      if (showDeleteConfirm || folderModal) {
+      if (showDeleteConfirm || confirmDeleteUid || confirmDiscardReply || folderModal) {
         if (e.key === 'Escape') {
           if (showDeleteConfirm) setShowDeleteConfirm(false);
+          else if (confirmDeleteUid) setConfirmDeleteUid(null);
+          else if (confirmDiscardReply) setConfirmDiscardReply(false);
           else setFolderModal(null);
         }
         return;
@@ -1909,12 +1930,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         return;
       }
 
-      // Delete: Delete selected emails or current email
+      // Delete: Delete selected emails or current email (mit Bestätigung —
+      // bei IMAP wird endgültig gelöscht, kein Undo möglich)
       if (e.key === 'Delete') {
         if (selectedUids.size > 0) {
           setShowDeleteConfirm(true);
         } else if (filteredEmails[selectedIndex]) {
-          handleDelete(filteredEmails[selectedIndex].uid);
+          setConfirmDeleteUid(filteredEmails[selectedIndex].uid);
         }
         return;
       }
@@ -1933,7 +1955,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids, showDeleteConfirm, folderModal]);
+  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids, showDeleteConfirm, folderModal, confirmDeleteUid, confirmDiscardReply]);
 
   // Trigger loadMore when user scrolls near the bottom of the email list
   const handleEmailListScroll = useCallback((e) => {
@@ -2714,7 +2736,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                   isChecked={selectedUids.has(email.uid)}
                   onSelect={handleSelectEmail}
                   onCheckboxChange={handleCheckboxChange}
-                  onDelete={handleDelete}
+                  onDelete={requestDelete}
                   onToggleRead={handleToggleRead}
                   c={c}
                   actionLoading={actionLoading}
@@ -2924,8 +2946,19 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                         {replySending ? <><InProgress size={16} className="animate-spin" /> Sende...</> : <><Send size={16} /> Senden</>}
                       </button>
                       <button
-                        onClick={() => { setReplyMode(null); setReplyError(null); if (replyEditorRef.current) replyEditorRef.current.innerHTML = ''; }}
+                        onClick={() => {
+                          // v6.8.1: Halb geschriebene Antwort nicht stillschweigend verwerfen
+                          if (replyEditorRef.current?.innerText?.trim()) {
+                            setConfirmDiscardReply(true);
+                          } else {
+                            setReplyMode(null);
+                            setReplyError(null);
+                            if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
+                          }
+                        }}
                         className={`p-1.5 ${c.hover} rounded ${c.textSecondary}`}
+                        title="Antwort schliessen"
+                        aria-label="Antwort schliessen"
                       >
                         <Close size={16} />
                       </button>
@@ -3097,8 +3130,40 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         )}
       </div>
       
-      {/* v2.3.0: Delete Confirmation Modal */}
-      {showDeleteConfirm && (
+      {/* v6.8.1: Antwort-verwerfen-Bestätigung */}
+      {confirmDiscardReply && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl`}>
+            <h3 className={`text-lg font-semibold ${c.text} mb-2`}>Antwort verwerfen?</h3>
+            <p className={`text-sm ${c.textSecondary} mb-6`}>
+              Deine angefangene Antwort geht verloren.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDiscardReply(false)}
+                className={`px-4 py-2 ${c.hover} ${c.border} border rounded-lg transition-colors ${c.text}`}
+                autoFocus
+              >
+                Weiter schreiben
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmDiscardReply(false);
+                  setReplyMode(null);
+                  setReplyError(null);
+                  if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
+              >
+                Verwerfen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* v2.3.0: Delete Confirmation Modal — v6.8.1: auch für Einzel-Löschen */}
+      {(showDeleteConfirm || confirmDeleteUid != null) && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className={`${c.bgSecondary} ${c.border} border rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl`}>
             <div className="flex items-center gap-3 mb-4">
@@ -3106,27 +3171,34 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 <TrashCan size={24} className="text-red-400" />
               </div>
               <div>
-                <h3 className={`text-lg font-semibold ${c.text}`}>E-Mails löschen?</h3>
-                <p className={`text-sm ${c.textSecondary}`}>
-                  {selectedUids.size} E-Mail{selectedUids.size > 1 ? 's' : ''} werden gelöscht
+                <h3 className={`text-lg font-semibold ${c.text}`}>
+                  {confirmDeleteUid != null ? 'E-Mail löschen?' : 'E-Mails löschen?'}
+                </h3>
+                <p className={`text-sm ${c.textSecondary} truncate max-w-xs`}>
+                  {confirmDeleteUid != null
+                    ? (emails.find(e => e.uid === confirmDeleteUid)?.subject || '1 E-Mail wird gelöscht')
+                    : `${selectedUids.size} E-Mail${selectedUids.size > 1 ? 's' : ''} werden gelöscht`}
                 </p>
               </div>
             </div>
-            
+
             <p className={`text-sm ${c.textSecondary} mb-6`}>
-              Bei IMAP-Konten werden die E-Mails endgültig vom Server gelöscht, bei Microsoft-365-Konten in den Papierkorb verschoben.
+              {confirmDeleteUid != null
+                ? 'Bei IMAP-Konten wird die E-Mail endgültig vom Server gelöscht, bei Microsoft-365-Konten in den Papierkorb verschoben.'
+                : 'Bei IMAP-Konten werden die E-Mails endgültig vom Server gelöscht, bei Microsoft-365-Konten in den Papierkorb verschoben.'}
             </p>
-            
+
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => { setShowDeleteConfirm(false); setConfirmDeleteUid(null); }}
                 className={`px-4 py-2 ${c.hover} ${c.border} border rounded-lg transition-colors ${c.text}`}
                 disabled={bulkDeleting}
+                autoFocus
               >
                 Abbrechen
               </button>
               <button
-                onClick={handleBulkDelete}
+                onClick={confirmDeleteUid != null ? confirmSingleDelete : handleBulkDelete}
                 disabled={bulkDeleting}
                 className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-2"
               >

@@ -37,6 +37,11 @@ function UpdateNotification({ onOpenSettings }) {
     if (window.electronAPI?.onUpdateRestartRequired) {
       window.electronAPI.onUpdateRestartRequired(() => setRestartRequired(true));
     }
+    // Listener beim Unmount entfernen — sonst akkumuliert jeder Remount
+    // einen weiteren IPC-Listener (setState auf unmounted Component)
+    return () => {
+      window.electronAPI?.removeUpdateListeners?.();
+    };
   }, []);
 
   useEffect(() => {

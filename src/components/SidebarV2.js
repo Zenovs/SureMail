@@ -43,10 +43,19 @@ function SidebarV2({ currentView, onNavigate }) {
   }, [setIsResizing]);
 
   useEffect(() => {
+    // rAF-gedrosselt: updateWidth persistiert die Settings — ungedrosselt
+    // liefen Re-Render + Settings-Write mit Maus-Event-Frequenz.
+    let frameId = null;
+    let lastClientX = 0;
+
     const handleMouseMove = (e) => {
       if (!isResizing) return;
-      const newWidth = e.clientX;
-      updateWidth(newWidth);
+      lastClientX = e.clientX;
+      if (frameId) return;
+      frameId = requestAnimationFrame(() => {
+        frameId = null;
+        updateWidth(lastClientX);
+      });
     };
 
     const handleMouseUp = () => {
@@ -61,6 +70,7 @@ function SidebarV2({ currentView, onNavigate }) {
     }
 
     return () => {
+      if (frameId) cancelAnimationFrame(frameId);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';

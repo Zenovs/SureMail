@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { ChevronLeft, ChevronRight, Add, Close, Location, TrashCan, Checkmark, Calendar } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
@@ -374,7 +374,9 @@ export default function CalendarView() {
   const { accounts, activeAccountId } = useAccounts();
   const c = currentTheme.colors;
 
-  const today = new Date();
+  // Stabil pro Mount — ein frisches Date-Objekt pro Render brach React.memo
+  // aller Subviews, die dann pro Render alle 42 Zellen × Events neu filterten.
+  const today = useMemo(() => new Date(), []);
   const [viewMode,  setViewMode]  = useState('month'); // 'month'|'week'|'day'
   const [viewDate,  setViewDate]  = useState(new Date(today.getFullYear(), today.getMonth(), today.getDate()));
   const [events,    setEvents]    = useState([]);

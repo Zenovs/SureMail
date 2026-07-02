@@ -92,6 +92,7 @@ function AppContent() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncErrorToast, setSyncErrorToast] = useState(null);
   const syncErrorTimerRef = useRef(null);
+  const lastSyncSignatureRef = useRef(new Map()); // accountId → "uid:seen,..." des letzten Syncs
   const c = currentTheme.colors;
 
   useEffect(() => {
@@ -144,6 +145,14 @@ function AppContent() {
             result = await window.electronAPI.fetchEmailsForAccount(account.id, { limit: 50, offset: 0 });
           }
           if (result?.success && result.emails?.length > 0) {
+            // v6.8.1: Unverändertes Postfach → nichts persistieren/indexieren.
+            // Vorher wurden dieselben 50 Mails alle 5 Minuten erneut in
+            // IndexedDB geschrieben und im FTS-Index neu indexiert.
+            const signature = result.emails.map(e => `${e.uid}:${e.seen ? 1 : 0}`).join(',');
+            if (lastSyncSignatureRef.current.get(account.id) === signature) {
+              continue;
+            }
+            lastSyncSignatureRef.current.set(account.id, signature);
             if (localStorageEnabled) {
               await bgSaveToIndexedDB(account.id, 'INBOX', result.emails);
             }

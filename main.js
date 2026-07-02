@@ -617,9 +617,17 @@ app.on('activate', () => {
 
 // ============ HELPER FUNCTIONS ============
 
+// Accounts in-memory cachen — getAccountById läuft in praktisch jedem
+// IPC-Handler und entschlüsselte sonst jedes Mal die komplette Config.
+let accountsCache = null;
+function invalidateAccountsCache() { accountsCache = null; }
+function getCachedAccounts() {
+  if (!accountsCache) accountsCache = store.get('accounts', []);
+  return accountsCache;
+}
+
 function getAccountById(accountId) {
-  const accounts = store.get('accounts', []);
-  return accounts.find(acc => acc.id === accountId);
+  return getCachedAccounts().find(acc => acc.id === accountId);
 }
 
 // Security helper: returns rejectUnauthorized based on per-account flag.
@@ -688,7 +696,7 @@ function getImapConfigForAccount(account) {
 const imapPool = new Map(); // accountId → { connection, busy }
 const IMAP_IDLE_TTL = 5 * 60 * 1000; // close connections idle for > 5 minutes
 
-setInterval(() => {
+const imapPoolSweepInterval = setInterval(() => {
   const now = Date.now();
   for (const [id, entry] of imapPool) {
     if (!entry.busy && (now - entry.lastUsed) > IMAP_IDLE_TTL) {
@@ -754,6 +762,7 @@ function releaseImapConnection(accountId, destroy = false, connection = null) {
 
 // Clean up all pooled connections on quit
 app.on('before-quit', () => {
+  clearInterval(imapPoolSweepInterval);
   for (const [, entry] of imapPool) {
     try { entry.connection.end(); } catch (_) {}
   }
@@ -1694,7 +1703,9 @@ ipcMain.handle('attachment:saveAll', async (event, attachments) => {
       const safeFilename = path.basename(att.filename || 'anhang');
       const filePath = path.join(downloadPath, safeFilename);
       const buffer = Buffer.from(att.content, 'base64');
-      fs.writeFileSync(filePath, buffer);
+      // async statt writeFileSync — grosse Anhänge blockierten sonst den
+      // gesamten Main-Prozess für die Dauer des Disk-Writes
+      await fs.promises.writeFile(filePath, buffer);
       results.push({ filename: safeFilename, success: true, path: filePath });
     } catch (error) {
       results.push({ filename: att.filename, success: false, error: error.message });
@@ -1755,6 +1766,7 @@ ipcMain.handle('accounts:save', async (event, data) => {
 
     store.set('accounts', data.accounts);
     store.set('categories', data.categories);
+    invalidateAccountsCache();
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -1779,6 +1791,7 @@ ipcMain.handle('accounts:load', async () => {
     });
     if (migrated) {
       store.set('accounts', accounts);
+      invalidateAccountsCache();
       console.log('[Security] TLS-Migration: Bestandskonten mit allowInsecureTLS=true markiert (Verhalten unverändert).');
     }
 
@@ -2184,7 +2197,11 @@ ipcMain.handle('smtp:send', async (event, emailData) => {
       auth: {
         user: smtpSettings.username,
         pass: smtpSettings.password
-      }
+      },
+      // Timeouts wie im Konto-Pfad — ein hängender Server liess den Send sonst endlos offen
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 30000
     });
 
     const mailOptions = {
@@ -2968,7 +2985,26 @@ function getMsalApp(clientId, tenantId) {
   return msalInstances[instanceKey];
 }
 
+// v6.8.1: In-Memory-Token-Cache — vorher liefen deserialize + acquireTokenSilent
+// + ein synchroner verschlüsselter store.set bei JEDEM Graph-Request (jedes
+// Mail-Öffnen, jeder Poll). Der Token ist ~1h gültig; solange er frisch ist,
+// braucht es weder MSAL noch Disk.
+const graphTokenCache = new Map();      // accountId → { token, expiresOn(ms) }
+const msalCacheLoaded = new Set();      // accountId — Disk-Cache nur einmal laden
+const msalCacheLastWritten = new Map(); // accountId → zuletzt geschriebener Serialize-String
+
+function invalidateGraphTokenCache(accountId) {
+  graphTokenCache.delete(accountId);
+  msalCacheLoaded.delete(accountId);
+  msalCacheLastWritten.delete(accountId);
+}
+
 async function getGraphAccessToken(accountId) {
+  const mem = graphTokenCache.get(accountId);
+  if (mem && mem.expiresOn - Date.now() > 5 * 60 * 1000) {
+    return mem.token;
+  }
+
   const account = getAccountById(accountId);
   if (!account || account.type !== 'microsoft') throw new Error('Kein Microsoft-Konto');
 
@@ -2976,15 +3012,20 @@ async function getGraphAccessToken(accountId) {
   const tenantId = account.microsoft.tenantId || null;
   const pca = getMsalApp(clientId, tenantId);
 
-  // Restore token cache from store
+  // Restore token cache from store (einmal pro Session/Invalidierung)
   const cacheKey = `msalCache_${accountId}`;
-  const cachedData = store.get(cacheKey, '');
-  if (cachedData) {
-    pca.getTokenCache().deserialize(cachedData);
+  if (!msalCacheLoaded.has(accountId)) {
+    const cachedData = store.get(cacheKey, '');
+    if (cachedData) {
+      pca.getTokenCache().deserialize(cachedData);
+      msalCacheLastWritten.set(accountId, cachedData);
+    }
+    msalCacheLoaded.add(accountId);
   }
 
   const msalAccounts = await pca.getTokenCache().getAllAccounts();
   if (msalAccounts.length === 0) {
+    invalidateGraphTokenCache(accountId);
     throw new Error('TOKEN_EXPIRED');
   }
 
@@ -3001,12 +3042,23 @@ async function getGraphAccessToken(accountId) {
       scopes: MS_GRAPH_SCOPES,
       account: msalAccount
     });
-    store.set(cacheKey, pca.getTokenCache().serialize());
+    graphTokenCache.set(accountId, {
+      token: result.accessToken,
+      expiresOn: result.expiresOn ? new Date(result.expiresOn).getTime() : Date.now() + 30 * 60 * 1000
+    });
+    // Nur auf Disk schreiben, wenn sich der MSAL-Cache tatsächlich geändert
+    // hat (z.B. Refresh-Token rotiert) — sonst wäre es derselbe Blob.
+    const serialized = pca.getTokenCache().serialize();
+    if (serialized !== msalCacheLastWritten.get(accountId)) {
+      store.set(cacheKey, serialized);
+      msalCacheLastWritten.set(accountId, serialized);
+    }
     return result.accessToken;
   } catch (err) {
     // Silent token failed: scope consent needed (AADSTS65001) or token truly expired
     // Surface as TOKEN_EXPIRED so the UI shows the re-login prompt
     console.log('[MSAL] Silent token failed:', err.message);
+    invalidateGraphTokenCache(accountId);
     throw new Error('TOKEN_EXPIRED');
   }
 }
@@ -3130,6 +3182,7 @@ ipcMain.handle('msauth:relogin', async (event, accountId) => {
     store.set(`msalCache_${accountId}`, pca.getTokenCache().serialize());
     const reloginInstanceKey = reloginTenantId ? `${account.microsoft.clientId}_${reloginTenantId}` : account.microsoft.clientId;
     msalInstances[reloginInstanceKey] = pca; // update cached instance
+    invalidateGraphTokenCache(accountId); // frischen Cache beim nächsten Request laden
     return { success: true };
   } catch (error) {
     console.error('[MSAuth] Relogin error:', error.message);
@@ -3143,6 +3196,7 @@ ipcMain.handle('msauth:logout', async (event, accountId) => {
     const account = getAccountById(accountId);
     if (account?.microsoft?.clientId) delete msalInstances[account.microsoft.clientId];
     store.delete(`msalCache_${accountId}`);
+    invalidateGraphTokenCache(accountId);
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
@@ -3164,7 +3218,7 @@ ipcMain.handle('graph:fetchEmails', async (event, accountId, { folder = 'INBOX',
     const filtered = account
       ? await runRulesOnFetchedEmails(account, folder, emails, 'graph')
       : emails;
-    return { success: true, emails: filtered, hasMore: !!(data['@odata.nextLink']), total: filtered.length };
+    return { success: true, emails: filtered, hasMore: !!(data?.['@odata.nextLink']), total: filtered.length };
   } catch (error) {
     console.error('[Graph] fetchEmails:', error.message);
     if (error.message === 'TOKEN_EXPIRED') return { success: false, error: 'TOKEN_EXPIRED', emails: [] };
@@ -3547,6 +3601,11 @@ async function processScheduledEmails() {
   const due = scheduled.filter(e => e.sendAt <= now);
   if (due.length === 0) return;
 
+  // v6.8.1: Fehlgeschlagene Sendungen bleiben in der Queue (bis 3 Versuche) —
+  // vorher wurden sie stillschweigend entfernt und die Mail ging verloren.
+  const sentIds = new Set();
+  const failedIds = new Set();
+
   for (const email of due) {
     try {
       const emailData = {
@@ -3582,14 +3641,36 @@ async function processScheduledEmails() {
         }
       }
       if (result?.success) {
+        sentIds.add(email.id);
         addLogEntry('email_sent', `Geplant gesendet: ${email.subject || '(kein Betreff)'}`, `An: ${email.to}`);
+      } else {
+        failedIds.add(email.id);
       }
     } catch (e) {
       console.error('[Scheduled] send error:', e.message);
+      failedIds.add(email.id);
     }
   }
-  // Remove all due (sent or failed) from queue
-  store.set(SCHEDULED_KEY, scheduled.filter(e => e.sendAt > now));
+
+  const remaining = [];
+  for (const e of scheduled) {
+    if (sentIds.has(e.id)) continue; // erfolgreich gesendet → raus
+    if (failedIds.has(e.id)) {
+      const attempts = (e.attempts || 0) + 1;
+      if (attempts >= 3) {
+        addLogEntry('email_error', `Geplante Mail nach 3 Versuchen verworfen: ${e.subject || '(kein Betreff)'}`, `An: ${e.to}`);
+        showNotification('Geplante E-Mail fehlgeschlagen', `"${e.subject || '(kein Betreff)'}" konnte nicht gesendet werden.`, () => {
+          if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
+        });
+        continue;
+      }
+      // In 5 Minuten erneut versuchen
+      remaining.push({ ...e, attempts, sendAt: now + 5 * 60 * 1000 });
+      continue;
+    }
+    remaining.push(e); // noch nicht fällig
+  }
+  store.set(SCHEDULED_KEY, remaining);
 }
 
 ipcMain.handle('scheduled:add', async (event, emailData) => {

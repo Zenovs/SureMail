@@ -86,10 +86,12 @@ function SnoozeMenu({ open, onClose, onPick, anchorRect = null }) {
       }
     : { position: 'fixed', top: 80, right: 24, width: 280, zIndex: 10000 };
 
-  // Format min datetime-local für Custom-Input (jetzt + 1 Minute)
+  // Format min datetime-local für Custom-Input (jetzt + 1 Minute) — aus
+  // lokalen Komponenten; toISOString() wäre UTC und nahe Mitternacht einen Tag daneben.
   const minLocal = (() => {
     const d = new Date(Date.now() + 60 * 1000);
-    return d.toISOString().slice(0, 16);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   })();
 
   return (

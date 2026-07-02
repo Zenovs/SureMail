@@ -23,6 +23,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
   const [actionError, setActionError] = useState(null);
   const [isRead, setIsRead] = useState(email?.seen ?? true);
   const [unsubscribing, setUnsubscribing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [unsubscribeResult, setUnsubscribeResult] = useState(null); // { success, message } | null
   // v6.6.0: AI Smart Compose
   const [aiOpen, setAiOpen] = useState(false);
@@ -171,7 +172,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
   // === EMAIL ACTIONS ===
   const handleDelete = async () => {
     if (!window.electronAPI || !activeAccountId || !email?.uid) return;
-    
+    setShowDeleteConfirm(false);
     setActionLoading('delete');
     try {
       const result = await window.electronAPI.deleteEmail(activeAccountId, email.uid, currentFolder);
@@ -350,12 +351,13 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           
           {/* Action Buttons */}
           <div className="flex items-center gap-1">
-            {/* Delete */}
+            {/* Delete — v6.8.1: mit Bestätigung (IMAP löscht endgültig) */}
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={actionLoading === 'delete'}
               className={`p-2 ${c.hover} rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
               title="Löschen"
+              aria-label="Löschen"
             >
               {actionLoading === 'delete' ? (
                 <InProgress size={20} className="animate-spin" />
@@ -722,6 +724,43 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
         </div>
       </div>
 
+      {/* v6.8.1: Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <EscapeCloser onEscape={() => setShowDeleteConfirm(false)} />
+          <div className={`${c.card} border ${c.border} rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-500/20 rounded-full">
+                <TrashCan size={24} className="text-red-400" />
+              </div>
+              <div className="min-w-0">
+                <h3 className={`text-lg font-semibold ${c.text}`}>E-Mail löschen?</h3>
+                <p className={`text-sm ${c.textSecondary} truncate`}>{fullEmail?.subject || email?.subject || ''}</p>
+              </div>
+            </div>
+            <p className={`text-sm ${c.textSecondary} mb-6`}>
+              Bei IMAP-Konten wird die E-Mail endgültig vom Server gelöscht, bei Microsoft-365-Konten in den Papierkorb verschoben.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className={`px-4 py-2 ${c.hover} ${c.border} border rounded-lg transition-colors ${c.text}`}
+                autoFocus
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-2"
+              >
+                <TrashCan size={16} />
+                Löschen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Attachment Preview Modal */}
       {previewAttachment && (
         <div
@@ -737,7 +776,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               <h3 className={`font-medium ${c.text}`}>{previewAttachment.filename}</h3>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => downloadAttachment(previewAttachment, -1)}
+                  onClick={() => downloadAttachment(previewAttachment, fullEmail?.attachments?.indexOf(previewAttachment) ?? -1)}
                   className={`px-3 py-1 ${c.accentBg} ${c.accentHover} text-white rounded text-sm transition-colors flex items-center gap-1`}
                 >
                   <Download size={16} /> Download

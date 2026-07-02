@@ -243,6 +243,8 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   const editorRef  = useRef(null);
   const [editorMode,  setEditorMode]  = useState('richtext'); // 'richtext' | 'html' | 'preview'
   const [htmlSource,  setHtmlSource]  = useState('');
+  const initialEditorTextRef = useRef('');
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   // --- Templates ---
   const [showTemplates,  setShowTemplates]  = useState(false);
@@ -335,6 +337,9 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
         editorRef.current.innerHTML =
           `${aiPrefix}<blockquote style="border-left:3px solid #06b6d4;padding:0;margin:0;"><div style="${quoteWrapStyle}">${quoted}</div></blockquote>`;
       }
+      // Baseline für die Verwerfen-Erkennung: alles, was der Nutzer darüber
+      // hinaus tippt, gilt als ungespeicherte Eingabe (Replies haben keinen Draft).
+      initialEditorTextRef.current = editorRef.current.innerText;
     }
   }, [replyTo, isForward]); // eslint-disable-line
 
@@ -644,7 +649,18 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       <header className={`px-6 py-3 ${c.border} border-b ${c.bgSecondary} flex-shrink-0`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} title="Zurück" aria-label="Zurück zum Posteingang" className={`p-2 ${c.hover} rounded-lg ${c.textSecondary}`}>←</button>
+            <button
+              onClick={() => {
+                // v6.8.1: Replies/Weiterleitungen haben keinen Draft-Autosave —
+                // getippten Text nicht ohne Nachfrage verwerfen.
+                const dirty = !draftKey && editorRef.current &&
+                  editorRef.current.innerText.trim() !== (initialEditorTextRef.current || '').trim();
+                if (dirty) setShowDiscardConfirm(true);
+                else onBack();
+              }}
+              title="Zurück" aria-label="Zurück zum Posteingang"
+              className={`p-2 ${c.hover} rounded-lg ${c.textSecondary}`}
+            >←</button>
             <h2 className={`text-base font-semibold ${c.text}`}>{isForward ? 'Weiterleiten' : replyTo ? 'Antworten' : 'Neue E-Mail'}</h2>
           </div>
           <div className="flex items-center gap-2">
@@ -1019,11 +1035,39 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       </div>
 
       {/* Escape schliesst die Overlays — konsistent mit der globalen Suche */}
-      {(showTemplates || showCustomPaste) && (
+      {(showTemplates || showCustomPaste || showDiscardConfirm) && (
         <EscapeCloser onEscape={() => {
-          if (showCustomPaste) { setShowCustomPaste(false); setCustomHtmlPaste(''); }
+          if (showDiscardConfirm) setShowDiscardConfirm(false);
+          else if (showCustomPaste) { setShowCustomPaste(false); setCustomHtmlPaste(''); }
           else setShowTemplates(false);
         }} />
+      )}
+
+      {/* v6.8.1: Verwerfen-Bestätigung für Reply/Forward */}
+      {showDiscardConfirm && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className={`${c.bgSecondary} ${c.border} border rounded-xl shadow-2xl p-6 max-w-md w-full mx-4`}>
+            <h3 className={`text-lg font-semibold ${c.text} mb-2`}>Nachricht verwerfen?</h3>
+            <p className={`text-sm ${c.textSecondary} mb-6`}>
+              Deine angefangene Nachricht geht verloren.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDiscardConfirm(false)}
+                className={`px-4 py-2 ${c.hover} ${c.border} border rounded-lg transition-colors ${c.text}`}
+                autoFocus
+              >
+                Weiter schreiben
+              </button>
+              <button
+                onClick={onBack}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors"
+              >
+                Verwerfen
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Vorlagen-Panel (Overlay) */}
