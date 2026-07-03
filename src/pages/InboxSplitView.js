@@ -77,52 +77,51 @@ const CategoryButtons = memo(({ email, currentCategory, onCategorize, c }) => {
   const senderEmail = SenderCategoryManager.extractEmail(email?.from);
   const senderCategory = SenderCategoryManager.getSenderCategory(email?.from);
   
+  // Kompakte einzeilige Leiste — die grossen Rahmen-Buttons nahmen zusammen
+  // mit der Übersetzen-Zeile ~20% der Vorschau-Höhe ein, bevor Inhalt kam.
   return (
-    <div className={`px-4 py-3 ${c.bgSecondary} ${c.border} border-t flex items-center gap-3 flex-wrap`}>
-      <div className="flex items-center gap-2">
-        <Tag size={16} className={c.textSecondary} />
-        <span className={`text-sm font-medium ${c.text}`}>Als markieren:</span>
-      </div>
-      
-      <div className="flex items-center gap-2 flex-wrap">
-        {MANUAL_CATEGORIES.map(cat => {
-          const isActive = currentCategory === cat.id || senderCategory === cat.id;
-          const CatIcon = cat.Icon;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => onCategorize(email, cat.id)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
-                isActive
-                  ? `${cat.bgClass} text-white shadow-lg scale-105`
-                  : `bg-transparent border-2 ${c.text} ${cat.hoverClass} hover:text-white`
-              }`}
-              style={{ borderColor: isActive ? 'transparent' : cat.color }}
-              title={`Als ${cat.name} markieren`}
-            >
-              <CatIcon size={16} />
-              <span>{cat.name}</span>
-              {isActive && <Checkmark size={16} className="ml-1" />}
-            </button>
-          );
-        })}
-        
-        {/* Remove category button */}
-        {(currentCategory || senderCategory) && (
+    <div className={`px-3 py-1.5 ${c.bgSecondary} ${c.border} border-t flex items-center gap-1.5 flex-wrap`}>
+      <Tag size={14} className={`${c.textSecondary} flex-shrink-0`} title="Absender kategorisieren" />
+
+      {MANUAL_CATEGORIES.map(cat => {
+        const isActive = currentCategory === cat.id || senderCategory === cat.id;
+        const CatIcon = cat.Icon;
+        return (
           <button
-            onClick={() => onCategorize(email, null)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all border-2 ${c.border} ${c.textSecondary} ${c.hover}`}
-            title="Kategorie entfernen"
+            key={cat.id}
+            onClick={() => onCategorize(email, cat.id)}
+            className={`px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-all border ${
+              isActive
+                ? `${cat.bgClass} text-white border-transparent`
+                : `bg-transparent ${c.textSecondary} ${cat.hoverClass} hover:text-white`
+            }`}
+            style={{ borderColor: isActive ? 'transparent' : cat.color + '66' }}
+            title={`Absender als ${cat.name} markieren`}
+            aria-label={`Absender als ${cat.name} markieren`}
           >
-            <Close size={16} />
-            <span>Entfernen</span>
+            <CatIcon size={14} />
+            <span>{cat.name}</span>
+            {isActive && <Checkmark size={14} />}
           </button>
-        )}
-      </div>
-      
+        );
+      })}
+
+      {/* Remove category button */}
+      {(currentCategory || senderCategory) && (
+        <button
+          onClick={() => onCategorize(email, null)}
+          className={`px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 transition-all border ${c.border} ${c.textSecondary} ${c.hover}`}
+          title="Kategorie entfernen"
+          aria-label="Kategorie entfernen"
+        >
+          <Close size={14} />
+          <span>Entfernen</span>
+        </button>
+      )}
+
       {/* Sender info */}
       {senderCategory && (
-        <div className={`text-xs ${c.textSecondary} ml-auto flex items-center gap-1`}>
+        <div className={`text-xs ${c.textSecondary} ml-auto hidden lg:flex items-center gap-1`}>
           <span>Absender gemerkt:</span>
           <span className={`px-2 py-0.5 rounded-full ${
             INBOX_SUBFOLDERS.find(f => f.id === senderCategory)?.bgColor || 'bg-gray-500/20'
@@ -191,21 +190,17 @@ const TranslateBar = memo(({ email, c }) => {
 
   return (
     <>
-      <div className={`px-4 py-2 ${c.bgSecondary} ${c.border} border-t flex items-center gap-3 flex-wrap`}>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Earth size={16} className={c.textSecondary} />
-          <span className={`text-sm font-medium ${c.text}`}>Übersetzen:</span>
-        </div>
-
+      <div className={`px-3 py-1.5 ${c.bgSecondary} ${c.border} border-t flex items-center gap-2 flex-wrap`}>
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setOpen(o => !o)}
             disabled={loading}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${c.bgTertiary} ${c.border} border ${c.text} ${c.hover} disabled:opacity-50`}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors ${c.bgTertiary} ${c.border} border ${c.textSecondary} ${c.hover} disabled:opacity-50`}
+            title="Mail übersetzen"
           >
-            {loading ? <Renew size={16} className="animate-spin" /> : <Earth size={16} />}
-            <span>{loading ? 'Übersetze...' : result ? `→ ${result.lang}` : 'Sprache wählen'}</span>
-            <ChevronDown size={16} className="opacity-60" />
+            {loading ? <Renew size={14} className="animate-spin" /> : <Earth size={14} />}
+            <span>{loading ? 'Übersetze...' : result ? `Übersetzt → ${result.lang}` : 'Übersetzen'}</span>
+            <ChevronDown size={14} className="opacity-60" />
           </button>
 
           {open && (
@@ -229,7 +224,7 @@ const TranslateBar = memo(({ email, c }) => {
             onClick={() => setResult(null)}
             className={`ml-auto text-xs ${c.textSecondary} ${c.hover} px-2 py-1 rounded flex items-center gap-1`}
           >
-            <Close size={16} /> Übersetzung schließen
+            <Close size={14} /> Übersetzung schließen
           </button>
         )}
       </div>
@@ -462,7 +457,10 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
         ${!isSelected ? getBorderColor() : ''}
       `}
     >
-      <div className="flex items-start justify-between gap-2">
+      {/* Outlook-Layout: Absender + Datum in Zeile 1, Betreff in Zeile 2,
+          Vorschau + Badges in Zeile 3. Ungelesen = fetter Absender, farbiger
+          Betreff, blauer Seitenbalken — kein "Neu"-Badge mehr. */}
+      <div className="flex items-start gap-2">
         {/* v2.3.0: Checkbox for multi-select */}
         {showCheckboxes && (
           <div
@@ -478,69 +476,69 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
         )}
 
         <div className="flex-1 min-w-0 overflow-hidden">
-          {/* Sender with unread indicator */}
-          <div className={`text-sm flex items-center gap-2 font-medium ${isUnread ? c.accent : c.text}`}>
-            <span className={`inline-flex items-center justify-center w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 animate-pulse ${isUnread ? '' : 'invisible'}`} />
-            {isSentFolder && <span className={`text-xs ${c.textSecondary} flex-shrink-0`}>An:</span>}
-            <span className="truncate">{displayAddress}</span>
+          {/* Zeile 1: Absender + Datum rechts */}
+          <div className="flex items-baseline justify-between gap-2">
+            <span className={`text-sm truncate ${isUnread ? `font-semibold ${c.text}` : `font-medium ${c.text}`}`}>
+              {isSentFolder && <span className={`text-xs ${c.textSecondary}`}>An: </span>}
+              {displayAddress}
+            </span>
+            <span
+              className={`text-xs flex-shrink-0 group-hover:invisible ${isUnread ? 'text-blue-400 font-medium' : c.textSecondary}`}
+              title={new Date(email.date).toLocaleString('de-DE')}
+            >
+              {formatListDate(email.date)}
+            </span>
           </div>
 
-          {/* Subject */}
-          <div className={`text-sm mt-1 font-medium truncate ${isUnread ? c.text : c.textSecondary}`}>
+          {/* Zeile 2: Betreff */}
+          <div className={`text-sm mt-0.5 truncate ${isUnread ? `${c.accent} font-medium` : c.textSecondary}`}>
             {email.subject}
           </div>
 
-          {/* Preview */}
-          <div className={`text-xs ${c.textSecondary} mt-1 truncate`}>
-            {email.preview}
-          </div>
-          
-          {/* Date, unread badge, and spam tags (v1.14.0) */}
-          <div className={`text-xs ${c.textSecondary} mt-2 flex items-center gap-2 flex-wrap`}>
-            <span title={new Date(email.date).toLocaleString('de-DE')}>
-              {formatListDate(email.date)}
-            </span>
-            <span className={`px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium ${isUnread ? '' : 'invisible'}`}>
-              Neu
-            </span>
-            {/* v1.14.0: Spam filter tags */}
-            {spamCategory && spamCategory !== 'sicher' && spamCategory !== 'whitelist' && (
-              <SpamTagBadge category={spamCategory} />
-            )}
-            {/* v6.6.0: AI-Triage-Badge */}
-            <TriageBadge triage={triage} />
-          </div>
+          {/* Zeile 3: Vorschau + Badges (nur wenn vorhanden) */}
+          {(email.preview || (spamCategory && spamCategory !== 'sicher' && spamCategory !== 'whitelist') || triage) && (
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className={`text-xs ${c.textSecondary} truncate flex-1 min-w-0`}>
+                {email.preview}
+              </span>
+              {spamCategory && spamCategory !== 'sicher' && spamCategory !== 'whitelist' && (
+                <SpamTagBadge category={spamCategory} />
+              )}
+              <TriageBadge triage={triage} />
+            </div>
+          )}
         </div>
-        
-        {/* Quick Actions (visible on hover) */}
-        <div className={`flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity`}>
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleRead(email.uid, email.seen); }}
-            className={`p-1.5 ${c.hover} rounded transition-colors ${c.textSecondary} hover:${c.text}`}
-            title={email.seen ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
-            aria-label={email.seen ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
-          >
-            {actionLoading === `read-${email.uid}` ? (
-              <InProgress size={16} className="animate-spin" />
-            ) : email.seen ? (
-              <EmailNew size={16} />
-            ) : (
-              <Email size={16} />
-            )}
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(email.uid); }}
-            className={`p-1.5 ${c.hover} rounded transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
-            title="Löschen"
-            aria-label="Löschen"
-          >
-            {actionLoading === `delete-${email.uid}` ? (
-              <InProgress size={16} className="animate-spin" />
-            ) : (
-              <TrashCan size={16} />
-            )}
-          </button>
-        </div>
+      </div>
+
+      {/* Quick Actions als Overlay oben rechts (verdeckt beim Hovern das Datum,
+          statt in jeder Zeile dauerhaft Platz zu reservieren) */}
+      <div className={`absolute right-2 top-2 hidden group-hover:flex items-center gap-1 ${c.bgSecondary} rounded-md shadow px-0.5`}>
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleRead(email.uid, email.seen); }}
+          className={`p-1.5 ${c.hover} rounded transition-colors ${c.textSecondary} hover:${c.text}`}
+          title={email.seen ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
+          aria-label={email.seen ? 'Als ungelesen markieren' : 'Als gelesen markieren'}
+        >
+          {actionLoading === `read-${email.uid}` ? (
+            <InProgress size={16} className="animate-spin" />
+          ) : email.seen ? (
+            <EmailNew size={16} />
+          ) : (
+            <Email size={16} />
+          )}
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(email.uid); }}
+          className={`p-1.5 ${c.hover} rounded transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
+          title="Löschen"
+          aria-label="Löschen"
+        >
+          {actionLoading === `delete-${email.uid}` ? (
+            <InProgress size={16} className="animate-spin" />
+          ) : (
+            <TrashCan size={16} />
+          )}
+        </button>
       </div>
     </div>
   );
@@ -564,6 +562,21 @@ const formatListDate = (dateVal) => {
     return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
   }
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+};
+
+// Outlook-artige Datums-Gruppen für die Mail-Liste (Liste ist neueste zuerst)
+const dateGroupOf = (dateVal) => {
+  const d = new Date(dateVal);
+  if (isNaN(d)) return 'Älter';
+  const now = new Date();
+  const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+  if (diffDays <= 0) return 'Heute';
+  if (diffDays === 1) return 'Gestern';
+  if (diffDays < 7) return 'Diese Woche';
+  if (diffDays < 14) return 'Letzte Woche';
+  if (diffDays < 31) return 'Dieser Monat';
+  return 'Älter';
 };
 
 // Folder icon helper
@@ -2751,26 +2764,37 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             </div>
           ) : (
             <>
-              {filteredEmails.map((email, index) => (
-                <EmailListItem
-                  key={email.uid}
-                  email={email}
-                  index={index}
-                  isSelected={index === selectedIndex}
-                  isChecked={selectedUids.has(email.uid)}
-                  onSelect={handleSelectEmail}
-                  onCheckboxChange={handleCheckboxChange}
-                  onDelete={requestDelete}
-                  onToggleRead={handleToggleRead}
-                  c={c}
-                  actionLoading={actionLoading}
-                  spamAnalysis={effectiveAnalysisMap.get(email.uid)}
-                  showCheckboxes={showCheckboxes}
-                  isSentFolder={isSentFolder}
-                  onDragStart={setDraggedEmail}
-                  triage={triageMap.get(email.uid)}
-                />
-              ))}
+              {filteredEmails.map((email, index) => {
+                // Outlook-artige Gruppen-Header (Heute / Gestern / …)
+                const group = dateGroupOf(email.date);
+                const prevGroup = index > 0 ? dateGroupOf(filteredEmails[index - 1].date) : null;
+                return (
+                  <React.Fragment key={email.uid}>
+                    {group !== prevGroup && (
+                      <div className={`sticky top-0 z-10 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${c.bgSecondary} ${c.textSecondary} border-b ${c.border}`}>
+                        {group}
+                      </div>
+                    )}
+                    <EmailListItem
+                      email={email}
+                      index={index}
+                      isSelected={index === selectedIndex}
+                      isChecked={selectedUids.has(email.uid)}
+                      onSelect={handleSelectEmail}
+                      onCheckboxChange={handleCheckboxChange}
+                      onDelete={requestDelete}
+                      onToggleRead={handleToggleRead}
+                      c={c}
+                      actionLoading={actionLoading}
+                      spamAnalysis={effectiveAnalysisMap.get(email.uid)}
+                      showCheckboxes={showCheckboxes}
+                      isSentFolder={isSentFolder}
+                      onDragStart={setDraggedEmail}
+                      triage={triageMap.get(email.uid)}
+                    />
+                  </React.Fragment>
+                );
+              })}
               {(hasMore || loadingMore) && (
                 <div className="flex items-center justify-center p-4">
                   {loadingMore
