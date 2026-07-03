@@ -11,6 +11,7 @@ import { useAccounts, useAccountStats } from '../context/AccountContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmailHtmlFrame from '../components/EmailHtmlFrame';
 import SnoozeMenu from '../components/SnoozeMenu';
+import EmailTagInput from '../components/EmailTagInput';
 import { usePanelMode, PANEL_TRANSITION } from '../utils/usePanelMode';
 
 // v6.6.2: Kollabierte Spaltenbreiten — schmal genug damit Icons noch klickbar sind
@@ -564,6 +565,12 @@ const formatListDate = (dateVal) => {
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
 };
 
+// "Name <mail@x>" → "mail@x" (für die Reply-Empfänger-Tags)
+const extractEmailAddr = (s) => {
+  const m = String(s || '').match(/<([^>]+)>/);
+  return (m ? m[1] : String(s || '')).trim();
+};
+
 // Outlook-artige Datums-Gruppen für die Mail-Liste (Liste ist neueste zuerst)
 const dateGroupOf = (dateVal) => {
   const d = new Date(dateVal);
@@ -674,6 +681,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
   // v2.9.3: Inline reply state
   const [replyMode, setReplyMode] = useState(null); // null | 'reply' | 'replyAll'
+  // v6.9.1: Empfänger im Inline-Reply editierbar (An + CC, mit Autocomplete)
+  const [replyToTags, setReplyToTags] = useState([]);
+  const [replyCcTags, setReplyCcTags] = useState([]);
+  const [replyShowCc, setReplyShowCc] = useState(false);
   const [replySending, setReplySending] = useState(false);
   const [replyError, setReplyError] = useState(null);
   const [replyAttachments, setReplyAttachments] = useState([]);
@@ -1854,8 +1865,34 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   }, []);
 
   // v2.9.3: Send inline reply
+  // v6.9.1: Empfänger-Felder beim Öffnen des Reply-Panels vorbelegen —
+  // ab dann frei editierbar (weitere Adressen hinzufügbar).
+  useEffect(() => {
+    if (!replyMode || !selectedEmail) return;
+    const fromAddr = extractEmailAddr(selectedEmail.from);
+    if (replyMode === 'replyAll') {
+      const account = accounts.find(a => a.id === activeAccountId);
+      const ownEmail = (account?.smtp?.fromEmail || account?.smtp?.username || account?.microsoft?.email || '').toLowerCase();
+      const toAddrs = (selectedEmail.to || '').split(/[,;]/).map(extractEmailAddr).filter(Boolean);
+      const ccAddrs = (selectedEmail.cc || '').split(/[,;]/).map(extractEmailAddr).filter(Boolean);
+      const rest = [...new Set([...toAddrs, ...ccAddrs])]
+        .filter(a => a !== fromAddr && (!ownEmail || a.toLowerCase() !== ownEmail));
+      setReplyToTags(fromAddr ? [fromAddr] : []);
+      setReplyCcTags(rest);
+      setReplyShowCc(rest.length > 0);
+    } else {
+      setReplyToTags(fromAddr ? [fromAddr] : []);
+      setReplyCcTags([]);
+      setReplyShowCc(false);
+    }
+  }, [replyMode, selectedEmail, accounts, activeAccountId]);
+
   const handleSendReply = useCallback(async () => {
     if (!selectedEmail || !replyEditorRef.current) return;
+    if (replyToTags.length === 0) {
+      setReplyError('Mindestens ein Empfänger nötig');
+      return;
+    }
     setReplySending(true);
     setReplyError(null);
 
@@ -1864,19 +1901,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     const originalHtml = selectedEmail.html || `<p>${(selectedEmail.text || '').replace(/\n/g, '<br>')}</p>`;
     const fullHtml = `${replyBodyHtml}<br><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${originalHtml}</blockquote>`;
 
-    // Build CC for replyAll: original CC + all recipients except own address
-    let ccVal;
-    if (replyMode === 'replyAll') {
-      const ownEmail = account?.smtp?.fromEmail || account?.smtp?.username || account?.microsoft?.email || '';
-      const toAddrs = (selectedEmail.to || '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
-      const ccAddrs = (selectedEmail.cc || '').split(/[,;]/).map(s => s.trim()).filter(Boolean);
-      const allAddrs = [...toAddrs, ...ccAddrs].filter(a => a && !a.toLowerCase().includes(ownEmail.toLowerCase()));
-      ccVal = allAddrs.join(', ') || undefined;
-    }
-
     const emailData = {
-      to: selectedEmail.from,
-      cc: ccVal,
+      to: replyToTags.join(', '),
+      cc: replyCcTags.length > 0 ? replyCcTags.join(', ') : undefined,
       subject: selectedEmail.subject?.startsWith('Re:') ? selectedEmail.subject : `Re: ${selectedEmail.subject || ''}`,
       text: replyEditorRef.current.innerText || '',
       html: fullHtml,
@@ -1905,7 +1932,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setReplyError(e.message);
     }
     setReplySending(false);
-  }, [selectedEmail, replyMode, activeAccountId, accounts, replyAttachments]);
+  }, [selectedEmail, activeAccountId, accounts, replyAttachments, replyToTags, replyCcTags]);
 
   // v3.0.2: Save single attachment via Electron API, then open if requested
   const saveAttachment = useCallback(async (att, index, andOpen = false) => {
@@ -3019,7 +3046,6 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                     <div className={`text-sm font-medium ${c.text} flex items-center gap-2`}>
                       {replyMode === 'replyAll' ? <ReplyAll size={16} /> : <Reply size={16} />}
                       <span>{replyMode === 'replyAll' ? 'Allen antworten' : 'Antworten'}</span>
-                      <span className={`${c.textSecondary} font-normal truncate max-w-[200px]`}>an {selectedEmail.from}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {replyError && <span className="text-xs text-red-400">{replyError}</span>}
@@ -3048,6 +3074,34 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                         <Close size={16} />
                       </button>
                     </div>
+                  </div>
+
+                  {/* v6.9.1: Editierbare Empfänger — weitere Adressen hinzufügbar,
+                      mit Kontakte-Autocomplete wie im Compose */}
+                  <div className={`px-4 py-2 border-b ${c.border} space-y-1.5`}>
+                    <EmailTagInput
+                      label="An:"
+                      tags={replyToTags}
+                      onChange={setReplyToTags}
+                      placeholder="empfaenger@example.com"
+                      c={c}
+                    />
+                    {replyShowCc ? (
+                      <EmailTagInput
+                        label="CC:"
+                        tags={replyCcTags}
+                        onChange={setReplyCcTags}
+                        placeholder="cc@example.com"
+                        c={c}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setReplyShowCc(true)}
+                        className={`text-xs ${c.textSecondary} hover:${c.text} hover:underline ml-[76px]`}
+                      >
+                        + CC hinzufügen
+                      </button>
+                    )}
                   </div>
 
                   {/* Formatting toolbar */}
