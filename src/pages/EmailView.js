@@ -12,7 +12,16 @@ import EscapeCloser from '../components/EscapeCloser';
 
 const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolder = 'INBOX' }) => {
   const { currentTheme } = useTheme();
-  const { activeAccountId } = useAccounts();
+  const { activeAccountId, getActiveAccount } = useAccounts();
+  // v6.9.3: Microsoft-365-Konten brauchen den Graph-Handler zum Markieren —
+  // vorher lief hier immer der IMAP-Aufruf, der bei Graph-Konten scheiterte
+  // (Mails wurden nie als gelesen markiert).
+  const markReadFor = React.useCallback((uid, isRead) => {
+    const acc = getActiveAccount?.();
+    return acc?.type === 'microsoft'
+      ? window.electronAPI.markGraphAsRead(activeAccountId, uid, isRead)
+      : window.electronAPI.markAsRead(activeAccountId, uid, isRead, currentFolder);
+  }, [getActiveAccount, activeAccountId, currentFolder]);
   const [fullEmail, setFullEmail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,9 +112,9 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
         setLoading(false);
         
         // Mark as read on open if setting is "onOpen" (v1.8.1)
-        const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
+        const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
         if (markMode === 'onOpen' && !email.seen && window.electronAPI && activeAccountId) {
-          window.electronAPI.markAsRead(activeAccountId, email.uid, true, currentFolder);
+          markReadFor(email.uid, true);
           setIsRead(true);
         }
         return;
@@ -151,11 +160,11 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           }
 
           // Mark as read on open if setting is "onOpen" (v1.8.1)
-          const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
+          const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
           if (markMode === 'onOpen' && !email.seen) {
-            window.electronAPI.markAsRead(activeAccountId, email.uid, true, currentFolder);
+            markReadFor(email.uid, true);
+            setIsRead(true);
           }
-          setIsRead(true);
         } else {
           setError(result.error);
         }
@@ -193,7 +202,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
     setActionLoading('read');
     try {
       const newReadState = !isRead;
-      const result = await window.electronAPI.markAsRead(activeAccountId, email.uid, newReadState, currentFolder);
+      const result = await markReadFor(email.uid, newReadState);
       if (result.success) {
         setIsRead(newReadState);
       } else {

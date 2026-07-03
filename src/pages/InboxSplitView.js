@@ -1481,7 +1481,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     const email = filteredEmailsRef.current[index];
     if (email) {
       loadEmailPreview(email.uid);
-      const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'never';
+      // Default 'onClick' (wie Outlook): eine Mail beim Anklicken als gelesen
+      // markieren. Vorher war der Default 'never' — eine nicht wählbare Option,
+      // in der ein Klick nie etwas markierte.
+      const markMode = localStorage.getItem('emailSettings.markAsReadMode') || 'onClick';
       if (markMode === 'onClick' && !email.seen) {
         handleToggleRead(email.uid, false);
       }
