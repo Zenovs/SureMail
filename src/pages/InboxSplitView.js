@@ -607,6 +607,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const [replySentToast, setReplySentToast] = useState(false);
   const [confirmDeleteUid, setConfirmDeleteUid] = useState(null); // Einzel-Löschen bestätigen
   const [confirmDiscardReply, setConfirmDiscardReply] = useState(false);
+  const [headerExpanded, setHeaderExpanded] = useState(false); // An/Cc-Liste aufgeklappt
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [folderError, setFolderError] = useState(null);
   // Folder management modals
@@ -1830,6 +1831,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setReplyError(null);
     setAttachProgress({});
     setReplyAttachments([]);
+    setHeaderExpanded(false);
     if (replyEditorRef.current) replyEditorRef.current.innerHTML = '';
   }, [selectedEmail?.uid]);
 
@@ -2896,13 +2898,48 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                     <span className={c.text}>{selectedEmail.from}</span>
                     <span className="opacity-60"> · </span>
                     <span>{new Date(selectedEmail.date).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                    {selectedEmail.to && (
-                      <>
-                        <span className="opacity-60"> · an </span>
-                        <span className="truncate">{selectedEmail.to}</span>
-                      </>
-                    )}
                   </p>
+                  {/* v6.9.0: Empfänger-Header wie Outlook — kompakt mit
+                      Aufklappen für die vollständige An/Cc-Liste */}
+                  {(selectedEmail.to || selectedEmail.cc) && (
+                    <div className={`text-xs mt-0.5 ${c.textSecondary}`}>
+                      {headerExpanded ? (
+                        <div className="space-y-0.5 py-0.5">
+                          {selectedEmail.to && (
+                            <div className="break-words">
+                              <span className="opacity-60 font-medium">An: </span>
+                              <span className={c.text}>{selectedEmail.to}</span>
+                            </div>
+                          )}
+                          {selectedEmail.cc && (
+                            <div className="break-words">
+                              <span className="opacity-60 font-medium">Cc: </span>
+                              <span className={c.text}>{selectedEmail.cc}</span>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setHeaderExpanded(false)}
+                            className={`${c.accent} hover:underline flex items-center gap-0.5`}
+                          >
+                            <ChevronDown size={12} className="rotate-180" /> Weniger anzeigen
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setHeaderExpanded(true)}
+                          className="flex items-center gap-1 max-w-full hover:underline text-left"
+                          title="Alle Empfänger anzeigen"
+                        >
+                          <span className="truncate">
+                            <span className="opacity-60">an </span>
+                            {selectedEmail.to}
+                            {selectedEmail.cc && <span className="opacity-60"> · Cc: {selectedEmail.cc}</span>}
+                          </span>
+                          <ChevronDown size={12} className="flex-shrink-0 opacity-60" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {/* v2.9.3: Reply buttons + full view */}
                 <div className="flex items-center gap-1 flex-shrink-0">

@@ -141,6 +141,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   rulesDelete: (id) => ipcRenderer.invoke('rules:delete', id),
   rulesApplyNow: (accountId, folder) => ipcRenderer.invoke('rules:applyNow', accountId, folder),
 
+  // Kontakte / Adress-Autocomplete (v6.9.0)
+  contactsSuggest: (query, limit) => ipcRenderer.invoke('contacts:suggest', query, limit),
+  contactsList: () => ipcRenderer.invoke('contacts:list'),
+  contactsRemove: (email) => ipcRenderer.invoke('contacts:remove', email),
+
   // AI-Layer / Mail-Assistant (v6.6.0)
   aiGetSettings: () => ipcRenderer.invoke('ai:getSettings'),
   aiSaveSettings: (partial) => ipcRenderer.invoke('ai:saveSettings', partial),

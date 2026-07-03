@@ -1976,6 +1976,9 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
       store.set(`unreadCount_${accountId}`, unreadCount);
     }
 
+    // v6.9.0: Absender fürs Adress-Autocomplete merken
+    learnContactsFromEmails(emails);
+
     // v6.6.0: Mail-Regeln auf neue Mails anwenden (markRead/move/delete/snooze).
     // Verschobene/gelöschte Mails werden aus emails entfernt — der Renderer
     // sieht sie also gar nicht erst.
@@ -2263,6 +2266,9 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
     };
 
     await transporter.sendMail(mailOptions);
+
+    // v6.9.0: Empfänger fürs Adress-Autocomplete merken
+    learnContactsFromSend(emailData);
 
     // v2.8.4: Append sent email to IMAP Sent folder (non-blocking, 15s timeout)
     const appendToSent = async () => {
@@ -3213,6 +3219,8 @@ ipcMain.handle('graph:fetchEmails', async (event, accountId, { folder = 'INBOX',
       `/me/mailFolders/${graphFolder}/messages?$top=${limit}&$skip=${skip}&$select=${select}&$orderby=receivedDateTime desc`
     );
     const emails = (data?.value || []).map(normalizeGraphEmail);
+    // v6.9.0: Absender fürs Adress-Autocomplete merken
+    learnContactsFromEmails(emails);
     // v6.6.0: Mail-Regeln auch auf Graph-Konten anwenden
     const account = getAccountById(accountId);
     const filtered = account
@@ -3329,6 +3337,8 @@ ipcMain.handle('graph:sendEmail', async (event, accountId, emailData) => {
     };
 
     await graphRequest(accountId, 'POST', '/me/sendMail', { message, saveToSentItems: true });
+    // v6.9.0: Empfänger fürs Adress-Autocomplete merken
+    learnContactsFromSend(emailData);
     return { success: true };
   } catch (error) {
     console.error('[Graph] sendEmail:', error.message);
@@ -3442,6 +3452,101 @@ ipcMain.handle('graph:listFolders', async (event, accountId) => {
     if (error.message === 'TOKEN_EXPIRED') return { success: false, error: 'TOKEN_EXPIRED' };
     return { success: false, error: error.message };
   }
+});
+
+// ============================================================
+// KONTAKTE (v6.9.0) — lernt Adressen aus empfangenen und gesendeten
+// Mails und liefert Vorschläge fürs Compose-Feld (wie Outlook).
+// ============================================================
+
+const CONTACTS_KEY = 'contactsBook'; // { "mail@domain": { email, name, useCount, lastUsed } }
+let contactsMem = null;
+let contactsFlushTimer = null;
+
+function getContactsBook() {
+  if (!contactsMem) contactsMem = store.get(CONTACTS_KEY, {});
+  return contactsMem;
+}
+function flushContactsBook() {
+  if (contactsFlushTimer) { clearTimeout(contactsFlushTimer); contactsFlushTimer = null; }
+  if (contactsMem) store.set(CONTACTS_KEY, contactsMem);
+}
+function scheduleContactsFlush() {
+  if (contactsFlushTimer) return;
+  contactsFlushTimer = setTimeout(flushContactsBook, 5000);
+}
+app.on('before-quit', flushContactsBook);
+
+// "Name <mail@x>" | "mail@x" → { name, email }; Listen mit , oder ; getrennt
+function parseAddressList(str) {
+  return String(str || '')
+    .split(/[,;]/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(a => {
+      const m = a.match(/^(.*?)\s*<([^>]+)>\s*$/);
+      return m
+        ? { name: m[1].replace(/^["']+|["']+$/g, '').trim(), email: m[2].trim() }
+        : { name: '', email: a };
+    })
+    .filter(x => x.email.includes('@'));
+}
+
+// weight 0 = nur merken (aus Posteingang), weight >= 1 = aktiv genutzt (gesendet).
+// Schreibt nur auf Disk, wenn sich tatsächlich etwas geändert hat — läuft
+// sonst bei jedem Mail-Poll.
+function upsertContact(email, name = '', weight = 0) {
+  const key = String(email || '').toLowerCase().trim();
+  if (!key || !key.includes('@') || key.length > 120) return;
+  const book = getContactsBook();
+  const prev = book[key];
+  const cleanName = (name && name.toLowerCase() !== key ? String(name).trim() : '') || prev?.name || '';
+  if (prev && weight === 0 && prev.name === cleanName) return; // nichts Neues
+  book[key] = {
+    email: key,
+    name: cleanName,
+    useCount: (prev?.useCount || 0) + weight,
+    lastUsed: weight > 0 ? Date.now() : (prev?.lastUsed || Date.now())
+  };
+  scheduleContactsFlush();
+}
+
+function learnContactsFromEmails(emails) {
+  try {
+    for (const em of emails || []) {
+      for (const a of parseAddressList(em.from)) upsertContact(a.email, a.name || em.fromName, 0);
+    }
+  } catch (_) {}
+}
+
+function learnContactsFromSend(emailData) {
+  try {
+    for (const field of ['to', 'cc', 'bcc']) {
+      for (const a of parseAddressList(emailData?.[field])) upsertContact(a.email, a.name, 1);
+    }
+  } catch (_) {}
+}
+
+ipcMain.handle('contacts:suggest', async (event, query, limit = 6) => {
+  const q = String(query || '').toLowerCase().trim();
+  const all = Object.values(getContactsBook());
+  const matches = q
+    ? all.filter(cn => cn.email.includes(q) || (cn.name || '').toLowerCase().includes(q))
+    : all;
+  matches.sort((a, b) => (b.useCount - a.useCount) || (b.lastUsed - a.lastUsed));
+  return { success: true, contacts: matches.slice(0, Math.min(limit, 20)) };
+});
+
+ipcMain.handle('contacts:list', async () => ({
+  success: true,
+  contacts: Object.values(getContactsBook()).sort((a, b) => (b.useCount - a.useCount) || (b.lastUsed - a.lastUsed))
+}));
+
+ipcMain.handle('contacts:remove', async (event, email) => {
+  const book = getContactsBook();
+  delete book[String(email || '').toLowerCase().trim()];
+  scheduleContactsFlush();
+  return { success: true };
 });
 
 // ============================================================
