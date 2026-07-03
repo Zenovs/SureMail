@@ -38,6 +38,15 @@ function EmailHtmlFrame({ html, fontFamily }) {
 
     DOMPurify.removeAllHooks();
     DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+      // Tracking-Schutz auch für CSS: background:url(http://tracker) & Co. umgingen
+      // bisher den Bildblocker und bestätigten dem Absender das Öffnen der Mail.
+      if (data.attrName === 'style' && !imagesAllowed && data.attrValue) {
+        if (/url\(\s*['"]?\s*https?:/i.test(data.attrValue)) {
+          blockedCount++;
+          data.attrValue = data.attrValue.replace(/url\(\s*['"]?\s*https?:[^)]*\)/gi, 'none');
+        }
+        return;
+      }
       if (data.attrName !== 'src') return;
       if (node.tagName !== 'IMG') return;
       const v = (data.attrValue || '').trim().toLowerCase();
@@ -49,6 +58,14 @@ function EmailHtmlFrame({ html, fontFamily }) {
         // 1×1 transparent gif als Platzhalter
         node.setAttribute('data-blocked-src', data.attrValue);
         data.attrValue = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+      }
+    });
+    // <style>-Blöcke mit externem url()/@import ebenfalls entschärfen
+    DOMPurify.addHook('uponSanitizeElement', (node) => {
+      if (node.nodeName === 'STYLE' && !imagesAllowed && node.textContent && /url\(\s*['"]?\s*https?:|@import/i.test(node.textContent)) {
+        node.textContent = node.textContent
+          .replace(/url\(\s*['"]?\s*https?:[^)]*\)/gi, 'none')
+          .replace(/@import[^;]+;/gi, '');
       }
     });
 
@@ -101,18 +118,20 @@ function EmailHtmlFrame({ html, fontFamily }) {
       if (body) {
         iframe.style.height = (body.scrollHeight + 32) + 'px';
 
-        // Links im Browser öffnen statt im iframe navigieren
-        body.querySelectorAll('a[href]').forEach(link => {
-          link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const href = link.getAttribute('href');
-            if (href && window.electronAPI?.openExternal) {
-              const proto = href.trim().toLowerCase().split(':')[0];
-              if (['http', 'https', 'mailto', 'tel'].includes(proto)) {
-                window.electronAPI.openExternal(href);
-              }
+        // Links im Browser öffnen statt im iframe navigieren.
+        // Event-Delegation statt once:true — sonst navigierte ein zweiter Klick
+        // auf denselben Link ungehindert im iframe (Tracking/IP-Leak).
+        body.addEventListener('click', (e) => {
+          const link = e.target?.closest?.('a[href]');
+          if (!link) return;
+          e.preventDefault();
+          const href = link.getAttribute('href');
+          if (href && window.electronAPI?.openExternal) {
+            const proto = href.trim().toLowerCase().split(':')[0];
+            if (['http', 'https', 'mailto', 'tel'].includes(proto)) {
+              window.electronAPI.openExternal(href);
             }
-          }, { once: true });
+          }
         });
 
         // Kontextmenü-Events an Electron weiterleiten

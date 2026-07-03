@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import EscapeCloser from '../components/EscapeCloser';
 import EmailTagInput from '../components/EmailTagInput';
+import { sanitizeEmailHtml } from '../utils/sanitizeHtml';
 import {
   TextBold, TextItalic, TextUnderline, TextStrikethrough,
   ListNumbered, ListBulleted,
@@ -242,8 +243,11 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   // Antwort-Zitat / Weiterleitung in Editor einfügen
   useEffect(() => {
     if (editorRef.current && replyTo) {
+      // Sicherheit: Mail-HTML wird hier in einen live contentEditable eingefügt
+      // (nicht sandboxed) — ohne Sanitizing würde `<img onerror>` beim Antworten
+      // Renderer-Code mit vollem electronAPI-Zugriff ausführen.
       const quoted = replyTo.html
-        ? replyTo.html
+        ? sanitizeEmailHtml(replyTo.html)
         : (replyTo.text || '').replace(/\n/g, '<br>');
       // v6.6.0: Smart-Compose-Vorschlag, falls vorhanden, oben einfügen
       const aiPrefix = composeData?.aiDraft
@@ -405,12 +409,13 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   };
 
   const applyCustomHtml = () => {
+    const safe = sanitizeEmailHtml(customHtmlPaste);
     if (editorMode === 'html') {
-      setHtmlSource(customHtmlPaste);
+      setHtmlSource(safe);
     } else if (editorRef.current) {
-      editorRef.current.innerHTML = customHtmlPaste;
+      editorRef.current.innerHTML = safe;
       editorRef.current.focus();
-      setHtmlSource(customHtmlPaste);
+      setHtmlSource(safe);
     }
     setShowCustomPaste(false);
     setShowTemplates(false);
@@ -912,7 +917,7 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
                 <div className="p-4 bg-white" style={{ minHeight: '320px', maxHeight: '480px', overflowY: 'auto' }}>
                   <div
                     className="text-gray-800 text-sm"
-                    dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(getPreviewHtml()) }}
                   />
                 </div>
               )}

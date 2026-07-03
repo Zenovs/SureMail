@@ -70,10 +70,14 @@ process.on('unhandledRejection', (reason) => {
 });
 
 // ============ SANDBOX FIX (v3.0.9) ============
-// Required for AppImage on Ubuntu/GNOME where FUSE sandbox is not available
-// Must be called before app.whenReady()
-app.commandLine.appendSwitch('no-sandbox');
-app.commandLine.appendSwitch('disable-setuid-sandbox');
+// Sandbox nur unter Linux deaktivieren (AppImage auf Ubuntu/GNOME hat oft
+// keine FUSE-Sandbox). Auf macOS/Windows bleibt die Chromium-Sandbox aktiv —
+// ein Renderer-Kompromiss (Mail-HTML) hat es damit deutlich schwerer.
+// Muss vor app.whenReady() passieren.
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox');
+  app.commandLine.appendSwitch('disable-setuid-sandbox');
+}
 
 
 // App Version - read from package.json
@@ -289,13 +293,19 @@ function searchEmailsFTS({ query, accountIds = [], limit = 50 }) {
 // Allowed: self for scripts/styles/images/fonts, data: for inline images, https: for tracker-image opt-in.
 // External fetches (Microsoft Graph, GitHub API, Google Fonts) are explicitly listed.
 function setupCSP() {
+  const isDev = process.env.NODE_ENV === 'development';
+  // 'unsafe-eval' braucht nur der react-scripts-Dev-Server. Im Production-Build
+  // wird es entfernt, damit eingeschleuster Code nicht per eval() laufen kann.
+  const scriptSrc = isDev
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+    : "script-src 'self' 'unsafe-inline'; ";
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
         ...details.responseHeaders,
         'Content-Security-Policy': [
           "default-src 'self'; " +
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + // 'unsafe-eval' nötig für react-scripts dev; in Production eigentlich nicht
+          scriptSrc +
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
           "font-src 'self' data: https://fonts.gstatic.com; " +
           "img-src 'self' data: blob: https: http:; " + // Mail-Bilder erlauben (sind in Iframe-Sandbox)
@@ -327,7 +337,35 @@ function createWindow() {
   });
 
   const isDev = process.env.NODE_ENV === 'development';
-  
+
+  // Security: Fenster-Öffnen und Navigation absichern (defense-in-depth).
+  // Ein window.open / target=_blank aus einer (bösartigen) Mail darf kein
+  // Electron-Fenster mit Node-Kontext öffnen; externe Links gehen in den
+  // System-Browser, In-App-Navigation bleibt auf die App beschränkt.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url) || url.startsWith('mailto:')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+  const allowNavigation = (event, url) => {
+    const ok = isDev
+      ? url.startsWith('http://localhost:3000')
+      : (url.startsWith('file://') || url.startsWith('data:text/html'));
+    if (!ok) {
+      event.preventDefault();
+      if (/^https?:\/\//i.test(url) || url.startsWith('mailto:')) shell.openExternal(url);
+    }
+  };
+  mainWindow.webContents.on('will-navigate', allowNavigation);
+  mainWindow.webContents.on('will-redirect', allowNavigation);
+  // Kein Attach von untrusted WebContents (z.B. eingebettete Frames) mit Node
+  mainWindow.webContents.on('will-attach-webview', (event, webPreferences) => {
+    delete webPreferences.preload;
+    webPreferences.nodeIntegration = false;
+    webPreferences.contextIsolation = true;
+  });
+
   // Debug logging for loading issues (v2.4.1)
   mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
     console.error(`[CoreMail] Failed to load: ${errorCode} - ${errorDescription}`);
@@ -1016,7 +1054,29 @@ async function computeFileSha256(filePath) {
   });
 }
 
+// Security v6.9.2: Update-Downloads dürfen NUR von den offiziellen GitHub-
+// Release-Assets kommen. Vorher hätte ein kompromittierter Renderer eine
+// beliebige URL + passendes SHA256-Manifest liefern und so eine fremde Binary
+// herunterladen und ausführen lassen können (Manifest war selbst vom Angreifer).
+function isTrustedUpdateUrl(url) {
+  try {
+    const u = new URL(String(url));
+    if (u.protocol !== 'https:') return false;
+    const host = u.hostname.toLowerCase();
+    const okHost = host === 'github.com' || host === 'objects.githubusercontent.com' || host === 'release-assets.githubusercontent.com';
+    if (!okHost) return false;
+    // github.com muss auf das offizielle Repo zeigen; die CDN-Hosts liefern nur Assets aus
+    if (host === 'github.com' && !u.pathname.startsWith('/Zenovs/coremail/')) return false;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function downloadUpdate(downloadUrl, sumsUrl = null, expectedFilename = null) {
+  if (!isTrustedUpdateUrl(downloadUrl) || (sumsUrl && !isTrustedUpdateUrl(sumsUrl))) {
+    return { success: false, error: 'Update-URL nicht vertrauenswürdig (nur offizielle GitHub-Releases erlaubt)' };
+  }
   const downloadDir = app.getPath('downloads');
   // v6.5.0: Dateiname richtet sich nach der erwarteten Asset-Endung —
   // damit Mac-Finder die .dmg mountet und Windows-Explorer die .exe als Installer erkennt.
@@ -1464,15 +1524,29 @@ ipcMain.handle('update:getBackups', async () => {
   }
 });
 
+// Prüft, dass ein Pfad innerhalb eines erlaubten Verzeichnisses liegt
+// (kein Ausbruch via ../ oder Symlink-Trick).
+function isPathInside(target, dir) {
+  const rel = path.relative(path.resolve(dir), path.resolve(target));
+  return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+}
+
 // v1.16.0: Restore from backup
 ipcMain.handle('update:restoreBackup', async (event, backupPath) => {
   try {
+    // Security: nur Backups aus dem app-eigenen backups-Verzeichnis dürfen
+    // gestartet werden — sonst könnte der Renderer einen beliebigen Pfad
+    // ausführbar machen und als Prozess spawnen (RCE-Primitive).
+    const backupDir = path.join(app.getPath('userData'), 'backups');
+    if (!isPathInside(backupPath, backupDir)) {
+      return { success: false, error: 'Ungültiger Backup-Pfad' };
+    }
     if (!fs.existsSync(backupPath)) {
       return { success: false, error: 'Backup nicht gefunden' };
     }
-    
+
     fs.chmodSync(backupPath, 0o755);
-    
+
     const child = spawn(backupPath, [], {
       detached: true,
       stdio: 'ignore',
@@ -1577,12 +1651,39 @@ ipcMain.handle('search:clearIndex', async () => {
 //   1) one-click POST an https-URL (RFC 8058) — wenn der Sender es mitsendet
 //   2) GET an https-URL → im Browser öffnen (User bestätigt selbst)
 //   3) mailto: → leere Mail vom aktiven Konto an den angegebenen Empfänger schicken
+// SSRF-Schutz: die One-Click-URL kommt direkt aus dem List-Unsubscribe-Header
+// der (nicht vertrauenswürdigen) Mail. Ohne Prüfung könnte ein Absender den
+// Main-Prozess einen POST an interne Hosts (127.0.0.1, 169.254.169.254,
+// LAN, Cloud-Metadaten) absetzen lassen.
+function isSafePublicHttpsUrl(rawUrl) {
+  try {
+    const u = new URL(String(rawUrl));
+    if (u.protocol !== 'https:') return false;
+    const host = u.hostname.toLowerCase();
+    if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return false;
+    // IPv6-Loopback / IPv4 in privaten Bereichen ablehnen
+    if (host === '::1' || host.startsWith('[')) return false;
+    const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (m) {
+      const [a, b] = [parseInt(m[1], 10), parseInt(m[2], 10)];
+      if (a === 10 || a === 127 || a === 0 ||
+          (a === 172 && b >= 16 && b <= 31) ||
+          (a === 192 && b === 168) ||
+          (a === 169 && b === 254) ||
+          (a === 100 && b >= 64 && b <= 127)) return false;
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 ipcMain.handle('mail:unsubscribe', async (event, { listUnsubscribe, accountId }) => {
   if (!listUnsubscribe) return { success: false, error: 'Keine Unsubscribe-Information' };
   const { mailto, http, oneClick } = listUnsubscribe;
 
-  // Pfad 1: One-Click POST (RFC 8058) — bevorzugt
-  if (http && oneClick) {
+  // Pfad 1: One-Click POST (RFC 8058) — bevorzugt, nur an sichere öffentliche https-Hosts
+  if (http && oneClick && isSafePublicHttpsUrl(http)) {
     try {
       const resp = await fetch(http, {
         method: 'POST',
@@ -1716,6 +1817,14 @@ ipcMain.handle('attachment:saveAll', async (event, attachments) => {
 
 ipcMain.handle('attachment:openFile', async (event, filePath) => {
   try {
+    // Security: nur Dateien aus dem konfigurierten Download-Ordner öffnen —
+    // sonst könnte der Renderer eine beliebige Systemdatei mit dem OS-Handler
+    // starten (z.B. zuvor via attachment:saveAll geschriebene Payload).
+    const settings = store.get('appSettings', {});
+    const downloadPath = settings.downloadPath || app.getPath('downloads');
+    if (!isPathInside(filePath, downloadPath)) {
+      return { success: false, error: 'Datei liegt ausserhalb des Download-Ordners' };
+    }
     await shell.openPath(filePath);
     return { success: true };
   } catch (error) {
@@ -1777,22 +1886,22 @@ ipcMain.handle('accounts:load', async () => {
   try {
     let accounts = store.get('accounts', []);
 
-    // Security migration v6.2.0: Konten ohne allowInsecureTLS-Flag wurden bisher
-    // ohne Cert-Validierung verbunden. Damit der bisherige Verbindungsstatus
-    // unverändert bleibt, markieren wir Bestandskonten einmalig mit allowInsecureTLS=true.
-    // Der User kann das pro Konto in den Einstellungen abschalten.
+    // Security v6.9.2: Neue/unmarkierte Konten bekommen den SICHEREN Default
+    // (Cert-Validierung an). Früher wurden sie auf allowInsecureTLS=true gesetzt,
+    // was eine MITM-Lücke offen liess. Falls ein Server ein selbstsigniertes
+    // Zertifikat nutzt, kann der User es pro Konto in den Einstellungen erlauben.
     let migrated = false;
     accounts = accounts.map(acc => {
       if (acc && acc.allowInsecureTLS === undefined) {
         migrated = true;
-        return { ...acc, allowInsecureTLS: true, _tlsSecurityMigrated: true };
+        return { ...acc, allowInsecureTLS: false, _tlsSecurityMigrated: true };
       }
       return acc;
     });
     if (migrated) {
       store.set('accounts', accounts);
       invalidateAccountsCache();
-      console.log('[Security] TLS-Migration: Bestandskonten mit allowInsecureTLS=true markiert (Verhalten unverändert).');
+      console.log('[Security] TLS-Migration: unmarkierte Konten auf sicheren Default (Cert-Validierung an) gesetzt.');
     }
 
     return {
