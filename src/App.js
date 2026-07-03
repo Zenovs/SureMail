@@ -309,7 +309,10 @@ function AppContent() {
       <div className="flex flex-1 overflow-hidden min-h-0">
       <SidebarV2 currentView={currentView} onNavigate={setCurrentView} />
       <main className="flex-1 flex flex-col overflow-hidden min-h-0">
-        <ErrorBoundary>
+        {/* key={currentView}: Boundary beim Seitenwechsel neu mounten — sonst
+            blieb nach einem Crash (z.B. Mail-Regeln) JEDE danach angeklickte
+            Ansicht auf der Fehlerseite hängen. */}
+        <ErrorBoundary key={currentView}>
           {renderContent()}
         </ErrorBoundary>
       </main>

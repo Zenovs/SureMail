@@ -145,6 +145,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   aiGetSettings: () => ipcRenderer.invoke('ai:getSettings'),
   aiSaveSettings: (partial) => ipcRenderer.invoke('ai:saveSettings', partial),
   aiTestConnection: () => ipcRenderer.invoke('ai:testConnection'),
+  aiListOllamaModels: (endpoint) => ipcRenderer.invoke('ai:listOllamaModels', endpoint),
   aiTriageMail: (payload) => ipcRenderer.invoke('ai:triageMail', payload),
   aiTriageBatch: (payload) => ipcRenderer.invoke('ai:triageBatch', payload),
   aiGetTriageMap: (accountId, folder) => ipcRenderer.invoke('ai:getTriageMap', accountId, folder),

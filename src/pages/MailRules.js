@@ -63,6 +63,33 @@ function MailRules() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Folder-Liste lazy laden, wenn der Editor moveToFolder zeigt.
+  // WICHTIG: muss VOR dem useEffect unten definiert sein — die Referenz im
+  // Dependency-Array warf sonst beim Rendern einen TDZ-ReferenceError
+  // ("Cannot access before initialization") und crashte die ganze Seite.
+  const loadFoldersForAccount = useCallback(async (accountId) => {
+    if (foldersByAccount[accountId]) return;
+    const acc = accounts.find(a => a.id === accountId);
+    if (!acc || !window.electronAPI) return;
+    try {
+      const result = acc.type === 'microsoft'
+        ? await window.electronAPI.listGraphFolders(accountId)
+        : await window.electronAPI.listFolders(accountId);
+      const flat = [];
+      const walk = (arr, prefix = '') => {
+        for (const f of arr || []) {
+          const display = prefix ? `${prefix} / ${f.name}` : f.name;
+          flat.push({ path: f.path, name: display });
+          if (f.children?.length) walk(f.children, display);
+        }
+      };
+      walk(result?.folders || []);
+      setFoldersByAccount(prev => ({ ...prev, [accountId]: flat }));
+    } catch (_) {
+      setFoldersByAccount(prev => ({ ...prev, [accountId]: [] }));
+    }
+  }, [accounts, foldersByAccount]);
+
   // v6.6.2: Folder-Listen für alle Konten laden, die Regeln mit moveToFolder haben.
   // Damit die Regel-Übersicht den Ordner-NAMEN statt der rohen Graph-ID/IMAP-Pfad zeigt.
   useEffect(() => {
@@ -98,30 +125,6 @@ function MailRules() {
     // → versteckter Fallback statt unleserliche Folge zu zeigen.
     if (folderPath.length > 40 && !folderPath.includes('/')) return 'Ordner';
     return folderPath;
-  }, [accounts, foldersByAccount]);
-
-  // Folder-Liste lazy laden, wenn der Editor moveToFolder zeigt
-  const loadFoldersForAccount = useCallback(async (accountId) => {
-    if (foldersByAccount[accountId]) return;
-    const acc = accounts.find(a => a.id === accountId);
-    if (!acc || !window.electronAPI) return;
-    try {
-      const result = acc.type === 'microsoft'
-        ? await window.electronAPI.listGraphFolders(accountId)
-        : await window.electronAPI.listFolders(accountId);
-      const flat = [];
-      const walk = (arr, prefix = '') => {
-        for (const f of arr || []) {
-          const display = prefix ? `${prefix} / ${f.name}` : f.name;
-          flat.push({ path: f.path, name: display });
-          if (f.children?.length) walk(f.children, display);
-        }
-      };
-      walk(result?.folders || []);
-      setFoldersByAccount(prev => ({ ...prev, [accountId]: flat }));
-    } catch (_) {
-      setFoldersByAccount(prev => ({ ...prev, [accountId]: [] }));
-    }
   }, [accounts, foldersByAccount]);
 
   const startEdit = (rule = null) => {

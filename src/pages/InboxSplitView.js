@@ -497,13 +497,8 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
           
           {/* Date, unread badge, and spam tags (v1.14.0) */}
           <div className={`text-xs ${c.textSecondary} mt-2 flex items-center gap-2 flex-wrap`}>
-            <span>
-              {new Date(email.date).toLocaleDateString('de-DE', {
-                day: '2-digit',
-                month: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+            <span title={new Date(email.date).toLocaleString('de-DE')}>
+              {formatListDate(email.date)}
             </span>
             <span className={`px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium ${isUnread ? '' : 'invisible'}`}>
               Neu
@@ -551,14 +546,34 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
   );
 });
 
+// Intelligente Datumsanzeige wie in gängigen Mail-Clients: heute nur die
+// Uhrzeit, gestern "Gestern", dieses Jahr "2. Juli", älter mit Jahr.
+const formatListDate = (dateVal) => {
+  const d = new Date(dateVal);
+  if (isNaN(d)) return '';
+  const now = new Date();
+  const sameDay = (a, b) =>
+    a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  if (sameDay(d, now)) {
+    return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  }
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (sameDay(d, yesterday)) return 'Gestern';
+  if (d.getFullYear() === now.getFullYear()) {
+    return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+  }
+  return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' });
+};
+
 // Folder icon helper
 const getFolderIcon = (type) => {
   switch (type) {
     case 'inbox': return <MailAll size={16} />;
-    case 'sent': return <Send size={16} />;
+    case 'sent': case 'sentitems': return <Send size={16} />;
     case 'drafts': return <Document size={16} />;
-    case 'trash': return <TrashCan size={16} />;
-    case 'spam': return <WarningAlt size={16} />;
+    case 'trash': case 'deleteditems': return <TrashCan size={16} />;
+    case 'spam': case 'junkemail': return <WarningAlt size={16} />;
     case 'archive': return <Archive size={16} />;
     default: return <Folder size={16} />;
   }
@@ -2319,7 +2334,15 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 ) : (
                   <span className="w-4 shrink-0" />
                 ))}
-                {getFolderIcon(folder.type)}
+                {!folderPanel.isExpanded && !['inbox','sent','sentitems','drafts','trash','deleteditems','spam','junkemail','archive'].includes(folder.type) ? (
+                  // Eingeklappt: Anfangsbuchstabe statt 20 identischer Ordner-Icons —
+                  // sonst ist der Streifen ohne Hovern nicht unterscheidbar.
+                  <span className="w-4 h-4 flex items-center justify-center text-[11px] font-bold uppercase rounded-sm bg-white/10">
+                    {(folder.name || '?').charAt(0)}
+                  </span>
+                ) : (
+                  getFolderIcon(folder.type)
+                )}
                 {folderPanel.isExpanded && <span className="truncate flex-1">{folder.name}</span>}
                 {/* Unread count badge — auch im kollabierten Modus zeigen, wenn > 0 */}
                 {folder.path === 'INBOX' && unreadCount > 0 && (
@@ -2555,10 +2578,11 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         )}
         {mailListPanel.isExpanded && (
         <div className={`p-4 ${c.border} border-b`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className={`font-semibold ${c.text}`}>{account?.name || 'Posteingang'}</h2>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 min-w-0">
+                {/* truncate statt Umbruch — lange Kontonamen brachen über 4 Zeilen um */}
+                <h2 className={`font-semibold ${c.text} truncate`} title={account?.name || 'Posteingang'}>{account?.name || 'Posteingang'}</h2>
                 {/* v2.4.0: Show active category filter */}
                 {categoryFilter && currentFolder === 'INBOX' && (
                   <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
@@ -2586,7 +2610,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-shrink-0">
               {/* v2.8.5: Ungelesen-Filter */}
               <button
                 onClick={() => setShowUnreadOnly(v => !v)}

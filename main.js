@@ -4333,6 +4333,24 @@ ipcMain.handle('ai:testConnection', async () => {
   }
 });
 
+// v6.8.2: Installierte Ollama-Modelle auflisten — die Settings-Seite zeigt
+// damit ein Dropdown statt Freitext (Tippfehler/nicht installierte Modelle
+// endeten sonst in "Ollama HTTP 404" bei jedem AI-Aufruf).
+ipcMain.handle('ai:listOllamaModels', async (event, endpoint) => {
+  try {
+    const base = (endpoint || getAiSettings().ollamaEndpoint || AI_DEFAULT_SETTINGS.ollamaEndpoint).replace(/\/$/, '');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const resp = await fetch(base + '/api/tags', { signal: controller.signal });
+    clearTimeout(timer);
+    if (!resp.ok) return { success: false, error: `HTTP ${resp.status}` };
+    const data = await resp.json();
+    return { success: true, models: (data?.models || []).map(m => m.name) };
+  } catch (e) {
+    return { success: false, error: e.name === 'AbortError' ? 'Timeout — läuft Ollama?' : e.message };
+  }
+});
+
 // ── Triage ──────────────────────────────────────────────────────────────────
 // Der Triage-Cache lebt in-memory; store.set würde sonst pro Mail die komplette
 // verschlüsselte Config synchron neu schreiben (blockiert den Main-Prozess).
@@ -4401,6 +4419,9 @@ ipcMain.handle('ai:triageBatch', async (event, payload) => {
   // 13s zwischen Aufrufen → max. 4.6 RPM, sicher unter dem Limit. Bei Ollama
   // (lokal) keine Pause — das ist single-stream sequentiell schnell genug.
   const settings = getAiSettings();
+  if (!settings.enabled) {
+    return { success: false, error: 'AI ist nicht aktiviert — im AI-Assistent (Seitenleiste) aktivieren und Modell wählen' };
+  }
   const interCallDelayMs = settings.provider === 'anthropic' ? 13000 : 0;
 
   for (let idx = 0; idx < items.length; idx++) {
