@@ -134,7 +134,7 @@ function EmailTagInput({ label, tags, onChange, placeholder, c, isLarge = false 
 
       {/* Adress-Vorschläge aus gelernten Kontakten (↑↓ + Enter, Klick) */}
       {suggestions.length > 0 && (
-        <div className={`absolute top-full left-0 right-0 mt-1 z-50 rounded-lg shadow-xl ${c.bgSecondary} ${c.border} border py-1 max-h-56 overflow-y-auto`}>
+        <div className={`absolute top-full left-0 right-0 mt-1 z-50 rounded-lg shadow-2xl ${c.popover || c.bgSecondary || 'bg-dark-800'} ${c.border} border py-1 max-h-56 overflow-y-auto`}>
           {suggestions.map((s, i) => (
             <button
               key={s.email}
