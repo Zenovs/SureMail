@@ -131,7 +131,10 @@ function AppContent() {
 
     const syncAllAccounts = async () => {
       if (!window.electronAPI) return;
-      if (document.hidden) return;
+      // Bewusst KEIN `document.hidden`-Guard mehr: ein Mail-Client soll auch
+      // bei minimiertem/verdecktem Fenster im Hintergrund weiter abrufen.
+      // Zusammen mit backgroundThrottling:false (main.js) laufen die Timer
+      // dann auch im Tray zuverlässig weiter.
       if (!navigator.onLine) return;
 
       const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';

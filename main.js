@@ -329,7 +329,12 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      // Mail-Client muss auch im Tray/minimiert weitersynchronisieren.
+      // Ohne dies drosselt/friert Chromium die setInterval-Timer des
+      // Renderers ein, sobald das Fenster verdeckt ist → Background-Sync
+      // stoppt (App.js:syncAllAccounts läuft dann faktisch nie).
+      backgroundThrottling: false
     },
     backgroundColor: '#0a0a0a',
     icon: getIconPath(),
