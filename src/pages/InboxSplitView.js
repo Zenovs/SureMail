@@ -419,7 +419,7 @@ const TriageBadge = memo(({ triage }) => {
   );
 });
 
-const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes, isSentFolder, onDragStart, triage }) => {
+const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onCheckboxChange, onDelete, onArchive, onToggleRead, c, actionLoading, spamAnalysis, showCheckboxes, isSentFolder, onDragStart, triage }) => {
   const isUnread = !email.seen;
   const spamCategory = spamAnalysis?.category;
   const spamTags = spamAnalysis?.tags || [];
@@ -526,6 +526,19 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             <EmailNew size={16} />
           ) : (
             <Email size={16} />
+          )}
+        </button>
+        {/* v6.10.0: Archivieren direkt aus der Zeile (Kürzel: E) */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onArchive(email.uid); }}
+          className={`p-1.5 ${c.hover} rounded transition-colors ${c.textSecondary} hover:${c.text}`}
+          title="Archivieren (E)"
+          aria-label="Archivieren"
+        >
+          {actionLoading === `archive-${email.uid}` ? (
+            <InProgress size={16} className="animate-spin" />
+          ) : (
+            <Archive size={16} />
           )}
         </button>
         <button
@@ -1528,16 +1541,43 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setSelectedEmail(null);
   }, [selectedEmail, activeAccountId, currentFolder]);
 
+  // v6.10.0: Ist der übergebene Ordner der Papierkorb? Primär über den
+  // Ordner-Typ (Graph: wellKnownName 'deleteditems'; IMAP: 'trash' via
+  // SPECIAL-USE aus imap:listFolders). Namens-Fallback nur EXAKT — ein
+  // Substring-Match hätte harmlose Ordner wie "Gelöschte Projekte 2023" als
+  // Papierkorb behandelt und dort ENDGÜLTIG gelöscht statt verschoben.
+  const isTrashFolder = useCallback((folderPath) => {
+    const TRASH_NAMES = ['trash', 'deleted items', 'deleted', 'deleted messages', 'papierkorb', 'gelöschte elemente', 'geloeschte elemente', 'bin', 'corbeille', 'cestino', 'papelera'];
+    const all = (folders || []).flatMap(f => [f, ...(f.children || [])]);
+    const f = all.find(x => x.path === folderPath);
+    if (f) {
+      // Graph: wellKnownName; IMAP: nur echtes SPECIAL-USE — der namens-
+      // geratene type wäre hier zu lasch (Substring, z.B. "Trashbin")
+      if (f.type === 'deleteditems' || f.specialUse === 'trash') return true;
+      return TRASH_NAMES.includes((f.name || '').toLowerCase());
+    }
+    // Fallback ohne Ordnerliste: letztes Pfadsegment exakt vergleichen
+    const seg = String(folderPath || '').split(/[./]/).pop().toLowerCase();
+    return TRASH_NAMES.includes(seg);
+  }, [folders]);
+
   // Email Actions
   // v1.12.1: Fixed - now also removes from IndexedDB to prevent deleted emails from reappearing
+  // v6.10.0: Outlook-Semantik — ausserhalb des Papierkorbs wird in den
+  // Papierkorb verschoben; nur im Papierkorb selbst wird endgültig gelöscht.
   const handleDelete = useCallback(async (uid) => {
     if (!window.electronAPI || !activeAccountId) return;
 
     setActionLoading(`delete-${uid}`);
     try {
-      const result = isGraphAccount()
-        ? await window.electronAPI.deleteGraphEmail(activeAccountId, uid)
-        : await window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder);
+      const inTrash = isTrashFolder(currentFolder);
+      const result = inTrash
+        ? (isGraphAccount()
+            ? await window.electronAPI.deleteGraphEmail(activeAccountId, uid)
+            : await window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder))
+        : (isGraphAccount()
+            ? await window.electronAPI.trashGraphEmail(activeAccountId, uid)
+            : await window.electronAPI.trashEmail(activeAccountId, uid, currentFolder));
       if (result.success) {
         // Stop background loader immediately so it can't write the deleted email back
         bgLoadAbortRef.current = true;
@@ -1570,11 +1610,50 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Fehler beim Löschen: ' + err.message);
     }
     setActionLoading(null);
+  }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount, isTrashFolder, loadEmailPreview]);
+
+  // v6.10.0: Archivieren (Outlook-Semantik) — verschiebt in den Archiv-Ordner
+  // (Graph: Well-Known "archive", IMAP: SPECIAL-USE/Name, wird bei Bedarf angelegt).
+  const handleArchive = useCallback(async (uid) => {
+    if (!window.electronAPI || !activeAccountId) return;
+
+    setActionLoading(`archive-${uid}`);
+    try {
+      const result = isGraphAccount()
+        ? await window.electronAPI.archiveGraphEmail(activeAccountId, uid)
+        : await window.electronAPI.archiveEmail(activeAccountId, uid, currentFolder);
+      if (result.success) {
+        bgLoadAbortRef.current = true;
+        const newEmails = emailsRef.current.filter(e => e.uid !== uid);
+        setEmails(newEmails);
+        const cacheKey = getCacheKey(activeAccountId, currentFolder);
+        emailCache.set(cacheKey, { data: newEmails, hasMore: hasMoreRef.current, timestamp: Date.now() });
+        await removeEmailFromIndexedDB(activeAccountId, currentFolder, uid);
+        const selIdx = selectedIndexRef.current;
+        if (selIdx >= newEmails.length) {
+          setSelectedIndex(Math.max(0, newEmails.length - 1));
+        }
+        if (newEmails.length > 0 && newEmails[selIdx]) {
+          loadEmailPreview(newEmails[selIdx].uid);
+        } else {
+          setSelectedEmail(null);
+        }
+      } else {
+        setActionToast('Archivieren fehlgeschlagen: ' + (result?.error || 'unbekannt'));
+      }
+    } catch (err) {
+      setActionToast('Archivieren fehlgeschlagen: ' + err.message);
+    }
+    setActionLoading(null);
   }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount, loadEmailPreview]);
 
-  // v6.8.1: Einzel-Löschen erst nach Bestätigung — bei IMAP wird endgültig
-  // gelöscht (expunge), ein versehentlicher Klick war nicht rückholbar.
-  const requestDelete = useCallback((uid) => setConfirmDeleteUid(uid), []);
+  // v6.8.1: Einzel-Löschen erst nach Bestätigung — v6.10.0: nur noch im
+  // Papierkorb (dort endgültig); sonst Outlook-Semantik: direkt in den
+  // Papierkorb verschieben, keine Bestätigung nötig.
+  const requestDelete = useCallback((uid) => {
+    if (isTrashFolder(currentFolder)) setConfirmDeleteUid(uid);
+    else handleDelete(uid);
+  }, [isTrashFolder, currentFolder, handleDelete]);
 
   const confirmSingleDelete = useCallback(() => {
     const uid = confirmDeleteUid;
@@ -1705,11 +1784,18 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     
     try {
       // Perf: delete all emails in parallel instead of sequentially
+      // v6.10.0: Outlook-Semantik auch für Bulk — ausserhalb des Papierkorbs
+      // in den Papierkorb verschieben statt endgültig löschen.
+      const inTrash = isTrashFolder(currentFolder);
       const deleteResults = await Promise.allSettled(
         uidsToDelete.map(uid =>
-          isGraphAccount()
-            ? window.electronAPI.deleteGraphEmail(activeAccountId, uid)
-            : window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder)
+          inTrash
+            ? (isGraphAccount()
+                ? window.electronAPI.deleteGraphEmail(activeAccountId, uid)
+                : window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder))
+            : (isGraphAccount()
+                ? window.electronAPI.trashGraphEmail(activeAccountId, uid)
+                : window.electronAPI.trashEmail(activeAccountId, uid, currentFolder))
         )
       );
       const successUids = uidsToDelete.filter((_, i) =>
@@ -1752,7 +1838,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setBulkDeleting(false);
     // Re-enable background sync
     bgLoadAbortRef.current = false;
-  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, isGraphAccount]);
+  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, isGraphAccount, isTrashFolder]);
 
   // UX: Auswahl als gelesen markieren — häufigste Triage-Aktion für
   // Newsletter/Benachrichtigungen, bisher nur einzeln möglich.
@@ -2004,13 +2090,25 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         return;
       }
 
-      // Delete: Delete selected emails or current email (mit Bestätigung —
-      // bei IMAP wird endgültig gelöscht, kein Undo möglich)
+      // Delete: v6.10.0 — ausserhalb des Papierkorbs direkt in den Papierkorb
+      // verschieben (Outlook-Semantik, keine Bestätigung); nur im Papierkorb
+      // selbst wird endgültig gelöscht und darum bestätigt.
       if (e.key === 'Delete') {
+        const inTrash = isTrashFolder(currentFolder);
         if (selectedUids.size > 0) {
-          setShowDeleteConfirm(true);
+          if (inTrash) setShowDeleteConfirm(true);
+          else handleBulkDelete();
         } else if (filteredEmails[selectedIndex]) {
-          setConfirmDeleteUid(filteredEmails[selectedIndex].uid);
+          requestDelete(filteredEmails[selectedIndex].uid);
+        }
+        return;
+      }
+
+      // E: Archivieren (Outlook/Gmail-Kürzel) — aktuelle Mail
+      if ((e.key === 'e' || e.key === 'E') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        if (filteredEmails[selectedIndex]) {
+          e.preventDefault();
+          handleArchive(filteredEmails[selectedIndex].uid);
         }
         return;
       }
@@ -2029,7 +2127,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids, showDeleteConfirm, folderModal, confirmDeleteUid, confirmDiscardReply]);
+  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids, showDeleteConfirm, folderModal, confirmDeleteUid, confirmDiscardReply, isTrashFolder, handleBulkDelete, requestDelete, handleArchive]);
 
   // Trigger loadMore when user scrolls near the bottom of the email list
   const handleEmailListScroll = useCallback((e) => {
@@ -2770,7 +2868,12 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                     Gelesen
                   </button>
                   <button
-                    onClick={() => setShowDeleteConfirm(true)}
+                    onClick={() => {
+                      // v6.10.0: Bestätigung nur im Papierkorb (endgültig) —
+                      // sonst direkt in den Papierkorb verschieben.
+                      if (isTrashFolder(currentFolder)) setShowDeleteConfirm(true);
+                      else handleBulkDelete();
+                    }}
                     className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-500 text-white rounded-lg transition-colors flex items-center gap-1.5"
                   >
                     <TrashCan size={16} />
@@ -2837,6 +2940,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                       onSelect={handleSelectEmail}
                       onCheckboxChange={handleCheckboxChange}
                       onDelete={requestDelete}
+                      onArchive={handleArchive}
                       onToggleRead={handleToggleRead}
                       c={c}
                       actionLoading={actionLoading}
@@ -3039,6 +3143,22 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                   >
                     <Time size={16} />
                     <span className="hidden xl:inline">Erinnern</span>
+                  </button>
+                  {/* v6.10.0: Archivieren + Löschen direkt in der Vorschau */}
+                  <button
+                    onClick={() => handleArchive(selectedEmail.uid)}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 text-sm ${c.hover} ${c.textSecondary}`}
+                    title="Archivieren (E)"
+                  >
+                    <Archive size={16} />
+                    <span className="hidden xl:inline">Archiv</span>
+                  </button>
+                  <button
+                    onClick={() => requestDelete(selectedEmail.uid)}
+                    className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 text-sm ${c.hover} text-red-400 hover:text-red-300`}
+                    title="Löschen (Entf)"
+                  >
+                    <TrashCan size={16} />
                   </button>
                   <div className={`w-px h-5 ${c.border} border-l mx-1`} />
                   <button
@@ -3347,9 +3467,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             </div>
 
             <p className={`text-sm ${c.textSecondary} mb-6`}>
+              {/* v6.10.0: Dialog erscheint nur noch im Papierkorb — dort ist Löschen endgültig */}
               {confirmDeleteUid != null
-                ? 'Bei IMAP-Konten wird die E-Mail endgültig vom Server gelöscht, bei Microsoft-365-Konten in den Papierkorb verschoben.'
-                : 'Bei IMAP-Konten werden die E-Mails endgültig vom Server gelöscht, bei Microsoft-365-Konten in den Papierkorb verschoben.'}
+                ? 'Die E-Mail wird endgültig gelöscht und kann nicht wiederhergestellt werden.'
+                : 'Die E-Mails werden endgültig gelöscht und können nicht wiederhergestellt werden.'}
             </p>
 
             <div className="flex gap-3 justify-end">

@@ -63,6 +63,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // IMAP Operations v1.8.0
   deleteEmail: (accountId, uid, folder) => ipcRenderer.invoke('imap:deleteEmail', accountId, uid, folder),
+  // v6.10.0: Papierkorb & Archiv (Outlook-Semantik)
+  trashEmail: (accountId, uid, folder) => ipcRenderer.invoke('imap:trashEmail', accountId, uid, folder),
+  archiveEmail: (accountId, uid, folder) => ipcRenderer.invoke('imap:archiveEmail', accountId, uid, folder),
   markAsRead: (accountId, uid, isRead, folder) => ipcRenderer.invoke('imap:markAsRead', accountId, uid, isRead, folder),
   moveEmail: (accountId, uid, sourceFolder, destFolder) => ipcRenderer.invoke('imap:moveEmail', accountId, uid, sourceFolder, destFolder),
   listFolders: (accountId) => ipcRenderer.invoke('imap:listFolders', accountId),
@@ -107,6 +110,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fetchGraphEmail: (accountId, messageId) => ipcRenderer.invoke('graph:fetchEmail', accountId, messageId),
   sendGraphEmail: (accountId, emailData) => ipcRenderer.invoke('graph:sendEmail', accountId, emailData),
   deleteGraphEmail: (accountId, messageId) => ipcRenderer.invoke('graph:deleteEmail', accountId, messageId),
+  // v6.10.0: Papierkorb & Archiv (Outlook-Semantik)
+  trashGraphEmail: (accountId, messageId) => ipcRenderer.invoke('graph:trashEmail', accountId, messageId),
+  archiveGraphEmail: (accountId, messageId) => ipcRenderer.invoke('graph:archiveEmail', accountId, messageId),
   markGraphAsRead: (accountId, messageId, isRead) => ipcRenderer.invoke('graph:markAsRead', accountId, messageId, isRead),
   moveGraphEmail: (accountId, messageId, destFolderId) => ipcRenderer.invoke('graph:moveEmail', accountId, messageId, destFolderId),
   listGraphFolders: (accountId) => ipcRenderer.invoke('graph:listFolders', accountId),

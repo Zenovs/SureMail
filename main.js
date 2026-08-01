@@ -69,12 +69,17 @@ process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]:', reason);
 });
 
-// ============ SANDBOX FIX (v3.0.9) ============
-// Sandbox nur unter Linux deaktivieren (AppImage auf Ubuntu/GNOME hat oft
-// keine FUSE-Sandbox). Auf macOS/Windows bleibt die Chromium-Sandbox aktiv —
-// ein Renderer-Kompromiss (Mail-HTML) hat es damit deutlich schwerer.
-// Muss vor app.whenReady() passieren.
-if (process.platform === 'linux') {
+// ============ SANDBOX FIX (v3.0.9, verengt v6.10.0) ============
+// v6.10.0: Sandbox nur noch für AppImage-Läufe deaktivieren — dort fehlt der
+// SUID-Helper und Ubuntu 24.04+ blockiert unprivilegierte User-Namespaces
+// (App startet sonst gar nicht). deb/rpm-Installationen bringen den
+// chrome-sandbox-Helper mit korrekten Rechten mit und laufen jetzt wieder
+// MIT Chromium-Sandbox — ein Renderer-Kompromiss (Mail-HTML) hat es damit
+// deutlich schwerer. Muss vor app.whenReady() passieren.
+// Auch im Dev-Modus (npm start/dev) deaktivieren: das electron-Binary in
+// node_modules hat keinen SUID-Helper — auf Ubuntu 23.10+ (User-Namespace-
+// Restriktionen) würde der Start sonst crashen.
+if (process.platform === 'linux' && (process.env.APPIMAGE || process.env.APPDIR || !app.isPackaged)) {
   app.commandLine.appendSwitch('no-sandbox');
   app.commandLine.appendSwitch('disable-setuid-sandbox');
 }
@@ -2560,6 +2565,113 @@ ipcMain.handle('imap:moveEmail', async (event, accountId, uid, sourceFolder, des
   }
 });
 
+// ── v6.10.0: Papierkorb & Archiv (Outlook-Semantik) ─────────────────────────
+// Löschen verschiebt in den Papierkorb statt endgültig zu expungen; Archivieren
+// verschiebt in den Archiv-Ordner. Spezialordner werden bevorzugt über
+// SPECIAL-USE-Attribute (RFC 6154) erkannt, sonst über übliche Namen, und bei
+// Bedarf angelegt.
+function flattenImapBoxes(boxes, prefix = '', out = []) {
+  for (const [name, box] of Object.entries(boxes || {})) {
+    const full = prefix ? prefix + (box.delimiter || '/') + name : name;
+    const attribs = [...(box.attribs || []), box.special_use_attrib]
+      .filter(Boolean)
+      .map(a => String(a).toLowerCase());
+    out.push({ name, full, attribs });
+    if (box.children) flattenImapBoxes(box.children, full, out);
+  }
+  return out;
+}
+
+function findSpecialImapFolder(boxes, kind) {
+  const flat = flattenImapBoxes(boxes);
+  const attrib = kind === 'trash' ? '\\trash' : '\\archive';
+  const names = kind === 'trash'
+    ? ['trash', 'deleted items', 'deleted', 'deleted messages', 'papierkorb', 'gelöschte elemente', 'geloeschte elemente', 'bin', 'corbeille', 'cestino', 'papelera']
+    : ['archive', 'archiv', 'archives'];
+  const byAttrib = flat.find(b => b.attribs.includes(attrib));
+  if (byAttrib) return byAttrib.full;
+  // Namens-Fallback NUR auf Top-Level oder direkt unter INBOX — tief
+  // verschachtelte Treffer (z.B. ein eigener Sortierordner "Foo/Archive")
+  // sind fast nie der echte Spezialordner. Lieber einen sauberen
+  // Top-Level-Ordner anlegen als in Nutzer-Ordner zu verschieben.
+  const byName = flat.find(b => {
+    if (!names.includes(b.name.toLowerCase())) return false;
+    const depth = (b.full.match(/[./]/g) || []).length;
+    return depth === 0 || (depth === 1 && /^inbox[./]/i.test(b.full));
+  });
+  return byName ? byName.full : null;
+}
+
+async function moveToSpecialImapFolder(accountId, uid, folder, kind) {
+  const account = getAccountById(accountId);
+  if (!account) return { success: false, error: 'Konto nicht gefunden' };
+
+  let connection;
+  const TIMEOUT_MS = 20000; // hängende Server dürfen die UI nicht blockieren
+  try {
+    return await Promise.race([
+      (async () => {
+        const config = getImapConfigForAccount(account);
+        connection = await imapSimple.connect(config);
+        const boxes = await connection.getBoxes();
+        let dest = findSpecialImapFolder(boxes, kind);
+        if (!dest) {
+          dest = kind === 'trash' ? 'Trash' : 'Archive';
+          try { await connection.addBox(dest); } catch (_) { /* existiert schon */ }
+        }
+        if (dest === folder) {
+          return { success: false, error: 'E-Mail ist bereits in diesem Ordner' };
+        }
+        await connection.openBox(folder);
+        await connection.moveMessage(String(uid), dest);
+        return { success: true, destFolder: dest };
+      })(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`IMAP-${kind === 'trash' ? 'Papierkorb' : 'Archiv'}-Vorgang: Timeout nach 20s`)), TIMEOUT_MS)
+      )
+    ]);
+  } catch (error) {
+    console.error(`IMAP ${kind} Fehler:`, error);
+    return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
+  }
+}
+
+ipcMain.handle('imap:trashEmail', async (event, accountId, uid, folder = 'INBOX') => {
+  return moveToSpecialImapFolder(accountId, uid, folder, 'trash');
+});
+
+ipcMain.handle('imap:archiveEmail', async (event, accountId, uid, folder = 'INBOX') => {
+  return moveToSpecialImapFolder(accountId, uid, folder, 'archive');
+});
+
+// Graph: Papierkorb/Archiv über Well-Known-Folder-Namen — deleteditems bzw.
+// archive funktionieren direkt als destinationId beim /move-Aufruf.
+ipcMain.handle('graph:trashEmail', async (event, accountId, messageId) => {
+  try {
+    const result = await graphRequest(accountId, 'POST', `/me/messages/${messageId}/move`, {
+      destinationId: 'deleteditems'
+    });
+    return { success: true, newId: result?.id, destFolder: 'deleteditems' };
+  } catch (error) {
+    console.error('[Graph] trashEmail:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('graph:archiveEmail', async (event, accountId, messageId) => {
+  try {
+    const result = await graphRequest(accountId, 'POST', `/me/messages/${messageId}/move`, {
+      destinationId: 'archive'
+    });
+    return { success: true, newId: result?.id, destFolder: 'archive' };
+  } catch (error) {
+    console.error('[Graph] archiveEmail:', error.message);
+    return { success: false, error: error.message };
+  }
+});
+
 // List folders for account
 // v1.10.0: OAuth2 support
 ipcMain.handle('imap:listFolders', async (event, accountId) => {
@@ -2572,6 +2684,20 @@ ipcMain.handle('imap:listFolders', async (event, accountId) => {
     connection = await imapSimple.connect(config);
     const boxes = await connection.getBoxes();
 
+    // v6.10.0: SPECIAL-USE-Attribute (RFC 6154) haben Vorrang vor Namensraten —
+    // sonst wird z.B. ein französischer Papierkorb ("Corbeille") nicht erkannt
+    // und die Papierkorb-Semantik im Renderer greift dort nicht.
+    const specialUseType = (box) => {
+      const attribs = [...(box.attribs || []), box.special_use_attrib]
+        .filter(Boolean).map(a => String(a).toLowerCase());
+      if (attribs.includes('\\trash')) return 'trash';
+      if (attribs.includes('\\sent')) return 'sent';
+      if (attribs.includes('\\drafts')) return 'drafts';
+      if (attribs.includes('\\junk')) return 'spam';
+      if (attribs.includes('\\archive')) return 'archive';
+      return null;
+    };
+
     const parseFolders = (boxMap, prefix = '') => {
       const folders = [];
       for (const name in boxMap) {
@@ -2581,6 +2707,7 @@ ipcMain.handle('imap:listFolders', async (event, accountId) => {
         const nameLower = name.toLowerCase();
         let type = 'folder';
         if (nameLower === 'inbox') type = 'inbox';
+        else if (specialUseType(box)) type = specialUseType(box);
         else if (nameLower.includes('sent') || nameLower.includes('gesendet') || nameLower.includes('sent items')) type = 'sent';
         else if (nameLower.includes('draft') || nameLower.includes('entwu')) type = 'drafts';
         else if (nameLower.includes('trash') || nameLower.includes('papierkorb') || nameLower.includes('deleted') || nameLower.includes('gelöscht')) type = 'trash';
@@ -2590,6 +2717,10 @@ ipcMain.handle('imap:listFolders', async (event, accountId) => {
           name,
           path: fullPath,
           type,
+          // v6.10.0: verlässliches SPECIAL-USE-Signal getrennt vom (teils
+          // namensgeratenen) type — der Renderer stützt die Papierkorb-
+          // Semantik nur auf specialUse bzw. exakte Namen, nie auf Substrings.
+          specialUse: specialUseType(box),
           delimiter: sep,
           children: box.children ? parseFolders(box.children, fullPath) : []
         });

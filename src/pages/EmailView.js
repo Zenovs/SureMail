@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   TrashCan, Email, EmailNew, Reply, ReplyAll, SendAlt, ArrowLeft, InProgress,
   WarningFilled, WarningAlt, Close, Checkmark, Attachment, Download, FolderOpen, View,
-  Image, DocumentPdf, DocumentBlank, Music, Video, Box, NotificationOff, Bot
+  Image, DocumentPdf, DocumentBlank, Music, Video, Box, NotificationOff, Bot, Archive
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
@@ -188,14 +188,25 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
   }, [email, activeAccountId, currentFolder]);
 
   // === EMAIL ACTIONS ===
+  // v6.10.0: Outlook-Semantik — ausserhalb des Papierkorbs in den Papierkorb
+  // verschieben; nur dort selbst endgültig löschen (mit Bestätigung).
+  // Exakter Vergleich des letzten Pfadsegments — Substring hätte harmlose
+  // Ordner wie "Gelöschte Projekte" als Papierkorb behandelt.
+  const TRASH_NAMES = ['trash', 'deleted items', 'deleted', 'deleted messages', 'papierkorb', 'gelöschte elemente', 'geloeschte elemente', 'bin', 'corbeille', 'cestino', 'papelera'];
+  const isInTrashFolder = TRASH_NAMES.includes(String(currentFolder || '').split(/[./]/).pop().toLowerCase());
+
   const handleDelete = async () => {
     if (!window.electronAPI || !activeAccountId || !email?.uid) return;
     setShowDeleteConfirm(false);
     setActionLoading('delete');
     try {
-      const result = isGraphAccount()
-        ? await window.electronAPI.deleteGraphEmail(activeAccountId, email.uid)
-        : await window.electronAPI.deleteEmail(activeAccountId, email.uid, currentFolder);
+      const result = isInTrashFolder
+        ? (isGraphAccount()
+            ? await window.electronAPI.deleteGraphEmail(activeAccountId, email.uid)
+            : await window.electronAPI.deleteEmail(activeAccountId, email.uid, currentFolder))
+        : (isGraphAccount()
+            ? await window.electronAPI.trashGraphEmail(activeAccountId, email.uid)
+            : await window.electronAPI.trashEmail(activeAccountId, email.uid, currentFolder));
       if (result.success) {
         onBack?.(); // Go back to list after deletion
       } else {
@@ -203,6 +214,25 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
       }
     } catch (err) {
       setActionError('Fehler: ' + err.message);
+    }
+    setActionLoading(null);
+  };
+
+  // v6.10.0: Archivieren aus der Vollansicht
+  const handleArchive = async () => {
+    if (!window.electronAPI || !activeAccountId || !email?.uid) return;
+    setActionLoading('archive');
+    try {
+      const result = isGraphAccount()
+        ? await window.electronAPI.archiveGraphEmail(activeAccountId, email.uid)
+        : await window.electronAPI.archiveEmail(activeAccountId, email.uid, currentFolder);
+      if (result.success) {
+        onBack?.();
+      } else {
+        setActionError('Archivieren fehlgeschlagen: ' + (result?.error || 'unbekannt'));
+      }
+    } catch (err) {
+      setActionError('Archivieren fehlgeschlagen: ' + err.message);
     }
     setActionLoading(null);
   };
@@ -371,9 +401,24 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           
           {/* Action Buttons */}
           <div className="flex items-center gap-1">
-            {/* Delete — v6.8.1: mit Bestätigung (IMAP löscht endgültig) */}
+            {/* v6.10.0: Archivieren */}
             <button
-              onClick={() => setShowDeleteConfirm(true)}
+              onClick={handleArchive}
+              disabled={actionLoading === 'archive'}
+              className={`p-2 ${c.hover} rounded-lg transition-colors ${c.textSecondary} hover:${c.text}`}
+              title="Archivieren"
+              aria-label="Archivieren"
+            >
+              {actionLoading === 'archive' ? (
+                <InProgress size={20} className="animate-spin" />
+              ) : (
+                <Archive size={20} />
+              )}
+            </button>
+            {/* Delete — v6.8.1: mit Bestätigung; v6.10.0: Bestätigung nur im
+                Papierkorb (endgültig), sonst direkt in den Papierkorb */}
+            <button
+              onClick={() => (isInTrashFolder ? setShowDeleteConfirm(true) : handleDelete())}
               disabled={actionLoading === 'delete'}
               className={`p-2 ${c.hover} rounded-lg transition-colors text-red-400 hover:text-red-300 hover:bg-red-900/20`}
               title="Löschen"
@@ -759,7 +804,8 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
               </div>
             </div>
             <p className={`text-sm ${c.textSecondary} mb-6`}>
-              Bei IMAP-Konten wird die E-Mail endgültig vom Server gelöscht, bei Microsoft-365-Konten in den Papierkorb verschoben.
+              {/* v6.10.0: Dialog erscheint nur noch im Papierkorb — dort ist Löschen endgültig */}
+              Die E-Mail wird endgültig gelöscht und kann nicht wiederhergestellt werden.
             </p>
             <div className="flex gap-3 justify-end">
               <button
