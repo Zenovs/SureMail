@@ -548,8 +548,208 @@ async function recoverFromSafeStorageStore() {
   }
 }
 
+// ── v6.13.0: Config-Verschlüsselung mit OS-Schlüsselbund (safeStorage v2) ────
+// NUR auf macOS/Windows: Keychain bzw. DPAPI sind dort zuverlässig. Linux
+// behält BEWUSST den derived-Key — die v6.2.0-Migration hat dort real Konten
+// zerstört (libsecret/KWallet vergisst Sessions, siehe Postmortem v6.3.1).
+// Prinzipien aus dem Postmortem:
+//   - NIE destruktiv: Backup vor der Migration bleibt dauerhaft liegen,
+//     neue Datei wird erst nach Read-Back-Verifikation atomar eingetauscht.
+//   - Bei JEDEM Fehler: unverändert beim bisherigen Schema bleiben.
+//   - Keyfile wird ZULETZT geschrieben — ein Crash mittendrin lässt die
+//     alte Config unangetastet (Selbstheilung räumt Reste weg).
+const SAFESTORAGE_V2_KEYFILE = 'coremail-keyring-v2.enc';
+
+async function migrateToSafeStorageV2() {
+  if (process.platform === 'linux') return;
+
+  let available = false;
+  try { available = safeStorage.isEncryptionAvailable(); } catch (_) {}
+  if (!available) return;
+
+  const userDataPath = app.getPath('userData');
+  const keyFilePath = path.join(userDataPath, SAFESTORAGE_V2_KEYFILE);
+  const configPath = path.join(userDataPath, 'coremail-config.json');
+  const backupPath = configPath + '.pre-safestorage-v2';
+  const tmpName = 'coremail-config-v2tmp';
+  const tmpPath = path.join(userDataPath, tmpName + '.json');
+
+  const derivedReadable = () => {
+    try {
+      const t = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
+      return Object.keys(t.store).length > 0 ? t : null;
+    } catch (_) { return null; }
+  };
+
+  // ── Fall 1: v2 bereits aktiv → Store mit Schlüsselbund-Key öffnen ──────────
+  if (fs.existsSync(keyFilePath)) {
+    try {
+      const key = safeStorage.decryptString(fs.readFileSync(keyFilePath));
+      const s = new Store({ encryptionKey: key, name: 'coremail-config' });
+      s.get('accounts', []); // Lese-Test — wirft bei falschem Key
+      store = s;
+      invalidateAccountsCache();
+      console.log('[Store] safeStorage-v2 aktiv (OS-Schlüsselbund).');
+      // Das Migrations-Backup ist mit dem ableitbaren Alt-Key verschlüsselt —
+      // dauerhaft neben der starken Config würde es deren Schutz aushebeln.
+      // Nach 30 Tagen stabilen v2-Betriebs wird es darum entfernt.
+      try {
+        if (fs.existsSync(backupPath)) {
+          const ageDays = (Date.now() - fs.statSync(backupPath).mtimeMs) / 86400000;
+          if (ageDays > 30) {
+            fs.unlinkSync(backupPath);
+            console.log('[Store] Migrations-Backup nach 30 Tagen v2-Betrieb entfernt.');
+          }
+        }
+      } catch (_) {}
+      return;
+    } catch (e) {
+      console.error('[Store] v2-Keyfile vorhanden, aber Öffnen fehlgeschlagen:', e.message);
+      // Selbstheilung: Wenn die Config in Wahrheit noch derived-lesbar ist
+      // (z.B. Crash zwischen Migrationsschritten), Keyfile-Rest entfernen.
+      const d = derivedReadable();
+      if (d) {
+        try { fs.unlinkSync(keyFilePath); } catch (_) {}
+        store = d;
+        invalidateAccountsCache();
+        console.warn('[Store] Keyfile-Rest entfernt — derived-Store bleibt aktiv.');
+        return;
+      }
+      // Config v2-verschlüsselt, aber Schlüsselbund gibt den Key nicht her
+      // (anderes Login, Keychain-Reset): NIE Daten zerstören — die aktuelle
+      // Config wird BEISEITEGELEGT (nicht überschrieben), erst dann das
+      // Backup eingespielt. Der Nutzer wird sichtbar informiert, weil das
+      // Backup vom Migrationstag stammen kann (Review-Befund v6.13.0).
+      if (fs.existsSync(backupPath)) {
+        try {
+          const lockedPath = configPath + '.v2-locked-' + Date.now();
+          if (fs.existsSync(configPath)) fs.renameSync(configPath, lockedPath);
+          fs.copyFileSync(backupPath, configPath);
+          const d2 = derivedReadable();
+          if (d2) {
+            try { fs.unlinkSync(keyFilePath); } catch (_) {}
+            store = d2;
+            invalidateAccountsCache();
+            const backupDate = new Date(fs.statSync(backupPath).mtimeMs).toLocaleDateString('de-DE');
+            console.warn('[Store] Aus pre-safestorage-v2-Backup wiederhergestellt (Stand: ' + backupDate + ').');
+            addLogEntry('settings', 'Schlüsselbund-Zugriff fehlgeschlagen — Backup wiederhergestellt', `Stand: ${backupDate}; neuere Config gesichert als ${path.basename(lockedPath)}`);
+            dialog.showMessageBox({
+              type: 'warning',
+              title: 'CoreMail — Konten wiederhergestellt',
+              message: 'Der Zugriff auf den OS-Schlüsselbund ist fehlgeschlagen.',
+              detail: `CoreMail hat deine Konten aus einem Backup vom ${backupDate} wiederhergestellt. Änderungen seit diesem Datum (neue Konten, Einstellungen) können fehlen.\n\nDie neuere, aktuell nicht lesbare Konfiguration wurde NICHT gelöscht, sondern gesichert als:\n${path.basename(lockedPath)}`,
+              buttons: ['OK']
+            }).catch(() => {});
+            return;
+          }
+          // Backup selbst nicht lesbar → alles zurück wie es war
+          try { fs.unlinkSync(configPath); } catch (_) {}
+          if (fs.existsSync(lockedPath)) fs.renameSync(lockedPath, configPath);
+        } catch (_) {}
+      }
+      store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config-pending' });
+      console.error('[Store] v2-Recovery nicht möglich — Pending-Fallback, Config bleibt unangetastet.');
+      dialog.showMessageBox({
+        type: 'error',
+        title: 'CoreMail — Zugangsdaten nicht verfügbar',
+        message: 'Der Zugriff auf den OS-Schlüsselbund ist fehlgeschlagen.',
+        detail: 'Deine verschlüsselte Konfiguration bleibt unverändert auf der Festplatte erhalten, kann aber ohne den Schlüssel nicht gelesen werden. Starte die App neu, nachdem der Schlüsselbund wieder verfügbar ist (z.B. nach erneutem Login).',
+        buttons: ['OK']
+      }).catch(() => {});
+      return;
+    }
+  }
+
+  // ── Fall 2: Migration derived → v2 ─────────────────────────────────────────
+  try {
+    // Nur migrieren, wenn der aktuelle Store der echte derived-Store mit
+    // Daten ist (nicht der Pending-Fallback aus dem Modul-Load).
+    if (!store || (store.path || '').includes('pending')) {
+      // Gürtel+Hosenträger: Sollte die Config aus irgendeinem Grund
+      // unlesbar sein, obwohl kein v2-Keyfile existiert, und ein Backup
+      // liegt vor → Restore versuchen statt dauerhaft auf Pending zu hängen.
+      if (store && (store.path || '').includes('pending') && fs.existsSync(backupPath) && !derivedReadable()) {
+        try {
+          fs.copyFileSync(backupPath, configPath);
+          const d = derivedReadable();
+          if (d) {
+            store = d;
+            invalidateAccountsCache();
+            console.warn('[Store] Unlesbare Config aus pre-safestorage-v2-Backup wiederhergestellt.');
+          }
+        } catch (_) {}
+      }
+      return;
+    }
+    const currentData = store.store;
+    if (!currentData || Object.keys(currentData).length === 0) return;
+
+    // 1) Dauerhaftes Backup der bisherigen Config
+    if (fs.existsSync(configPath)) fs.copyFileSync(configPath, backupPath);
+
+    // 2) Zufalls-Key; neue Datei unter TEMPORÄREM Namen schreiben + verifizieren
+    const newKey = crypto.randomBytes(32).toString('hex');
+    try { fs.unlinkSync(tmpPath); } catch (_) {}
+    const tmp = new Store({ encryptionKey: newKey, name: tmpName });
+    tmp.store = currentData;
+    const check = new Store({ encryptionKey: newKey, name: tmpName });
+    const wantAccounts = JSON.stringify(currentData.accounts ?? null);
+    if (JSON.stringify(check.get('accounts', null)) !== wantAccounts) {
+      throw new Error('Read-Back-Verifikation fehlgeschlagen');
+    }
+
+    // 3) Keyfile VOR dem Tausch schreiben (inkl. Roundtrip-Prüfung):
+    //    Crash nach diesem Schritt, aber vor dem Rename → nächster Start
+    //    landet in Fall 1, Decrypt klappt, Config ist noch derived-lesbar
+    //    → Selbstheilung entfernt den Keyfile-Rest. Crash NACH dem Rename
+    //    → Fall 1 öffnet normal. Kein Fenster mehr, in dem die Config
+    //    v2-verschlüsselt, der Key aber verloren ist (Review-Befund v6.13.0).
+    fs.writeFileSync(keyFilePath, safeStorage.encryptString(newKey));
+    if (safeStorage.decryptString(fs.readFileSync(keyFilePath)) !== newKey) {
+      throw new Error('Keyfile-Roundtrip fehlgeschlagen');
+    }
+
+    // 4) Atomarer Tausch
+    fs.renameSync(tmpPath, configPath);
+
+    store = new Store({ encryptionKey: newKey, name: 'coremail-config' });
+    invalidateAccountsCache();
+    console.log('[Store] Migration auf safeStorage-v2 erfolgreich (Backup: ' + backupPath + ').');
+    addLogEntry('settings', 'Zugangsdaten-Verschlüsselung auf OS-Schlüsselbund umgestellt', 'Backup: coremail-config.json.pre-safestorage-v2');
+  } catch (e) {
+    console.error('[Store] safeStorage-v2-Migration fehlgeschlagen — bisheriges Schema bleibt aktiv:', e.message);
+    try { fs.unlinkSync(tmpPath); } catch (_) {}
+    try { fs.unlinkSync(keyFilePath); } catch (_) {}
+    // Sicherstellen, dass der derived-Store lesbar ist; sonst Backup zurück
+    if (!derivedReadable() && fs.existsSync(backupPath)) {
+      try { fs.copyFileSync(backupPath, configPath); } catch (_) {}
+    }
+    try {
+      store = new Store({ encryptionKey: deriveEncryptionKey(), name: 'coremail-config' });
+      invalidateAccountsCache();
+    } catch (e2) {
+      console.error('[Store] Fallback-Öffnen fehlgeschlagen:', e2.message);
+    }
+  }
+}
+
+// v6.13.0: Nur eine Instanz — zwei parallele Prozesse könnten sich die
+// Store-Migration zerschiessen (Review-Befund), und ein Mail-Client braucht
+// ohnehin nur ein Fenster. Zweitstart fokussiert die bestehende Instanz.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+app.on('second-instance', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(async () => {
   await recoverFromSafeStorageStore();
+  await migrateToSafeStorageV2();
   // Aufräumen: leerer Fallback-Store aus Modul-Load (falls vorhanden)
   try {
     const pendingPath = path.join(app.getPath('userData'), 'coremail-config-pending.json');
