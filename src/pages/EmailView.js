@@ -22,6 +22,13 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
       ? window.electronAPI.markGraphAsRead(activeAccountId, uid, isRead)
       : window.electronAPI.markAsRead(activeAccountId, uid, isRead, currentFolder);
   }, [getActiveAccount, activeAccountId, currentFolder]);
+  // v6.9.6: Auch Laden und Löschen der Vollansicht liefen bei Microsoft-365-
+  // Konten immer über die IMAP-Handler (gleiche Fehlerklasse wie der
+  // v6.9.3-markAsRead-Bug) — die Vollansicht war für Graph-Konten defekt.
+  const isGraphAccount = React.useCallback(
+    () => getActiveAccount?.()?.type === 'microsoft',
+    [getActiveAccount]
+  );
   const [fullEmail, setFullEmail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -135,7 +142,9 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           return;
         }
 
-        const result = await window.electronAPI.fetchEmailForAccount(activeAccountId, email.uid, currentFolder);
+        const result = isGraphAccount()
+          ? await window.electronAPI.fetchGraphEmail(activeAccountId, email.uid)
+          : await window.electronAPI.fetchEmailForAccount(activeAccountId, email.uid, currentFolder);
         
         if (result.success) {
           setFullEmail(result.email);
@@ -184,7 +193,9 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
     setShowDeleteConfirm(false);
     setActionLoading('delete');
     try {
-      const result = await window.electronAPI.deleteEmail(activeAccountId, email.uid, currentFolder);
+      const result = isGraphAccount()
+        ? await window.electronAPI.deleteGraphEmail(activeAccountId, email.uid)
+        : await window.electronAPI.deleteEmail(activeAccountId, email.uid, currentFolder);
       if (result.success) {
         onBack?.(); // Go back to list after deletion
       } else {

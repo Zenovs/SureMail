@@ -1,6 +1,6 @@
 {
   "name": "coremail-desktop",
-  "version": "6.9.5",
+  "version": "6.9.6",
   "description": "CoreMail Desktop - Lightweight IMAP/SMTP email client for Linux with Microsoft 365 OAuth2 and dark themes",
   "author": "Dario Zenhäusern",
   "license": "MIT",
@@ -116,10 +116,17 @@
     "deb": {
       "artifactName": "CoreMail-Desktop-${version}-${arch}.deb",
       "depends": [
-        "gconf2",
+        "libgtk-3-0",
         "libnotify4",
+        "libnss3",
+        "libxss1",
         "libxtst6",
-        "libnss3"
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0",
+        "libasound2 | libasound2t64",
+        "libgbm1"
       ]
     },
     "rpm": {

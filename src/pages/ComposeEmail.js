@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import EscapeCloser from '../components/EscapeCloser';
 import EmailTagInput from '../components/EmailTagInput';
+import UrlPromptDialog from '../components/UrlPromptDialog';
 import { sanitizeEmailHtml } from '../utils/sanitizeHtml';
 import {
   TextBold, TextItalic, TextUnderline, TextStrikethrough,
@@ -194,6 +195,10 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   const fileInputRef = useRef(null);
   const dropZoneRef  = useRef(null);
 
+  // v6.9.6: Link-Dialog (Ersatz für window.prompt, das Electron nicht kennt)
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const savedSelectionRef = useRef(null);
+
   // --- Signatur ---
   const [signatures,            setSignatures]            = useState({});
   const [useSignature,          setUseSignature]          = useState(true);
@@ -379,9 +384,25 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
     document.execCommand(cmd, false, value);
   };
 
+  // v6.9.6: window.prompt() existiert in Electron nicht — eigener Dialog.
+  // Die Text-Selektion muss vor dem Öffnen gesichert werden, weil der Dialog
+  // den Fokus stiehlt und execCommand('createLink') sie sonst verliert.
   const insertLink = () => {
-    const url = prompt('URL eingeben:', 'https://');
-    if (url) execFormat('createLink', url);
+    const sel = window.getSelection();
+    savedSelectionRef.current = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+    setLinkDialogOpen(true);
+  };
+
+  const applyLink = (url) => {
+    setLinkDialogOpen(false);
+    if (!url) return;
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (savedSelectionRef.current && sel) {
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRef.current);
+    }
+    execFormat('createLink', url);
   };
 
   const applyHeading = (tag) => {
@@ -572,6 +593,15 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
           </div>
         </div>
       )}
+
+      {/* v6.9.6: Link-einfügen-Dialog */}
+      <UrlPromptDialog
+        title="Link einfügen"
+        open={linkDialogOpen}
+        onSubmit={applyLink}
+        onClose={() => setLinkDialogOpen(false)}
+        c={c}
+      />
 
       {/* Header */}
       <header className={`px-6 py-3 ${c.border} border-b ${c.bgSecondary} flex-shrink-0`}>

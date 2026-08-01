@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
 import { Edit, Portfolio, PenFountain, Checkmark, Link, Image, TrashCan, Email, Add, Star, StarFilled, Information } from '@carbon/icons-react';
+import UrlPromptDialog from '../components/UrlPromptDialog';
 
 // Datenformat:
 //   signatures[accountId] = {
@@ -58,6 +59,11 @@ function SignatureEditor() {
   const [editorMode, setEditorMode] = useState('visual');
   const [showPlaceholderHelp, setShowPlaceholderHelp] = useState(false);
   const editorRef = useRef(null);
+  // v6.9.6: URL-Dialog (Ersatz für window.prompt, das Electron nicht kennt);
+  // mode: 'link' | 'image'. Selektion wird gesichert, weil der Dialog den
+  // Fokus stiehlt und execCommand sie sonst verliert.
+  const [urlDialogMode, setUrlDialogMode] = useState(null);
+  const savedSelectionRef = useRef(null);
 
   useEffect(() => {
     loadSignatures();
@@ -217,14 +223,26 @@ function SignatureEditor() {
     setEditorMode(mode);
   };
 
-  const insertLink = () => {
-    const url = prompt('URL eingeben:', 'https://');
-    if (url) applyFormat('createLink', url);
+  const openUrlDialog = (mode) => {
+    const sel = window.getSelection();
+    savedSelectionRef.current = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+    setUrlDialogMode(mode);
   };
 
-  const insertImage = () => {
-    const url = prompt('Bild-URL eingeben:', 'https://');
-    if (url) applyFormat('insertImage', url);
+  const insertLink = () => openUrlDialog('link');
+  const insertImage = () => openUrlDialog('image');
+
+  const applyUrl = (url) => {
+    const mode = urlDialogMode;
+    setUrlDialogMode(null);
+    if (!url) return;
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (savedSelectionRef.current && sel) {
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRef.current);
+    }
+    applyFormat(mode === 'image' ? 'insertImage' : 'createLink', url);
   };
 
   const insertPlaceholder = (placeholder) => {
@@ -308,6 +326,14 @@ function SignatureEditor() {
 
   return (
     <div className="space-y-6">
+      {/* v6.9.6: URL-Dialog für Link/Bild einfügen */}
+      <UrlPromptDialog
+        title={urlDialogMode === 'image' ? 'Bild-URL einfügen' : 'Link einfügen'}
+        open={urlDialogMode !== null}
+        onSubmit={applyUrl}
+        onClose={() => setUrlDialogMode(null)}
+        c={c}
+      />
       {/* Saved Banner */}
       {saved && (
         <div className="p-3 bg-green-900/20 border border-green-600 rounded-lg text-green-400 text-center inline-flex items-center justify-center gap-1 w-full">

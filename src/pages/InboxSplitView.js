@@ -624,6 +624,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const [folderModalError, setFolderModalError] = useState(null);
   const [hoveredFolder, setHoveredFolder] = useState(null);
   const [error, setError] = useState(null);
+  // v6.9.6: Aktionsfehler (Löschen, Markieren, Snooze, Triage) landen in einem
+  // Toast — vorher ersetzte setError() die komplette Inbox durch den
+  // Vollbild-Screen "Verbindung fehlgeschlagen".
+  const [actionToast, setActionToast] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [bgLoadOffset, setBgLoadOffset] = useState(50);
@@ -642,6 +646,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const [selectedUids, setSelectedUids] = useState(new Set());
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [lastClickedIndex, setLastClickedIndex] = useState(null);
+
+  // Aktionsfehler-Toast automatisch ausblenden
+  useEffect(() => {
+    if (!actionToast) return;
+    const t = setTimeout(() => setActionToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [actionToast]);
 
   // Refs spiegeln häufig wechselnden State, damit die Row-Callbacks
   // (onSelect/onToggleRead/onDelete) stabile Identität behalten — sonst
@@ -1280,10 +1291,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           setTriageMap(m);
         }
       } else {
-        setError('Triage fehlgeschlagen: ' + (r?.error || 'unbekannt'));
+        setActionToast('Triage fehlgeschlagen: ' + (r?.error || 'unbekannt'));
       }
     } catch (e) {
-      setError('Triage-Fehler: ' + e.message);
+      setActionToast('Triage-Fehler: ' + e.message);
     } finally {
       setTriageRunning(false);
       setTimeout(() => setTriageProgress(null), 2000);
@@ -1506,7 +1517,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       wakeAt: wakeAtMs
     });
     if (!result?.success) {
-      setError('Snooze fehlgeschlagen: ' + (result?.error || 'unbekannter Fehler'));
+      setActionToast('Snooze fehlgeschlagen: ' + (result?.error || 'unbekannter Fehler'));
       return;
     }
     setSnoozedKeys(prev => {
@@ -1553,10 +1564,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           setSelectedEmail(null);
         }
       } else {
-        setError('Fehler beim Löschen: ' + result.error);
+        setActionToast('Fehler beim Löschen: ' + result.error);
       }
     } catch (err) {
-      setError(err.message);
+      setActionToast('Fehler beim Löschen: ' + err.message);
     }
     setActionLoading(null);
   }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount, loadEmailPreview]);
@@ -1573,20 +1584,23 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
   // v2.3.0: Multi-Select Handlers
   const handleCheckboxChange = useCallback((uid, shiftKey) => {
-    const list = emailsRef.current;
+    // v6.9.6: Shift-Range über die GEFILTERTE (sichtbare) Liste — vorher lief
+    // der Bereich über die ungefilterte Liste und konnte bei aktivem Filter
+    // unsichtbare Mails mit auswählen (Risiko: unbeabsichtigtes Löschen).
+    const list = filteredEmailsRef.current;
     const lastIdx = lastClickedIndexRef.current;
     const clickedIndex = list.findIndex(e => e.uid === uid);
 
     setSelectedUids(prev => {
       const newSet = new Set(prev);
 
-      if (shiftKey && lastIdx !== null) {
-        // Shift+Click: Select range
+      if (shiftKey && lastIdx !== null && clickedIndex !== -1) {
+        // Shift+Click: Select range (nur sichtbare Mails)
         const start = Math.min(lastIdx, clickedIndex);
         const end = Math.max(lastIdx, clickedIndex);
 
         for (let i = start; i <= end; i++) {
-          newSet.add(list[i].uid);
+          if (list[i]) newSet.add(list[i].uid);
         }
       } else {
         // Normal click: Toggle single
@@ -1732,7 +1746,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       console.log(`[BulkDelete] Deleted ${deletedCount}/${uidsToDelete.length} emails`);
     } catch (err) {
       console.error('Bulk delete error:', err);
-      setError('Fehler beim Löschen: ' + err.message);
+      setActionToast('Fehler beim Löschen: ' + err.message);
     }
     
     setBulkDeleting(false);
@@ -1777,7 +1791,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setSelectedUids(new Set());
     } catch (err) {
       console.error('Bulk mark-read error:', err);
-      setError('Fehler beim Markieren: ' + err.message);
+      setActionToast('Fehler beim Markieren: ' + err.message);
     }
     setActionLoading(null);
   }, [activeAccountId, currentFolder, selectedUids, getCacheKey, isGraphAccount]);
@@ -2278,6 +2292,14 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           <WarningAlt size={16} className="flex-shrink-0" />
           <span>Offline-Speicher voll. Ältere E-Mails werden nicht mehr zwischengespeichert.</span>
           <button onClick={() => setShowQuotaWarning(false)} className="ml-auto opacity-60 hover:opacity-100"><Close size={16} /></button>
+        </div>
+      )}
+      {/* v6.9.6: Aktionsfehler-Toast — ersetzt den Vollbild-Fehler bei Snooze/Löschen/Markieren/Triage */}
+      {actionToast && (
+        <div className="fixed bottom-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 bg-red-900/95 border border-red-500/40 text-red-100 text-sm rounded-xl shadow-2xl max-w-sm">
+          <WarningAlt size={16} className="flex-shrink-0" />
+          <span className="break-words">{actionToast}</span>
+          <button onClick={() => setActionToast(null)} className="ml-auto opacity-60 hover:opacity-100 flex-shrink-0"><Close size={16} /></button>
         </div>
       )}
     <div className={`flex-1 flex overflow-hidden min-h-0 ${c.bg}`}>

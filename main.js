@@ -1341,6 +1341,15 @@ ipcMain.handle('update:download', async (event, downloadUrlOrParams) => {
 
 ipcMain.handle('update:install', async (event, filePath) => {
   try {
+    // v6.9.6: Nur Dateien aus dem Download-Verzeichnis dürfen installiert
+    // werden — der Kanal akzeptierte beliebige Pfade. Ein kompromittierter
+    // Renderer hätte damit jede Datei als "Update" starten/ersetzen können
+    // (persistente Codeausführung). downloadUpdate() legt Updates immer in
+    // app.getPath('downloads') ab, Legitimes ist also nicht betroffen.
+    if (typeof filePath !== 'string' || !isPathInside(filePath, app.getPath('downloads'))) {
+      return { success: false, error: 'Update-Datei liegt ausserhalb des Download-Verzeichnisses' };
+    }
+
     // Verify file exists
     if (!fs.existsSync(filePath)) {
       return { success: false, error: 'Update-Datei nicht gefunden' };
@@ -3849,13 +3858,21 @@ async function processScheduledEmails() {
         result = { success: true };
       } else {
         const account = getAccountById(email.accountId);
-        if (account) {
-          const transporter = nodemailer.createTransport({
-            host: account.smtp?.host, port: account.smtp?.port || 587,
-            secure: account.smtp?.port === 465,
-            auth: { user: account.smtp?.username, pass: account.smtp?.password },
-          });
-          await transporter.sendMail({ from: `"${emailData.fromName || ''}" <${account.smtp?.username}>`, to: emailData.to, cc: emailData.cc, bcc: emailData.bcc, subject: emailData.subject, text: emailData.text, html: emailData.html, attachments: (email.attachments || []).map(a => ({ ...a, encoding: 'base64' })) });
+        if (account && account.smtp) {
+          // v6.9.6: zentraler, gehärteter Transporter (TLS-Policy, Timeouts,
+          // fromEmail/displayName) — der Inline-Transporter hier umging die
+          // v6.9.2-TLS-Härtung und hatte keine Timeouts (hängender Versand
+          // blockierte den ganzen Scheduled-Tick).
+          const { transporter, fromEmail: defaultFrom } = getSmtpTransporterForAccount(account);
+          // Pro-Mail-Absendername-Override wie beim Sofort-Versand (v2.8.2) —
+          // sonst verliert eine zeitversetzte Mail den im Compose gewählten Namen.
+          let fromEmail = defaultFrom;
+          if (emailData.fromName !== undefined) {
+            const emailAddr = account.smtp.fromEmail || account.smtp.username;
+            const safeName = (emailData.fromName || '').replace(/["\\\r\n]/g, '').trim();
+            fromEmail = safeName ? `"${safeName}" <${emailAddr}>` : emailAddr;
+          }
+          await transporter.sendMail({ from: fromEmail, to: emailData.to, cc: emailData.cc, bcc: emailData.bcc, subject: emailData.subject, text: emailData.text, html: emailData.html, attachments: (email.attachments || []).map(a => ({ ...a, encoding: 'base64' })) });
           result = { success: true };
         }
       }
