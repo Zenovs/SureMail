@@ -4,6 +4,7 @@ import { useAccounts } from '../context/AccountContext';
 import EscapeCloser from '../components/EscapeCloser';
 import EmailTagInput from '../components/EmailTagInput';
 import UrlPromptDialog from '../components/UrlPromptDialog';
+import MailApi from '../services/MailApi';
 import { sanitizeEmailHtml } from '../utils/sanitizeHtml';
 import {
   TextBold, TextItalic, TextUnderline, TextStrikethrough,
@@ -553,12 +554,11 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
     setSending(true); setError(null);
     try {
       let result;
-      if (activeAcc?.type === 'microsoft') {
-        result = await window.electronAPI.sendGraphEmail(selectedAccountId, emailData);
-      } else if (selectedAccountId && window.electronAPI.sendEmailForAccount) {
-        result = await window.electronAPI.sendEmailForAccount(selectedAccountId, emailData);
+      if (activeAcc && selectedAccountId) {
+        // v6.11.0: zentrale Graph/IMAP-Weiche über die MailApi-Fassade
+        result = await MailApi.send(activeAcc, emailData);
       } else {
-        result = await window.electronAPI.sendEmail(emailData);
+        result = await window.electronAPI.sendEmail(emailData); // Legacy-Fallback ohne Konto
       }
 
       if (result.success) {

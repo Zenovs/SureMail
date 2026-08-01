@@ -6,6 +6,7 @@ import {
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts } from '../context/AccountContext';
+import MailApi from '../services/MailApi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmailHtmlFrame from '../components/EmailHtmlFrame';
 import EscapeCloser from '../components/EscapeCloser';
@@ -13,21 +14,12 @@ import EscapeCloser from '../components/EscapeCloser';
 const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolder = 'INBOX' }) => {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount } = useAccounts();
-  // v6.9.3: Microsoft-365-Konten brauchen den Graph-Handler zum Markieren —
-  // vorher lief hier immer der IMAP-Aufruf, der bei Graph-Konten scheiterte
-  // (Mails wurden nie als gelesen markiert).
-  const markReadFor = React.useCallback((uid, isRead) => {
-    const acc = getActiveAccount?.();
-    return acc?.type === 'microsoft'
-      ? window.electronAPI.markGraphAsRead(activeAccountId, uid, isRead)
-      : window.electronAPI.markAsRead(activeAccountId, uid, isRead, currentFolder);
-  }, [getActiveAccount, activeAccountId, currentFolder]);
-  // v6.9.6: Auch Laden und Löschen der Vollansicht liefen bei Microsoft-365-
-  // Konten immer über die IMAP-Handler (gleiche Fehlerklasse wie der
-  // v6.9.3-markAsRead-Bug) — die Vollansicht war für Graph-Konten defekt.
-  const isGraphAccount = React.useCallback(
-    () => getActiveAccount?.()?.type === 'microsoft',
-    [getActiveAccount]
+  // v6.11.0: Alle Mail-Aktionen laufen über die MailApi-Fassade — sie
+  // entscheidet zentral Graph vs IMAP. Die frühere Pro-Aktion-Weiche hier
+  // verursachte die Bugs v6.9.3 (markAsRead) und v6.9.6 (Laden/Löschen).
+  const markReadFor = React.useCallback(
+    (uid, isRead) => MailApi.markRead(getActiveAccount?.(), uid, isRead, currentFolder),
+    [getActiveAccount, currentFolder]
   );
   const [fullEmail, setFullEmail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -142,9 +134,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
           return;
         }
 
-        const result = isGraphAccount()
-          ? await window.electronAPI.fetchGraphEmail(activeAccountId, email.uid)
-          : await window.electronAPI.fetchEmailForAccount(activeAccountId, email.uid, currentFolder);
+        const result = await MailApi.fetchOne(getActiveAccount?.(), email.uid, currentFolder);
         
         if (result.success) {
           setFullEmail(result.email);
@@ -200,13 +190,10 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
     setShowDeleteConfirm(false);
     setActionLoading('delete');
     try {
+      const acc = getActiveAccount?.();
       const result = isInTrashFolder
-        ? (isGraphAccount()
-            ? await window.electronAPI.deleteGraphEmail(activeAccountId, email.uid)
-            : await window.electronAPI.deleteEmail(activeAccountId, email.uid, currentFolder))
-        : (isGraphAccount()
-            ? await window.electronAPI.trashGraphEmail(activeAccountId, email.uid)
-            : await window.electronAPI.trashEmail(activeAccountId, email.uid, currentFolder));
+        ? await MailApi.deletePermanent(acc, email.uid, currentFolder)
+        : await MailApi.trash(acc, email.uid, currentFolder);
       if (result.success) {
         onBack?.(); // Go back to list after deletion
       } else {
@@ -223,9 +210,7 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
     if (!window.electronAPI || !activeAccountId || !email?.uid) return;
     setActionLoading('archive');
     try {
-      const result = isGraphAccount()
-        ? await window.electronAPI.archiveGraphEmail(activeAccountId, email.uid)
-        : await window.electronAPI.archiveEmail(activeAccountId, email.uid, currentFolder);
+      const result = await MailApi.archive(getActiveAccount?.(), email.uid, currentFolder);
       if (result.success) {
         onBack?.();
       } else {

@@ -8,6 +8,7 @@ import {
 } from '@carbon/icons-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAccounts, useAccountStats } from '../context/AccountContext';
+import MailApi from '../services/MailApi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmailHtmlFrame from '../components/EmailHtmlFrame';
 import SnoozeMenu from '../components/SnoozeMenu';
@@ -660,12 +661,20 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const [showCheckboxes, setShowCheckboxes] = useState(false);
   const [lastClickedIndex, setLastClickedIndex] = useState(null);
 
-  // Aktionsfehler-Toast automatisch ausblenden
+  // Aktionsfehler-Toast automatisch ausblenden — mit Undo etwas länger,
+  // damit "Rückgängig" realistisch klickbar bleibt
   useEffect(() => {
     if (!actionToast) return;
-    const t = setTimeout(() => setActionToast(null), 6000);
+    const t = setTimeout(() => setActionToast(null), actionToast.undo ? 8000 : 6000);
     return () => clearTimeout(t);
   }, [actionToast]);
+
+  // v6.11.0: Undo-Toast bei Ordner-/Kontowechsel räumen — der Undo-Callback
+  // hält die fetchEmails-Identität des ALTEN Kontexts und würde nach dem
+  // Wechsel die fremde Mailliste in die aktuelle Ansicht schreiben.
+  useEffect(() => {
+    setActionToast(null);
+  }, [activeAccountId, currentFolder]);
 
   // Refs spiegeln häufig wechselnden State, damit die Row-Callbacks
   // (onSelect/onToggleRead/onDelete) stabile Identität behalten — sonst
@@ -824,17 +833,12 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setDraggedEmail(null);
     setEmails(prev => prev.filter(e => e.uid !== email.uid)); // optimistic remove
     try {
-      let result;
-      if (isGraphAccount()) {
-        result = await window.electronAPI.moveGraphEmail(activeAccountId, email.uid, targetFolder);
-      } else {
-        result = await window.electronAPI.moveEmail(activeAccountId, email.uid, currentFolder, targetFolder);
-      }
+      const result = await MailApi.move(getActiveAccount(), email.uid, currentFolder, targetFolder);
       if (!result?.success) setEmails(prev => [email, ...prev]); // rollback
     } catch {
       setEmails(prev => [email, ...prev]); // rollback
     }
-  }, [draggedEmail, currentFolder, activeAccountId, isGraphAccount]);
+  }, [draggedEmail, currentFolder, activeAccountId, getActiveAccount]);
 
   // Load folders for account (forceRefresh = bypass cache)
   // v4.5.6: version check prevents a stale async call (e.g. slow IMAP) from
@@ -1394,12 +1398,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setLoadingPreview(true);
     setPreviewError(null);
     try {
-      let result;
-      if (isGraphAccount()) {
-        result = await window.electronAPI.fetchGraphEmail(activeAccountId, uid);
-      } else {
-        result = await window.electronAPI.fetchEmailForAccount(activeAccountId, uid, currentFolder);
-      }
+      const result = await MailApi.fetchOne(getActiveAccount(), uid, currentFolder);
       // Only apply result if this is still the latest request
       if (previewRequestIdRef.current === uid) {
         if (result?.success) {
@@ -1419,7 +1418,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     if (previewRequestIdRef.current === uid) {
       setLoadingPreview(false);
     }
-  }, [activeAccountId, currentFolder, isGraphAccount]);
+  }, [activeAccountId, currentFolder, getActiveAccount]);
 
   // Moved before handleSelectEmail to avoid TDZ in deps array
   const handleToggleRead = useCallback(async (uid, currentSeen) => {
@@ -1427,9 +1426,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     setActionLoading(`read-${uid}`);
     try {
-      const result = isGraphAccount()
-        ? await window.electronAPI.markGraphAsRead(activeAccountId, uid, !currentSeen)
-        : await window.electronAPI.markAsRead(activeAccountId, uid, !currentSeen, currentFolder);
+      const result = await MailApi.markRead(getActiveAccount(), uid, !currentSeen, currentFolder);
       if (result.success) {
         const newEmails = emailsRef.current.map(e =>
           e.uid === uid ? { ...e, seen: !currentSeen } : e
@@ -1445,7 +1442,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       console.error('Error toggling read status:', err);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount]);
+  }, [activeAccountId, currentFolder, getCacheKey, getActiveAccount]);
 
   // v2.6.0: Category-filtered emails — moved before handleSelectEmail to avoid TDZ
   const categoryFilteredEmails = useMemo(() => {
@@ -1570,14 +1567,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     setActionLoading(`delete-${uid}`);
     try {
+      const acc = getActiveAccount();
       const inTrash = isTrashFolder(currentFolder);
+      // v6.11.0: Undo braucht das Mail-Objekt (messageId) VOR dem Entfernen
+      const mailObj = emailsRef.current.find(e => e.uid === uid);
       const result = inTrash
-        ? (isGraphAccount()
-            ? await window.electronAPI.deleteGraphEmail(activeAccountId, uid)
-            : await window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder))
-        : (isGraphAccount()
-            ? await window.electronAPI.trashGraphEmail(activeAccountId, uid)
-            : await window.electronAPI.trashEmail(activeAccountId, uid, currentFolder));
+        ? await MailApi.deletePermanent(acc, uid, currentFolder)
+        : await MailApi.trash(acc, uid, currentFolder);
       if (result.success) {
         // Stop background loader immediately so it can't write the deleted email back
         bgLoadAbortRef.current = true;
@@ -1603,6 +1599,19 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         } else {
           setSelectedEmail(null);
         }
+
+        // v6.11.0: Undo-Toast — verschobene Mail lässt sich zurückholen
+        if (!inTrash) {
+          const undoable = MailApi.isGraph(acc) ? !!result.newId : !!mailObj?.messageId;
+          setActionToast({
+            text: 'In den Papierkorb verschoben',
+            undo: undoable ? async () => {
+              const r = await MailApi.undoMove(acc, result, currentFolder, mailObj?.messageId);
+              if (r?.success) fetchEmails(false);
+              else setActionToast('Rückgängig fehlgeschlagen: ' + (r?.error || 'unbekannt'));
+            } : undefined,
+          });
+        }
       } else {
         setActionToast('Fehler beim Löschen: ' + result.error);
       }
@@ -1610,7 +1619,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Fehler beim Löschen: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount, isTrashFolder, loadEmailPreview]);
+  }, [activeAccountId, currentFolder, getCacheKey, getActiveAccount, isTrashFolder, loadEmailPreview, fetchEmails]);
 
   // v6.10.0: Archivieren (Outlook-Semantik) — verschiebt in den Archiv-Ordner
   // (Graph: Well-Known "archive", IMAP: SPECIAL-USE/Name, wird bei Bedarf angelegt).
@@ -1619,9 +1628,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     setActionLoading(`archive-${uid}`);
     try {
-      const result = isGraphAccount()
-        ? await window.electronAPI.archiveGraphEmail(activeAccountId, uid)
-        : await window.electronAPI.archiveEmail(activeAccountId, uid, currentFolder);
+      const acc = getActiveAccount();
+      const mailObj = emailsRef.current.find(e => e.uid === uid);
+      const result = await MailApi.archive(acc, uid, currentFolder);
       if (result.success) {
         bgLoadAbortRef.current = true;
         const newEmails = emailsRef.current.filter(e => e.uid !== uid);
@@ -1638,6 +1647,17 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         } else {
           setSelectedEmail(null);
         }
+
+        // v6.11.0: Undo-Toast — archivierte Mail lässt sich zurückholen
+        const undoable = MailApi.isGraph(acc) ? !!result.newId : !!mailObj?.messageId;
+        setActionToast({
+          text: 'Archiviert',
+          undo: undoable ? async () => {
+            const r = await MailApi.undoMove(acc, result, currentFolder, mailObj?.messageId);
+            if (r?.success) fetchEmails(false);
+            else setActionToast('Rückgängig fehlgeschlagen: ' + (r?.error || 'unbekannt'));
+          } : undefined,
+        });
       } else {
         setActionToast('Archivieren fehlgeschlagen: ' + (result?.error || 'unbekannt'));
       }
@@ -1645,7 +1665,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Archivieren fehlgeschlagen: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, getCacheKey, isGraphAccount, loadEmailPreview]);
+  }, [activeAccountId, currentFolder, getCacheKey, getActiveAccount, loadEmailPreview, fetchEmails]);
 
   // v6.8.1: Einzel-Löschen erst nach Bestätigung — v6.10.0: nur noch im
   // Papierkorb (dort endgültig); sonst Outlook-Semantik: direkt in den
@@ -1737,22 +1757,17 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     try {
       const { mode, folder } = folderModal;
       let result;
+      const acc = getActiveAccount();
       if (mode === 'create') {
         const name = folderModalInput.trim();
         if (!name) { setFolderModalError('Bitte einen Namen eingeben.'); setFolderModalLoading(false); return; }
-        result = isGraphAccount()
-          ? await window.electronAPI.createGraphFolder(activeAccountId, name, null)
-          : await window.electronAPI.createFolder(activeAccountId, name);
+        result = await MailApi.createFolder(acc, name);
       } else if (mode === 'rename') {
         const name = folderModalInput.trim();
         if (!name || name === folder.name) { setFolderModalError('Bitte einen neuen Namen eingeben.'); setFolderModalLoading(false); return; }
-        result = isGraphAccount()
-          ? await window.electronAPI.renameGraphFolder(activeAccountId, folder.path, name)
-          : await window.electronAPI.renameFolder(activeAccountId, folder.path, name);
+        result = await MailApi.renameFolder(acc, folder.path, name);
       } else if (mode === 'delete') {
-        result = isGraphAccount()
-          ? await window.electronAPI.deleteGraphFolder(activeAccountId, folder.path)
-          : await window.electronAPI.deleteFolder(activeAccountId, folder.path);
+        result = await MailApi.deleteFolder(acc, folder.path);
       }
       if (result?.success) {
         setFolderModal(null);
@@ -1786,16 +1801,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       // Perf: delete all emails in parallel instead of sequentially
       // v6.10.0: Outlook-Semantik auch für Bulk — ausserhalb des Papierkorbs
       // in den Papierkorb verschieben statt endgültig löschen.
+      const acc = getActiveAccount();
       const inTrash = isTrashFolder(currentFolder);
       const deleteResults = await Promise.allSettled(
         uidsToDelete.map(uid =>
           inTrash
-            ? (isGraphAccount()
-                ? window.electronAPI.deleteGraphEmail(activeAccountId, uid)
-                : window.electronAPI.deleteEmail(activeAccountId, uid, currentFolder))
-            : (isGraphAccount()
-                ? window.electronAPI.trashGraphEmail(activeAccountId, uid)
-                : window.electronAPI.trashEmail(activeAccountId, uid, currentFolder))
+            ? MailApi.deletePermanent(acc, uid, currentFolder)
+            : MailApi.trash(acc, uid, currentFolder)
         )
       );
       const successUids = uidsToDelete.filter((_, i) =>
@@ -1838,7 +1850,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setBulkDeleting(false);
     // Re-enable background sync
     bgLoadAbortRef.current = false;
-  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, isGraphAccount, isTrashFolder]);
+  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, getActiveAccount, isTrashFolder]);
 
   // UX: Auswahl als gelesen markieren — häufigste Triage-Aktion für
   // Newsletter/Benachrichtigungen, bisher nur einzeln möglich.
@@ -1853,12 +1865,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     setActionLoading('bulk-read');
     try {
+      const acc = getActiveAccount();
       const results = await Promise.allSettled(
-        uids.map(uid =>
-          isGraphAccount()
-            ? window.electronAPI.markGraphAsRead(activeAccountId, uid, true)
-            : window.electronAPI.markAsRead(activeAccountId, uid, true, currentFolder)
-        )
+        uids.map(uid => MailApi.markRead(acc, uid, true, currentFolder))
       );
       const successUids = new Set(uids.filter((_, i) =>
         results[i].status === 'fulfilled' && results[i].value?.success
@@ -1880,7 +1889,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Fehler beim Markieren: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, selectedUids, getCacheKey, isGraphAccount]);
+  }, [activeAccountId, currentFolder, selectedUids, getCacheKey, getActiveAccount]);
 
   // v2.6.0: Manual categorization handler - saves sender category and updates ALL matching emails
   const handleCategorize = useCallback((email, category) => {
@@ -2014,12 +2023,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     };
 
     try {
-      let result;
-      if (account?.type === 'microsoft') {
-        result = await window.electronAPI.sendGraphEmail(activeAccountId, emailData);
-      } else {
-        result = await window.electronAPI.sendEmailForAccount(activeAccountId, emailData);
-      }
+      const result = await MailApi.send(account, emailData);
       if (result?.success) {
         setReplyMode(null);
         setReplyAttachments([]);
@@ -2392,14 +2396,28 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           <button onClick={() => setShowQuotaWarning(false)} className="ml-auto opacity-60 hover:opacity-100"><Close size={16} /></button>
         </div>
       )}
-      {/* v6.9.6: Aktionsfehler-Toast — ersetzt den Vollbild-Fehler bei Snooze/Löschen/Markieren/Triage */}
-      {actionToast && (
-        <div className="fixed bottom-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 bg-red-900/95 border border-red-500/40 text-red-100 text-sm rounded-xl shadow-2xl max-w-sm">
-          <WarningAlt size={16} className="flex-shrink-0" />
-          <span className="break-words">{actionToast}</span>
-          <button onClick={() => setActionToast(null)} className="ml-auto opacity-60 hover:opacity-100 flex-shrink-0"><Close size={16} /></button>
-        </div>
-      )}
+      {/* v6.9.6: Aktions-Toast — ersetzt den Vollbild-Fehler bei Snooze/Löschen/Markieren/Triage.
+          v6.11.0: String = Fehler; Objekt { text, undo?, error? } für Info-Toasts mit Rückgängig. */}
+      {actionToast && (() => {
+        const t = typeof actionToast === 'string' ? { text: actionToast, error: true } : actionToast;
+        return (
+          <div className={`fixed bottom-4 right-4 z-[60] flex items-center gap-3 px-4 py-3 border text-sm rounded-xl shadow-2xl max-w-sm ${
+            t.error ? 'bg-red-900/95 border-red-500/40 text-red-100' : 'bg-gray-900/95 border-white/20 text-gray-100'
+          }`}>
+            {t.error ? <WarningAlt size={16} className="flex-shrink-0" /> : <Checkmark size={16} className="flex-shrink-0 text-green-400" />}
+            <span className="break-words">{t.text}</span>
+            {t.undo && (
+              <button
+                onClick={() => { const u = t.undo; setActionToast(null); u(); }}
+                className="ml-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-cyan-300 font-medium flex-shrink-0"
+              >
+                Rückgängig
+              </button>
+            )}
+            <button onClick={() => setActionToast(null)} className="ml-auto opacity-60 hover:opacity-100 flex-shrink-0"><Close size={16} /></button>
+          </div>
+        );
+      })()}
     <div className={`flex-1 flex overflow-hidden min-h-0 ${c.bg}`}>
       {/* Folder List - Resizable (v1.8.1) + v6.6.2 Hover-Expand */}
       <div

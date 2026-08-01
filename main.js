@@ -2014,7 +2014,7 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
 
     // v2.8.3: Header-only fetch for fast listing (full body only when viewing email)
     const fetchOptions = {
-      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
+      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)'],
       markSeen: false,
       struct: true
     };
@@ -2031,9 +2031,13 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
 
     let messagesToProcess = [];
     if (pageUids.length > 0) {
+      // v6.11.0 FIX: UIDs einzeln übergeben (Spread) — der frühere Komma-
+      // String wurde von node-imaps validateUIDList per parseInt still auf
+      // die ERSTE UID gestutzt: seit v6.8.0 lieferte jede INBOX-Seite nur
+      // 1 Mail (kaschiert durch IndexedDB-Cache und Background-Loader).
       const searchCriteria = pageUids.length === totalCount
         ? ['ALL']
-        : [['UID', pageUids.join(',')]];
+        : [['UID', ...pageUids]];
       messagesToProcess = await connection.search(searchCriteria, fetchOptions);
       messagesToProcess.sort((a, b) => b.attributes.uid - a.attributes.uid);
     }
@@ -2060,6 +2064,8 @@ ipcMain.handle('imap:fetchEmailsForAccount', async (event, accountId, options = 
         from: fromRaw,
         fromName,
         to: (h.to || [''])[0],
+        // v6.11.0: für Undo (imap:findAndMove sucht per Message-ID)
+        messageId: (h['message-id'] || [null])[0],
         date: msg.attributes.date || (h.date ? new Date(h.date[0]) : new Date()),
         seen: !isUnread,
         hasAttachments: Array.isArray(msg.attributes.struct) &&
@@ -2163,6 +2169,8 @@ ipcMain.handle('imap:fetchEmailForAccount', async (event, accountId, uid, folder
         from: parsed.from?.text || 'Unbekannt',
         to: parsed.to?.text || '',
         cc: parsed.cc?.text || '',
+        // v6.11.0: für Undo/Snooze (Suche per Message-ID)
+        messageId: parsed.messageId || null,
         date: parsed.date || new Date(),
         html: parsed.html || null,
         text: parsed.text || '',
@@ -2211,7 +2219,7 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 100
     const searchCriteria = ['ALL'];
     // Perf: header-only — no body/text loaded during listing
     const fetchOptions = {
-      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
+      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)'],
       markSeen: false,
       struct: true
     };
@@ -2236,6 +2244,8 @@ ipcMain.handle('imap:fetchEmails', async (event, { folder = 'INBOX', limit = 100
           from: fromName,
           fromEmail: fromMatch ? fromMatch[2] : fromRaw,
           to: (h.to || [''])[0],
+          // v6.11.0: für Undo (imap:findAndMove sucht per Message-ID)
+          messageId: (h['message-id'] || [null])[0],
           date: h.date ? new Date(h.date[0]) : new Date(),
           seen: message.attributes.flags.includes('\\Seen'),
           hasAttachments: (message.attributes.struct || []).some(
@@ -2291,6 +2301,8 @@ ipcMain.handle('imap:fetchEmail', async (event, uid) => {
         from: parsed.from?.text || 'Unbekannt',
         to: parsed.to?.text || '',
         cc: parsed.cc?.text || '',
+        // v6.11.0: für Undo/Snooze (Suche per Message-ID)
+        messageId: parsed.messageId || null,
         date: parsed.date || new Date(),
         html: parsed.html || null,
         text: parsed.text || '',
@@ -2638,6 +2650,47 @@ async function moveToSpecialImapFolder(accountId, uid, folder, kind) {
   }
 }
 
+// v6.11.0: Undo für Papierkorb/Archiv — IMAP vergibt beim Verschieben eine
+// neue UID, darum wird die Mail per Message-ID-Header im Zielordner gesucht
+// und zurückverschoben.
+ipcMain.handle('imap:findAndMove', async (event, accountId, fromFolder, toFolder, messageId) => {
+  const account = getAccountById(accountId);
+  if (!account) return { success: false, error: 'Konto nicht gefunden' };
+  if (typeof messageId !== 'string' || !messageId.trim()) {
+    return { success: false, error: 'Keine Message-ID — Rückgängig nicht möglich' };
+  }
+
+  let connection;
+  const TIMEOUT_MS = 20000;
+  try {
+    return await Promise.race([
+      (async () => {
+        const config = getImapConfigForAccount(account);
+        connection = await imapSimple.connect(config);
+        await connection.openBox(fromFolder);
+        const found = await connection.search(
+          [['HEADER', 'MESSAGE-ID', messageId]],
+          { bodies: ['HEADER.FIELDS (MESSAGE-ID)'], struct: false }
+        );
+        if (!found || found.length === 0) {
+          return { success: false, error: 'E-Mail im Zielordner nicht gefunden' };
+        }
+        const uid = found[found.length - 1].attributes.uid;
+        await connection.moveMessage(String(uid), toFolder);
+        return { success: true };
+      })(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Rückgängig: Timeout nach 20s')), TIMEOUT_MS)
+      )
+    ]);
+  } catch (error) {
+    console.error('IMAP findAndMove Fehler:', error);
+    return { success: false, error: error.message };
+  } finally {
+    if (connection) try { await connection.end(); } catch (_) {}
+  }
+});
+
 ipcMain.handle('imap:trashEmail', async (event, accountId, uid, folder = 'INBOX') => {
   return moveToSpecialImapFolder(accountId, uid, folder, 'trash');
 });
@@ -2858,7 +2911,7 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
 
     const searchCriteria = ['ALL'];
     const fetchOptions = {
-      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE)'],
+      bodies: ['HEADER.FIELDS (FROM TO SUBJECT DATE MESSAGE-ID)'],
       markSeen: false,
       struct: true
     };
@@ -2884,6 +2937,8 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
         subject: (headerLines.subject || ['(Kein Betreff)'])[0],
         from: (headerLines.from || ['Unbekannt'])[0],
         to: (headerLines.to || [''])[0],
+        // v6.11.0: für Undo (imap:findAndMove sucht per Message-ID)
+        messageId: (headerLines['message-id'] || [null])[0],
         date: msg.attributes.date || (headerLines.date || [new Date()])[0],
         seen: msg.attributes.flags?.includes('\\Seen') || false,
         hasAttachment: !!msg.attributes.struct?.find(p => p.disposition?.type === 'attachment'),

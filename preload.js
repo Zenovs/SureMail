@@ -66,6 +66,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // v6.10.0: Papierkorb & Archiv (Outlook-Semantik)
   trashEmail: (accountId, uid, folder) => ipcRenderer.invoke('imap:trashEmail', accountId, uid, folder),
   archiveEmail: (accountId, uid, folder) => ipcRenderer.invoke('imap:archiveEmail', accountId, uid, folder),
+  // v6.11.0: Undo — Mail per Message-ID im Zielordner suchen und zurückverschieben
+  findAndMoveEmail: (accountId, fromFolder, toFolder, messageId) => ipcRenderer.invoke('imap:findAndMove', accountId, fromFolder, toFolder, messageId),
   markAsRead: (accountId, uid, isRead, folder) => ipcRenderer.invoke('imap:markAsRead', accountId, uid, isRead, folder),
   moveEmail: (accountId, uid, sourceFolder, destFolder) => ipcRenderer.invoke('imap:moveEmail', accountId, uid, sourceFolder, destFolder),
   listFolders: (accountId) => ipcRenderer.invoke('imap:listFolders', accountId),
