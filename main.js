@@ -1064,6 +1064,73 @@ async function findSentFolderName(connection) {
   }
 }
 
+// v6.13.1: Gesendete Mail als Kopie in den IMAP-Gesendet-Ordner schreiben.
+//
+// Lag vorher inline in smtp:sendForAccount — mit zwei Fehlern, die vor allem
+// Weiterleitungen trafen, weil nur die die Originalanhänge mitschleppen:
+//   1. ein fixes 15s-Timeout über Connect + Login + getBoxes + APPEND. Eine
+//      Antwort ist ein paar KB und durch, bevor der Timer läuft; eine
+//      Weiterleitung mit 3 MB Anhang lief regelmässig hinein.
+//   2. `newline: 'unix'` — RFC 3501 verlangt CRLF im APPEND-Literal; strenge
+//      Server (Exchange, Cyrus) quittieren LF-Zeilenenden mit BAD.
+// Beides scheiterte lautlos (nur console.error), darum landet ein Fehlschlag
+// jetzt auch im Logbuch.
+async function saveToSentFolder(account, mailOptions, context = '', messageId = null) {
+  let imapConn;
+  try {
+    if (!account?.imap?.host) return; // Konto ohne IMAP — nichts zu tun
+
+    const streamTransport = nodemailer.createTransport({ streamTransport: true, newline: 'windows' });
+    // Message-ID der tatsächlich versendeten Mail übernehmen. Ohne das erzeugt
+    // dieser zweite Build eine neue — die Kopie im Gesendet-Ordner gehörte dann
+    // aus Sicht jedes Clients zu einer anderen Nachricht als die zugestellte,
+    // und Threading/Undo/Snooze (Suche per Message-ID) griffen ins Leere.
+    const info = await streamTransport.sendMail(messageId ? { ...mailOptions, messageId } : mailOptions);
+    const chunks = [];
+    await new Promise((resolve, reject) => {
+      info.message.on('data', c => chunks.push(c));
+      info.message.on('end', resolve);
+      info.message.on('error', reject);
+    });
+    // Einzelne LF im Body (der Editor liefert Unix-Umbrüche) auf CRLF ziehen —
+    // `newline: 'windows'` deckt nur die Struktur ab, nicht den Nutztext.
+    const rawMessage = Buffer.from(
+      Buffer.concat(chunks).toString('latin1').replace(/\r?\n/g, '\r\n'),
+      'latin1'
+    );
+
+    // Timeout mit der Nachrichtengrösse skalieren: 30s Grundbudget für
+    // Connect/Login/getBoxes, plus 20s pro MB Upload, gedeckelt bei 5 Minuten.
+    const megabytes = rawMessage.length / (1024 * 1024);
+    const timeoutMs = Math.min(300_000, 30_000 + Math.ceil(megabytes) * 20_000);
+
+    let timer;
+    await Promise.race([
+      (async () => {
+        imapConn = await imapSimple.connect(getImapConfigForAccount(account));
+        const sentFolder = await findSentFolderName(imapConn);
+        if (!sentFolder) throw new Error('Kein Gesendet-Ordner auf dem Server gefunden');
+        await new Promise((resolve, reject) => {
+          imapConn.imap.append(rawMessage, { mailbox: sentFolder, flags: ['\\Seen'], date: new Date() },
+            err => err ? reject(err) : resolve());
+        });
+      })(),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`IMAP-APPEND-Timeout nach ${Math.round(timeoutMs / 1000)}s (${megabytes.toFixed(1)} MB)`)),
+          timeoutMs
+        );
+      })
+    ]).finally(() => clearTimeout(timer));
+  } catch (err) {
+    console.error('[Sent] Kopie im Gesendet-Ordner fehlgeschlagen:', err.message);
+    addLogEntry('error', 'Mail gesendet, aber nicht im Gesendet-Ordner gespeichert',
+      `${context ? context + ' — ' : ''}${err.message}`);
+  } finally {
+    if (imapConn) try { await imapConn.end(); } catch (_) {}
+  }
+}
+
 // v2.1.0: SMTP-Transporter für ein Konto erstellen (mit Anzeigename-Unterstützung)
 function getSmtpTransporterForAccount(account) {
   const smtp = account.smtp;
@@ -2605,46 +2672,14 @@ ipcMain.handle('smtp:sendForAccount', async (event, accountId, emailData) => {
       ...(emailData.references && { references: emailData.references }),
     };
 
-    await transporter.sendMail(mailOptions);
+    const sendInfo = await transporter.sendMail(mailOptions);
 
     // v6.9.0: Empfänger fürs Adress-Autocomplete merken
     learnContactsFromSend(emailData);
 
-    // v2.8.4: Append sent email to IMAP Sent folder (non-blocking, 15s timeout)
-    const appendToSent = async () => {
-      let imapConn;
-      try {
-        const streamTransport = nodemailer.createTransport({ streamTransport: true, newline: 'unix' });
-        const info = await streamTransport.sendMail(mailOptions);
-        const chunks = [];
-        await new Promise((resolve, reject) => {
-          info.message.on('data', c => chunks.push(c));
-          info.message.on('end', resolve);
-          info.message.on('error', reject);
-        });
-        const rawMessage = Buffer.concat(chunks);
-
-        await Promise.race([
-          (async () => {
-            const imapConfig = getImapConfigForAccount(account);
-            imapConn = await imapSimple.connect(imapConfig);
-            const sentFolder = await findSentFolderName(imapConn);
-            if (sentFolder) {
-              await new Promise((resolve, reject) => {
-                imapConn.imap.append(rawMessage, { mailbox: sentFolder, flags: ['\\Seen'], date: new Date() },
-                  err => err ? reject(err) : resolve());
-              });
-            }
-          })(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('IMAP append timeout')), 15000))
-        ]);
-      } catch (appendErr) {
-        console.error('[Sent] Failed to save to Sent folder:', appendErr.message);
-      } finally {
-        if (imapConn) try { await imapConn.end(); } catch (_) {}
-      }
-    };
-    appendToSent(); // fire-and-forget — don't block the send response
+    // v2.8.4: Kopie in den IMAP-Gesendet-Ordner — fire-and-forget, damit die
+    // Sende-Antwort nicht am Upload der Anhänge hängt.
+    saveToSentFolder(account, mailOptions, emailData.subject || '(kein Betreff)', sendInfo?.messageId);
 
     return { success: true, message: 'E-Mail erfolgreich gesendet!' };
   } catch (error) {
@@ -4258,7 +4293,15 @@ async function processScheduledEmails() {
             const safeName = (emailData.fromName || '').replace(/["\\\r\n]/g, '').trim();
             fromEmail = safeName ? `"${safeName}" <${emailAddr}>` : emailAddr;
           }
-          await transporter.sendMail({ from: fromEmail, to: emailData.to, cc: emailData.cc, bcc: emailData.bcc, subject: emailData.subject, text: emailData.text, html: emailData.html, attachments: (email.attachments || []).map(a => ({ ...a, encoding: 'base64' })) });
+          const mailOptions = {
+            from: fromEmail, to: emailData.to, cc: emailData.cc, bcc: emailData.bcc,
+            subject: emailData.subject, text: emailData.text, html: emailData.html,
+            attachments: (email.attachments || []).map(a => ({ ...a, encoding: 'base64' })),
+          };
+          const sendInfo = await transporter.sendMail(mailOptions);
+          // v6.13.1: Auch zeitversetzte Mails gehören in den Gesendet-Ordner —
+          // dieser Pfad hat die Kopie bisher komplett ausgelassen.
+          saveToSentFolder(account, mailOptions, `Geplant: ${emailData.subject || '(kein Betreff)'}`, sendInfo?.messageId);
           result = { success: true };
         }
       }
