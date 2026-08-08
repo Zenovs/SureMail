@@ -30,6 +30,10 @@ jobs:
       - name: Install npm dependencies
         run: npm install --prefer-offline
 
+      # v7.0: Test-Gate — sicherheitskritische pure Functions (lib/pure.js)
+      - name: Run tests
+        run: npm test
+
       - name: Build React
         run: npm run react-build
         env:

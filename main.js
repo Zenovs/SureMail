@@ -89,6 +89,9 @@ if (process.platform === 'linux' && (process.env.APPIMAGE || process.env.APPDIR 
 const APP_VERSION = require('./package.json').version;
 const GITHUB_REPO = 'Zenovs/coremail';
 
+// v7.0: sicherheitskritische pure Functions — extrahiert und getestet (tests/pure.test.js)
+const { compareVersions, isTrustedUpdateUrl, isSafePublicHttpsUrl, matchCondition, matchRule } = require('./lib/pure');
+
 // Verschlüsselte Speicherung
 // v4.5.6: Benutzerspezifischer Key statt hardcodiertem String.
 // Der Key wird aus dem Home-Verzeichnis des Users abgeleitet — damit ist er
@@ -1287,18 +1290,6 @@ async function checkForUpdates(silent = false) {
   }
 }
 
-function compareVersions(v1, v2) {
-  const parts1 = v1.split('.').map(Number);
-  const parts2 = v2.split('.').map(Number);
-  
-  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-    const p1 = parts1[i] || 0;
-    const p2 = parts2[i] || 0;
-    if (p1 > p2) return 1;
-    if (p1 < p2) return -1;
-  }
-  return 0;
-}
 
 // Security v6.2.0: SHA-256-Manifest des Releases laden und expected hash für eine Datei extrahieren.
 // Format SHA256SUMS.txt (eine Zeile pro Datei):  <hex64>  <filename>
@@ -1335,20 +1326,6 @@ async function computeFileSha256(filePath) {
 // Release-Assets kommen. Vorher hätte ein kompromittierter Renderer eine
 // beliebige URL + passendes SHA256-Manifest liefern und so eine fremde Binary
 // herunterladen und ausführen lassen können (Manifest war selbst vom Angreifer).
-function isTrustedUpdateUrl(url) {
-  try {
-    const u = new URL(String(url));
-    if (u.protocol !== 'https:') return false;
-    const host = u.hostname.toLowerCase();
-    const okHost = host === 'github.com' || host === 'objects.githubusercontent.com' || host === 'release-assets.githubusercontent.com';
-    if (!okHost) return false;
-    // github.com muss auf das offizielle Repo zeigen; die CDN-Hosts liefern nur Assets aus
-    if (host === 'github.com' && !u.pathname.startsWith('/Zenovs/coremail/')) return false;
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
 
 async function downloadUpdate(downloadUrl, sumsUrl = null, expectedFilename = null) {
   if (!isTrustedUpdateUrl(downloadUrl) || (sumsUrl && !isTrustedUpdateUrl(sumsUrl))) {
@@ -1941,28 +1918,6 @@ ipcMain.handle('search:clearIndex', async () => {
 // der (nicht vertrauenswürdigen) Mail. Ohne Prüfung könnte ein Absender den
 // Main-Prozess einen POST an interne Hosts (127.0.0.1, 169.254.169.254,
 // LAN, Cloud-Metadaten) absetzen lassen.
-function isSafePublicHttpsUrl(rawUrl) {
-  try {
-    const u = new URL(String(rawUrl));
-    if (u.protocol !== 'https:') return false;
-    const host = u.hostname.toLowerCase();
-    if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) return false;
-    // IPv6-Loopback / IPv4 in privaten Bereichen ablehnen
-    if (host === '::1' || host.startsWith('[')) return false;
-    const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-    if (m) {
-      const [a, b] = [parseInt(m[1], 10), parseInt(m[2], 10)];
-      if (a === 10 || a === 127 || a === 0 ||
-          (a === 172 && b >= 16 && b <= 31) ||
-          (a === 192 && b === 168) ||
-          (a === 169 && b === 254) ||
-          (a === 100 && b >= 64 && b <= 127)) return false;
-    }
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
 
 ipcMain.handle('mail:unsubscribe', async (event, { listUnsubscribe, accountId }) => {
   if (!listUnsubscribe) return { success: false, error: 'Keine Unsubscribe-Information' };
@@ -2863,7 +2818,18 @@ async function moveToSpecialImapFolder(accountId, uid, folder, kind) {
         const boxes = await connection.getBoxes();
         let dest = findSpecialImapFolder(boxes, kind);
         if (!dest) {
-          dest = kind === 'trash' ? 'Trash' : 'Archive';
+          const base = kind === 'trash' ? 'Trash' : 'Archive';
+          // v7.0: Namespace beachten — Server, die alle Ordner unter INBOX
+          // führen (Dovecot-Personal-Namespace), lehnen Top-Level-Ordner mit
+          // "nonexistent namespace" ab. Dann INBOX.<Name> anlegen.
+          const inboxKey = Object.keys(boxes || {}).find(k => k.toUpperCase() === 'INBOX');
+          const topLevelOthers = Object.keys(boxes || {}).filter(k => k.toUpperCase() !== 'INBOX');
+          if (inboxKey && topLevelOthers.length === 0) {
+            const delim = boxes[inboxKey].delimiter || '.';
+            dest = `${inboxKey}${delim}${base}`;
+          } else {
+            dest = base;
+          }
           try { await connection.addBox(dest); } catch (_) { /* existiert schon */ }
         }
         if (dest === folder) {
@@ -4480,32 +4446,7 @@ function getRules() {
   return rulesCache;
 }
 
-function matchCondition(email, condition) {
-  const { field, op = 'contains', value = '' } = condition || {};
-  if (!value) return false;
-  let haystack = '';
-  if (field === 'from')         haystack = (email.from || '');
-  else if (field === 'to')      haystack = (email.to || '') + ' ' + (email.cc || '');
-  else if (field === 'subject') haystack = (email.subject || '');
-  else return false;
-  const a = haystack.toLowerCase();
-  const b = value.toLowerCase();
-  switch (op) {
-    case 'equals':     return a === b;
-    case 'startsWith': return a.startsWith(b);
-    case 'endsWith':   return a.endsWith(b);
-    case 'contains':
-    default:           return a.includes(b);
-  }
-}
 
-function matchRule(email, rule) {
-  if (!rule.enabled) return false;
-  const conds = Array.isArray(rule.conditions) ? rule.conditions : [];
-  if (conds.length === 0) return false;
-  if (rule.matchAll === false) return conds.some(c => matchCondition(email, c));
-  return conds.every(c => matchCondition(email, c));
-}
 
 // IMAP-Aktion ausführen. Liefert { removed: bool, seen?: bool } — removed
 // bedeutet, die Mail soll aus dem zurückgegebenen Listen-Array entfernt werden

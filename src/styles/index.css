@@ -118,6 +118,11 @@ input:focus, textarea:focus {
     background-color var(--t-fast) var(--ease-smooth),
     border-color     var(--t-fast) var(--ease-smooth),
     box-shadow       var(--t-base) var(--ease-smooth);
+  /* v7.0: Browser-natives Lazy-Rendering — Zeilen ausserhalb des Viewports
+     überspringen Layout+Paint. Macht lange Listen (500+ Mails) flüssig,
+     ohne echte Virtualisierung mit ihren Scroll-Risiken. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 84px;
 }
 .cm-list-item:hover { transform: none; } /* no translateX, Apple keeps still */
 

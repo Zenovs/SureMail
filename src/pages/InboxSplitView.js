@@ -285,6 +285,12 @@ const PREVIEW_DEFAULT_WIDTH = 450;
 
 // Email cache for performance (v1.8.0)
 const emailCache = new Map();
+
+// v7.0: LRU-Cache für vollständig geladene Mails (Vorschau) — Wiederanklicken
+// ist damit sofort, statt jedes Mal die Roh-Mail inkl. Anhängen zu laden.
+// Bewusst klein gehalten, weil Mails mit Base64-Anhängen mehrere MB wiegen können.
+const previewCache = new Map();
+const PREVIEW_CACHE_MAX = 15;
 const folderCache = new Map();
 const CACHE_TTL = 15 * 60 * 1000; // 15 Minuten
 
@@ -499,9 +505,20 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
             </span>
           </div>
 
-          {/* Zeile 2: Betreff */}
-          <div className={`text-sm mt-0.5 truncate ${isUnread ? `${c.accent} font-medium` : c.textSecondary}`}>
-            {email.subject}
+          {/* Zeile 2: Betreff (+ Konto-Badge im Alle-Konten-Modus) */}
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={`text-sm truncate flex-1 min-w-0 ${isUnread ? `${c.accent} font-medium` : c.textSecondary}`}>
+              {email.subject}
+            </span>
+            {email.__accName && (
+              <span
+                className="px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 text-white/90"
+                style={{ backgroundColor: `hsl(${[...email.__accName].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7)} 45% 38%)` }}
+                title={email.__accName}
+              >
+                {email.__accName.length > 14 ? email.__accName.slice(0, 13) + '…' : email.__accName}
+              </span>
+            )}
           </div>
 
           {/* Zeile 3: Vorschau + Badges (nur wenn vorhanden) */}
@@ -624,6 +641,15 @@ const getFolderIcon = (type) => {
 function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const { currentTheme } = useTheme();
   const { activeAccountId, getActiveAccount, accounts, updateAccountStats } = useAccounts();
+  // v7.0: Vereinheitlichter Posteingang — '__ALL__' ist ein virtueller Modus,
+  // der die INBOX aller Konten zusammenführt. Mails tragen dann __accId/__accName
+  // und eine zusammengesetzte uid (`kontoId::uid`), weil IMAP-UIDs zwischen
+  // Konten kollidieren können; die Original-UID liegt in origUid.
+  const allMode = activeAccountId === '__ALL__';
+  const accountFor = useCallback((mailObj) => {
+    if (mailObj?.__accId) return accounts.find(a => a.id === mailObj.__accId) || null;
+    return getActiveAccount();
+  }, [accounts, getActiveAccount]);
   const [emails, setEmails] = useState([]);
   const [folders, setFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState('INBOX');
@@ -657,6 +683,8 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const bgLoadAbortRef = useRef(false);
   // Race-guard for loadEmailPreview: tracks the uid of the most-recently requested preview
   const previewRequestIdRef = useRef(null);
+  // v7.0: Versionszähler gegen Stale-Writes von fetchEmails nach Modus-/Kontowechsel
+  const fetchVersionRef = useRef(0);
   // v4.5.6: Version counter to prevent stale loadFolders from overwriting current account's folders
   const folderLoadVersionRef = useRef(0);
   // Scrollable email list container ref (for keyboard-nav scroll)
@@ -721,11 +749,17 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
   // v2.9.3: Inline reply state
   const [replyMode, setReplyMode] = useState(null); // null | 'reply' | 'replyAll'
+  // v7.0: Kürzel-Hilfe (?-Taste) + stabiler Zugriff auf handleSendReply aus
+  // dem Keyboard-Effekt (Cmd+Enter), ohne dessen Deps aufzublähen
+  const [showShortcutHelp, setShowShortcutHelp] = useState(false);
+  const sendReplyRef = useRef(null);
   // v6.9.1: Empfänger im Inline-Reply editierbar (An + CC, mit Autocomplete)
   const [replyToTags, setReplyToTags] = useState([]);
   const [replyCcTags, setReplyCcTags] = useState([]);
   const [replyShowCc, setReplyShowCc] = useState(false);
   const [replySending, setReplySending] = useState(false);
+  // v7.0: synchroner Reentry-Schutz für Cmd+Enter (State wäre einen Render zu spät)
+  const replySendingRef = useRef(false);
   const [replyError, setReplyError] = useState(null);
   const [replyAttachments, setReplyAttachments] = useState([]);
   const replyFileInputRef = useRef(null);
@@ -853,6 +887,15 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const loadFolders = useCallback(async (forceRefresh = false) => {
     if (!window.electronAPI || !activeAccountId) return;
 
+    // v7.0: Alle-Konten-Modus zeigt nur den zusammengeführten Posteingang —
+    // Ordnerlisten sind pro Konto und hier bewusst ausgeblendet.
+    if (allMode) {
+      setFolders([{ name: 'Posteingang (alle Konten)', path: 'INBOX', type: 'inbox', children: [], unread: 0 }]);
+      setLoadingFolders(false);
+      setFolderError(null);
+      return;
+    }
+
     // Capture the current version at call-start; if it changes before we write
     // state, a newer loadFolders is already running — discard this result.
     const myVersion = ++folderLoadVersionRef.current;
@@ -936,7 +979,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       if (folderLoadVersionRef.current === myVersion) setFolderError(err.message);
     }
     if (folderLoadVersionRef.current === myVersion) setLoadingFolders(false);
-  }, [activeAccountId, isGraphAccount]);
+  }, [activeAccountId, isGraphAccount, allMode]);
 
   // v2.8.3: Background batch loading — runs a loop loading 50 emails at a time
   // until all are loaded or aborted (account/folder change).
@@ -1005,8 +1048,66 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       return;
     }
 
+    // v7.0: Stale-Guard (wie loadFolders) — bei Konto-/Moduswechsel während
+    // eines laufenden Fetches darf die späte Antwort die Liste des neuen
+    // Kontexts nicht überschreiben (sonst z.B. gemergte Alle-Konten-Liste
+    // mit zusammengesetzten UIDs in einer Einzelkonto-Ansicht).
+    const myFetchVersion = ++fetchVersionRef.current;
+    const isStale = () => fetchVersionRef.current !== myFetchVersion;
+
     // Abort any running background batch load
     bgLoadAbortRef.current = true;
+
+    // v7.0: Vereinheitlichter Posteingang — INBOX aller Konten parallel laden
+    if (allMode) {
+      const cacheKey = getCacheKey('__ALL__', 'INBOX');
+      if (useCache) {
+        const cached = emailCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+          setEmails(cached.data);
+          // Ref sofort spiegeln — loadEmailPreview löst das Konto der Mail
+          // über emailsRef auf, das sonst einen Render hinterherhinkt
+          emailsRef.current = cached.data;
+          setHasMore(false);
+          setLoading(false);
+          if (cached.data.length > 0) loadEmailPreview(cached.data[0].uid);
+          return;
+        }
+      }
+      setError(null);
+      if (emailsRef.current.length === 0) setLoading(true);
+      try {
+        const results = await Promise.allSettled(accounts.map(async (acc) => {
+          const r = acc.type === 'microsoft'
+            ? await window.electronAPI.fetchGraphEmails(acc.id, { folder: 'INBOX', limit: 30, skip: 0 })
+            : await window.electronAPI.fetchEmailsForAccount(acc.id, { limit: 30, offset: 0 });
+          if (!r?.success) return [];
+          return (r.emails || []).map(e => ({
+            ...e,
+            uid: `${acc.id}::${e.uid}`,
+            origUid: e.uid,
+            __accId: acc.id,
+            __accName: acc.displayName || acc.name || '',
+          }));
+        }));
+        const merged = results
+          .filter(r => r.status === 'fulfilled')
+          .flatMap(r => r.value)
+          .sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (isStale()) return; // Modus/Konto wurde inzwischen gewechselt
+        setEmails(merged);
+        // Ref sofort spiegeln (siehe Cache-Pfad oben)
+        emailsRef.current = merged;
+        setHasMore(false);
+        emailCache.set(cacheKey, { data: merged, hasMore: false, timestamp: Date.now() });
+        if (merged.length > 0) loadEmailPreview(merged[0].uid);
+        else setSelectedEmail(null);
+      } catch (e) {
+        if (!isStale()) setError(e.message);
+      }
+      if (!isStale()) setLoading(false);
+      return;
+    }
 
     const cacheKey = getCacheKey(activeAccountId, currentFolder);
     const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
@@ -1032,6 +1133,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     let existingEmails = [];
     if (localStorageEnabled && useCache) {
       const localData = await loadEmailsFromIndexedDB(activeAccountId, currentFolder);
+      if (isStale()) return; // v7.0: Konto/Modus wurde inzwischen gewechselt
       if (localData && localData.emails?.length > 0) {
         existingEmails = localData.emails;
         setEmails(existingEmails);
@@ -1091,6 +1193,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           finalEmails = result.emails;
         }
 
+        if (isStale()) return; // v7.0: Konto/Modus wurde inzwischen gewechselt
         setEmails(finalEmails);
         setHasMore(result.hasMore || false);
         setBgLoadOffset(finalEmails.length);
@@ -1125,7 +1228,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setError(e.message);
     }
     setLoading(false);
-  }, [activeAccountId, currentFolder, getCacheKey]);
+  // Hinweis: loadEmailPreview ist bewusst NICHT in den Deps — es ist erst
+  // weiter unten definiert (TDZ im Deps-Array beim ersten Render).
+  }, [activeAccountId, currentFolder, getCacheKey, allMode, accounts]);
 
   // Load more emails (pagination)
   const loadMoreEmails = useCallback(async () => {
@@ -1290,6 +1395,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const handleRunTriage = async () => {
     if (!activeAccountId || !window.electronAPI?.aiTriageBatch) return;
     if (filteredEmails.length === 0) return;
+    // v7.0: Triage nur im Einzelkonto-Modus — im Alle-Konten-Modus würden
+    // Ergebnisse unter '__ALL__' + zusammengesetzten UIDs persistiert und
+    // beim nächsten Einzelkonto-Lauf erneut berechnet (doppelte AI-Kosten).
+    if (allMode) {
+      setActionToast('KI-Triage bitte im einzelnen Konto ausführen');
+      return;
+    }
     setTriageRunning(true);
     setTriageProgress({ processed: 0, total: filteredEmails.length });
     const items = filteredEmails.map(e => ({
@@ -1402,14 +1514,47 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     // Race guard: discard responses for any earlier request
     previewRequestIdRef.current = uid;
+
+    // v7.0: konto-bewusst — im Alle-Konten-Modus trägt die Mail ihr Konto
+    // selbst (__accId) und die Original-UID (origUid), Ordner ist dort INBOX.
+    const mailObj = emailsRef.current.find(e => e.uid === uid);
+    const acc = accountFor(mailObj);
+    const fetchUid = mailObj?.origUid ?? uid;
+    const folder = mailObj?.__accId ? 'INBOX' : currentFolder;
+
+    // v7.0: LRU-Cache — erneutes Anklicken einer Mail zeigt sie sofort,
+    // statt die komplette Roh-Mail (inkl. Base64-Anhängen) neu über IPC
+    // und den Server zu laden. Key nutzt die LISTEN-uid (im Alle-Modus
+    // zusammengesetzt, sonst roh) — dadurch kollidieren die modus-
+    // spezifischen Objektformen nie (Review-Befund v7.0).
+    const cacheKey = `${acc?.id || activeAccountId}|${folder}|${uid}`;
+    const cached = previewCache.get(cacheKey);
+    if (cached) {
+      // LRU-Auffrischung: ans Ende der Map verschieben
+      previewCache.delete(cacheKey);
+      previewCache.set(cacheKey, cached);
+      setSelectedEmail(cached);
+      setLoadingPreview(false);
+      setPreviewError(null);
+      return;
+    }
+
     setLoadingPreview(true);
     setPreviewError(null);
     try {
-      const result = await MailApi.fetchOne(getActiveAccount(), uid, currentFolder);
+      const result = await MailApi.fetchOne(acc, fetchUid, folder);
       // Only apply result if this is still the latest request
       if (previewRequestIdRef.current === uid) {
         if (result?.success) {
-          setSelectedEmail(result.email);
+          // Listen-Identität (zusammengesetzte uid, Konto-Infos) beibehalten
+          const enriched = mailObj?.__accId
+            ? { ...result.email, uid, origUid: fetchUid, __accId: mailObj.__accId, __accName: mailObj.__accName }
+            : result.email;
+          previewCache.set(cacheKey, enriched);
+          while (previewCache.size > PREVIEW_CACHE_MAX) {
+            previewCache.delete(previewCache.keys().next().value);
+          }
+          setSelectedEmail(enriched);
         } else {
           // Fehler sichtbar machen statt nur in der Konsole — der Nutzer sah
           // sonst eine leere/alte Vorschau ohne Erklärung.
@@ -1425,7 +1570,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     if (previewRequestIdRef.current === uid) {
       setLoadingPreview(false);
     }
-  }, [activeAccountId, currentFolder, getActiveAccount]);
+  }, [activeAccountId, currentFolder, accountFor]);
 
   // Moved before handleSelectEmail to avoid TDZ in deps array
   const handleToggleRead = useCallback(async (uid, currentSeen) => {
@@ -1433,7 +1578,14 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     setActionLoading(`read-${uid}`);
     try {
-      const result = await MailApi.markRead(getActiveAccount(), uid, !currentSeen, currentFolder);
+      // v7.0: konto-bewusst (Alle-Konten-Modus)
+      const mailObj = emailsRef.current.find(e => e.uid === uid);
+      const result = await MailApi.markRead(
+        accountFor(mailObj),
+        mailObj?.origUid ?? uid,
+        !currentSeen,
+        mailObj?.__accId ? 'INBOX' : currentFolder
+      );
       if (result.success) {
         const newEmails = emailsRef.current.map(e =>
           e.uid === uid ? { ...e, seen: !currentSeen } : e
@@ -1449,7 +1601,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       console.error('Error toggling read status:', err);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, getCacheKey, getActiveAccount]);
+  }, [activeAccountId, currentFolder, getCacheKey, accountFor]);
 
   // v2.6.0: Category-filtered emails — moved before handleSelectEmail to avoid TDZ
   const categoryFilteredEmails = useMemo(() => {
@@ -1468,7 +1620,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     if (showUnreadOnly) list = list.filter(email => !email.seen);
     // v6.6.0: gesnoozte Mails ausblenden (key = "accountId|folder|uid")
     if (snoozedKeys.size > 0 && activeAccountId) {
-      list = list.filter(e => !snoozedKeys.has(`${activeAccountId}|${currentFolder}|${e.uid}`));
+      // v7.0: konto-bewusst — im Alle-Konten-Modus trägt die Mail ihr Konto
+      // selbst (sonst blendete Snooze dort nie aus, Key-Mismatch)
+      list = list.filter(e => !snoozedKeys.has(`${e.__accId || activeAccountId}|${e.__accId ? 'INBOX' : currentFolder}|${e.origUid ?? e.uid}`));
     }
     return list;
   }, [categoryFilteredEmails, showUnreadOnly, snoozedKeys, activeAccountId, currentFolder]);
@@ -1524,10 +1678,14 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const handleSnoozePick = useCallback(async (wakeAtMs) => {
     setSnoozeMenuOpen(false);
     if (!selectedEmail || !activeAccountId || !window.electronAPI?.snoozeAdd) return;
+    // v7.0: konto-bewusst (Alle-Konten-Modus)
+    const snoozeAccId = selectedEmail.__accId || activeAccountId;
+    const snoozeFolder = selectedEmail.__accId ? 'INBOX' : currentFolder;
+    const snoozeUid = selectedEmail.origUid ?? selectedEmail.uid;
     const result = await window.electronAPI.snoozeAdd({
-      accountId: activeAccountId,
-      folder: currentFolder,
-      uid: selectedEmail.uid,
+      accountId: snoozeAccId,
+      folder: snoozeFolder,
+      uid: snoozeUid,
       messageId: selectedEmail.messageId || null,
       subject: selectedEmail.subject || '',
       from: selectedEmail.from || '',
@@ -1539,7 +1697,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     }
     setSnoozedKeys(prev => {
       const next = new Set(prev);
-      next.add(`${activeAccountId}|${currentFolder}|${selectedEmail.uid}`);
+      next.add(`${snoozeAccId}|${snoozeFolder}|${snoozeUid}`);
       return next;
     });
     setSelectedEmail(null);
@@ -1574,13 +1732,16 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     setActionLoading(`delete-${uid}`);
     try {
-      const acc = getActiveAccount();
-      const inTrash = isTrashFolder(currentFolder);
       // v6.11.0: Undo braucht das Mail-Objekt (messageId) VOR dem Entfernen
+      // v7.0: konto-bewusst (Alle-Konten-Modus)
       const mailObj = emailsRef.current.find(e => e.uid === uid);
+      const acc = accountFor(mailObj);
+      const actionUid = mailObj?.origUid ?? uid;
+      const actionFolder = mailObj?.__accId ? 'INBOX' : currentFolder;
+      const inTrash = !mailObj?.__accId && isTrashFolder(currentFolder);
       const result = inTrash
-        ? await MailApi.deletePermanent(acc, uid, currentFolder)
-        : await MailApi.trash(acc, uid, currentFolder);
+        ? await MailApi.deletePermanent(acc, actionUid, actionFolder)
+        : await MailApi.trash(acc, actionUid, actionFolder);
       if (result.success) {
         // Stop background loader immediately so it can't write the deleted email back
         bgLoadAbortRef.current = true;
@@ -1594,7 +1755,12 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         emailCache.set(cacheKey, { data: newEmails, hasMore: hasMoreRef.current, timestamp: Date.now() });
 
         // v1.12.1: Also remove from IndexedDB to prevent re-fetching
-        await removeEmailFromIndexedDB(activeAccountId, currentFolder, uid);
+        await removeEmailFromIndexedDB(acc?.id || activeAccountId, actionFolder, actionUid);
+
+        // v7.0: Gegenmodus-Cache invalidieren — sonst taucht die Mail beim
+        // Wechsel zwischen Alle-Konten- und Einzelmodus wieder auf
+        if (mailObj?.__accId) emailCache.delete(getCacheKey(mailObj.__accId, 'INBOX'));
+        else if (currentFolder === 'INBOX') emailCache.delete(getCacheKey('__ALL__', 'INBOX'));
 
         // Select next email
         const selIdx = selectedIndexRef.current;
@@ -1613,7 +1779,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           setActionToast({
             text: 'In den Papierkorb verschoben',
             undo: undoable ? async () => {
-              const r = await MailApi.undoMove(acc, result, currentFolder, mailObj?.messageId);
+              const r = await MailApi.undoMove(acc, result, actionFolder, mailObj?.messageId);
               if (r?.success) fetchEmails(false);
               else setActionToast('Rückgängig fehlgeschlagen: ' + (r?.error || 'unbekannt'));
             } : undefined,
@@ -1626,7 +1792,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Fehler beim Löschen: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, getCacheKey, getActiveAccount, isTrashFolder, loadEmailPreview, fetchEmails]);
+  }, [activeAccountId, currentFolder, getCacheKey, accountFor, isTrashFolder, loadEmailPreview, fetchEmails]);
 
   // v6.10.0: Archivieren (Outlook-Semantik) — verschiebt in den Archiv-Ordner
   // (Graph: Well-Known "archive", IMAP: SPECIAL-USE/Name, wird bei Bedarf angelegt).
@@ -1635,16 +1801,22 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     setActionLoading(`archive-${uid}`);
     try {
-      const acc = getActiveAccount();
+      // v7.0: konto-bewusst (Alle-Konten-Modus)
       const mailObj = emailsRef.current.find(e => e.uid === uid);
-      const result = await MailApi.archive(acc, uid, currentFolder);
+      const acc = accountFor(mailObj);
+      const actionUid = mailObj?.origUid ?? uid;
+      const actionFolder = mailObj?.__accId ? 'INBOX' : currentFolder;
+      const result = await MailApi.archive(acc, actionUid, actionFolder);
       if (result.success) {
         bgLoadAbortRef.current = true;
         const newEmails = emailsRef.current.filter(e => e.uid !== uid);
         setEmails(newEmails);
         const cacheKey = getCacheKey(activeAccountId, currentFolder);
         emailCache.set(cacheKey, { data: newEmails, hasMore: hasMoreRef.current, timestamp: Date.now() });
-        await removeEmailFromIndexedDB(activeAccountId, currentFolder, uid);
+        await removeEmailFromIndexedDB(acc?.id || activeAccountId, actionFolder, actionUid);
+        // v7.0: Gegenmodus-Cache invalidieren (siehe handleDelete)
+        if (mailObj?.__accId) emailCache.delete(getCacheKey(mailObj.__accId, 'INBOX'));
+        else if (currentFolder === 'INBOX') emailCache.delete(getCacheKey('__ALL__', 'INBOX'));
         const selIdx = selectedIndexRef.current;
         if (selIdx >= newEmails.length) {
           setSelectedIndex(Math.max(0, newEmails.length - 1));
@@ -1660,7 +1832,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         setActionToast({
           text: 'Archiviert',
           undo: undoable ? async () => {
-            const r = await MailApi.undoMove(acc, result, currentFolder, mailObj?.messageId);
+            const r = await MailApi.undoMove(acc, result, actionFolder, mailObj?.messageId);
             if (r?.success) fetchEmails(false);
             else setActionToast('Rückgängig fehlgeschlagen: ' + (r?.error || 'unbekannt'));
           } : undefined,
@@ -1672,7 +1844,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Archivieren fehlgeschlagen: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, getCacheKey, getActiveAccount, loadEmailPreview, fetchEmails]);
+  }, [activeAccountId, currentFolder, getCacheKey, accountFor, loadEmailPreview, fetchEmails]);
 
   // v6.8.1: Einzel-Löschen erst nach Bestätigung — v6.10.0: nur noch im
   // Papierkorb (dort endgültig); sonst Outlook-Semantik: direkt in den
@@ -1808,14 +1980,25 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       // Perf: delete all emails in parallel instead of sequentially
       // v6.10.0: Outlook-Semantik auch für Bulk — ausserhalb des Papierkorbs
       // in den Papierkorb verschieben statt endgültig löschen.
-      const acc = getActiveAccount();
-      const inTrash = isTrashFolder(currentFolder);
+      // v7.0: konto-bewusst pro Mail (Alle-Konten-Modus)
+      const inTrash = !allMode && isTrashFolder(currentFolder);
+      // v7.0: Gegenmodus-Caches invalidieren (siehe handleDelete)
+      if (allMode) {
+        new Set(uidsToDelete.map(uid => emailsRef.current.find(e => e.uid === uid)?.__accId).filter(Boolean))
+          .forEach(id => emailCache.delete(getCacheKey(id, 'INBOX')));
+      } else if (currentFolder === 'INBOX') {
+        emailCache.delete(getCacheKey('__ALL__', 'INBOX'));
+      }
       const deleteResults = await Promise.allSettled(
-        uidsToDelete.map(uid =>
-          inTrash
-            ? MailApi.deletePermanent(acc, uid, currentFolder)
-            : MailApi.trash(acc, uid, currentFolder)
-        )
+        uidsToDelete.map(uid => {
+          const mailObj = emailsRef.current.find(e => e.uid === uid);
+          const acc = accountFor(mailObj);
+          const actionUid = mailObj?.origUid ?? uid;
+          const actionFolder = mailObj?.__accId ? 'INBOX' : currentFolder;
+          return inTrash
+            ? MailApi.deletePermanent(acc, actionUid, actionFolder)
+            : MailApi.trash(acc, actionUid, actionFolder);
+        })
       );
       const successUids = uidsToDelete.filter((_, i) =>
         deleteResults[i].status === 'fulfilled' && deleteResults[i].value?.success
@@ -1824,7 +2007,15 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
       // Remove successfully deleted emails from IndexedDB in parallel
       await Promise.all(
-        successUids.map(uid => removeEmailFromIndexedDB(activeAccountId, currentFolder, uid))
+        successUids.map(uid => {
+          // v7.0: konto-bewusst (Alle-Konten-Modus)
+          const mailObj = emailsRef.current.find(e => e.uid === uid);
+          return removeEmailFromIndexedDB(
+            mailObj?.__accId || activeAccountId,
+            mailObj?.__accId ? 'INBOX' : currentFolder,
+            mailObj?.origUid ?? uid
+          );
+        })
       );
       
       // Update local state
@@ -1857,7 +2048,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setBulkDeleting(false);
     // Re-enable background sync
     bgLoadAbortRef.current = false;
-  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, getActiveAccount, isTrashFolder]);
+  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, accountFor, allMode, isTrashFolder]);
 
   // UX: Auswahl als gelesen markieren — häufigste Triage-Aktion für
   // Newsletter/Benachrichtigungen, bisher nur einzeln möglich.
@@ -1872,9 +2063,17 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
     setActionLoading('bulk-read');
     try {
-      const acc = getActiveAccount();
+      // v7.0: konto-bewusst pro Mail (Alle-Konten-Modus)
       const results = await Promise.allSettled(
-        uids.map(uid => MailApi.markRead(acc, uid, true, currentFolder))
+        uids.map(uid => {
+          const mailObj = emailsRef.current.find(e => e.uid === uid);
+          return MailApi.markRead(
+            accountFor(mailObj),
+            mailObj?.origUid ?? uid,
+            true,
+            mailObj?.__accId ? 'INBOX' : currentFolder
+          );
+        })
       );
       const successUids = new Set(uids.filter((_, i) =>
         results[i].status === 'fulfilled' && results[i].value?.success
@@ -1896,7 +2095,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Fehler beim Markieren: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, selectedUids, getCacheKey, getActiveAccount]);
+  }, [activeAccountId, currentFolder, selectedUids, getCacheKey, accountFor]);
 
   // v2.6.0: Manual categorization handler - saves sender category and updates ALL matching emails
   const handleCategorize = useCallback((email, category) => {
@@ -1990,7 +2189,11 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     if (!replyMode || !selectedEmail) return;
     const fromAddr = extractEmailAddr(selectedEmail.from);
     if (replyMode === 'replyAll') {
-      const account = accounts.find(a => a.id === activeAccountId);
+      // v7.0: im Alle-Konten-Modus das Konto der Mail nutzen — sonst wird
+      // die eigene Adresse nicht aus dem CC gefiltert
+      const account = selectedEmail.__accId
+        ? accounts.find(a => a.id === selectedEmail.__accId)
+        : accounts.find(a => a.id === activeAccountId);
       const ownEmail = (account?.smtp?.fromEmail || account?.smtp?.username || account?.microsoft?.email || '').toLowerCase();
       const toAddrs = (selectedEmail.to || '').split(/[,;]/).map(extractEmailAddr).filter(Boolean);
       const ccAddrs = (selectedEmail.cc || '').split(/[,;]/).map(extractEmailAddr).filter(Boolean);
@@ -2008,14 +2211,21 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
   const handleSendReply = useCallback(async () => {
     if (!selectedEmail || !replyEditorRef.current) return;
+    // v7.0: Reentry-Schutz — Cmd+Enter kann sonst während des laufenden
+    // Versands erneut feuern (doppelt zugestellte Antwort).
+    if (replySendingRef.current) return;
     if (replyToTags.length === 0) {
       setReplyError('Mindestens ein Empfänger nötig');
       return;
     }
+    replySendingRef.current = true;
     setReplySending(true);
     setReplyError(null);
 
-    const account = accounts.find(a => a.id === activeAccountId);
+    // v7.0: im Alle-Konten-Modus über das Konto der Mail antworten
+    const account = selectedEmail.__accId
+      ? accounts.find(a => a.id === selectedEmail.__accId)
+      : accounts.find(a => a.id === activeAccountId);
     const replyBodyHtml = replyEditorRef.current.innerHTML || '';
     const originalHtml = selectedEmail.html || `<p>${(selectedEmail.text || '').replace(/\n/g, '<br>')}</p>`;
     const fullHtml = `${replyBodyHtml}<br><br><blockquote style="border-left:3px solid #555;padding-left:1em;color:#888;margin:0 0 0 0.5em">${originalHtml}</blockquote>`;
@@ -2045,8 +2255,11 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     } catch (e) {
       setReplyError(e.message);
     }
+    replySendingRef.current = false;
     setReplySending(false);
   }, [selectedEmail, activeAccountId, accounts, replyAttachments, replyToTags, replyCcTags]);
+  // Für Cmd+Enter im Keyboard-Effekt (siehe oben)
+  sendReplyRef.current = handleSendReply;
 
   // v3.0.2: Save single attachment via Electron API, then open if requested
   const saveAttachment = useCallback(async (att, index, andOpen = false) => {
@@ -2072,20 +2285,32 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   // Keyboard navigation (v2.3.0: added Ctrl+A for select all)
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // v7.0: Cmd/Ctrl+Enter sendet die Inline-Antwort — auch aus dem Editor
+      // heraus (deshalb VOR dem Eingabefeld-Guard). e.repeat blockt Autorepeat.
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && replyMode && !e.repeat) {
+        e.preventDefault();
+        sendReplyRef.current?.();
+        return;
+      }
       // Ignore all shortcuts when typing in an input, textarea, or contentEditable (e.g. reply editor)
       if (e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
       // Offene Modals: Escape schliesst, alle anderen Listen-Shortcuts sind
       // gesperrt (sonst löscht die Delete-Taste im Hintergrund Mails).
-      if (showDeleteConfirm || confirmDeleteUid || confirmDiscardReply || folderModal) {
+      if (showDeleteConfirm || confirmDeleteUid || confirmDiscardReply || folderModal || showShortcutHelp) {
         if (e.key === 'Escape') {
           if (showDeleteConfirm) setShowDeleteConfirm(false);
           else if (confirmDeleteUid) setConfirmDeleteUid(null);
           else if (confirmDiscardReply) setConfirmDiscardReply(false);
+          else if (showShortcutHelp) setShowShortcutHelp(false);
           else setFolderModal(null);
         }
         return;
       }
+
+      // v7.0: Fremde Overlays (Cmd+K-Suche, Menüs, Dialoge anderer Komponenten)
+      // blockieren die Listen-Kürzel — sonst feuern r/a/f/u/j/k dahinter.
+      if (snoozeMenuOpen || document.querySelector('div.fixed.inset-0')) return;
 
       // Ctrl+A or Cmd+A: Select all emails
       if ((e.ctrlKey || e.metaKey) && e.key === 'a' && filteredEmails.length > 0) {
@@ -2124,6 +2349,57 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         return;
       }
 
+      // v7.0: Vollständiger Tastatur-Layer (Gmail/Outlook-Kürzel)
+      if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+        // ?: Kürzel-Übersicht
+        if (e.key === '?') {
+          e.preventDefault();
+          setShowShortcutHelp(v => !v);
+          return;
+        }
+        // R / A / F: Antworten / Allen antworten / Weiterleiten
+        if (selectedEmail) {
+          if (e.key === 'r' || e.key === 'R') {
+            e.preventDefault();
+            setReplyMode('reply');
+            return;
+          }
+          if (e.key === 'a' || e.key === 'A') {
+            e.preventDefault();
+            setReplyMode('replyAll');
+            return;
+          }
+          if ((e.key === 'f' || e.key === 'F') && onForward) {
+            e.preventDefault();
+            onForward(selectedEmail);
+            return;
+          }
+        }
+        // U: Gelesen/Ungelesen umschalten
+        if ((e.key === 'u' || e.key === 'U') && filteredEmails[selectedIndex]) {
+          e.preventDefault();
+          const m = filteredEmails[selectedIndex];
+          handleToggleRead(m.uid, m.seen);
+          return;
+        }
+      }
+
+      // J/K als Alias für Pfeiltasten (Gmail-Navigation)
+      if ((e.key === 'j' || e.key === 'J') && !e.ctrlKey && !e.metaKey && selectedIndex < filteredEmails.length - 1) {
+        e.preventDefault();
+        const next = selectedIndex + 1;
+        handleSelectEmail(next);
+        emailScrollRef.current?.querySelectorAll('.cm-list-item')[next]?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        return;
+      }
+      if ((e.key === 'k' || e.key === 'K') && !e.ctrlKey && !e.metaKey && selectedIndex > 0) {
+        e.preventDefault();
+        const prev = selectedIndex - 1;
+        handleSelectEmail(prev);
+        emailScrollRef.current?.querySelectorAll('.cm-list-item')[prev]?.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+        return;
+      }
+
       if (e.key === 'ArrowDown' && selectedIndex < filteredEmails.length - 1) {
         const next = selectedIndex + 1;
         handleSelectEmail(next);
@@ -2138,7 +2414,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids, showDeleteConfirm, folderModal, confirmDeleteUid, confirmDiscardReply, isTrashFolder, handleBulkDelete, requestDelete, handleArchive]);
+  }, [selectedIndex, filteredEmails, selectedEmail, onFullView, currentFolder, handleDelete, handleSelectAll, handleClearSelection, selectedUids, showDeleteConfirm, folderModal, confirmDeleteUid, confirmDiscardReply, isTrashFolder, handleBulkDelete, requestDelete, handleArchive, handleSelectEmail, handleToggleRead, onForward, replyMode, showShortcutHelp, snoozeMenuOpen]);
 
   // Trigger loadMore when user scrolls near the bottom of the email list
   const handleEmailListScroll = useCallback((e) => {
@@ -2286,8 +2562,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   }, [categoryFilter]);
 
   // v1.11.1: Update account stats when emails are loaded (for sidebar unread badge)
+  // v7.0: nicht im Alle-Konten-Modus — sonst entsteht ein '__ALL__'-Eintrag,
+  // der die Summen in Sidebar- und Dock-Badge verdoppelt.
   useEffect(() => {
-    if (activeAccountId && currentFolder === 'INBOX' && emails.length > 0) {
+    if (activeAccountId && activeAccountId !== '__ALL__' && currentFolder === 'INBOX' && emails.length > 0) {
       const unread = emails.filter(e => !e.seen).length;
       updateAccountStats(activeAccountId, {
         unread,
@@ -2401,6 +2679,39 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           <WarningAlt size={16} className="flex-shrink-0" />
           <span>Offline-Speicher voll. Ältere E-Mails werden nicht mehr zwischengespeichert.</span>
           <button onClick={() => setShowQuotaWarning(false)} className="ml-auto opacity-60 hover:opacity-100"><Close size={16} /></button>
+        </div>
+      )}
+      {/* v7.0: Tastaturkürzel-Hilfe (?-Taste) */}
+      {showShortcutHelp && (
+        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center" onClick={() => setShowShortcutHelp(false)}>
+          <div className={`${c.popover || c.card} ${c.border} border rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-semibold ${c.text}`}>Tastaturkürzel</h3>
+              <button onClick={() => setShowShortcutHelp(false)} className={`p-1 rounded ${c.hover} ${c.textSecondary}`}><Close size={16} /></button>
+            </div>
+            <div className={`grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 text-sm ${c.text}`}>
+              {[
+                ['↑ / ↓  oder  J / K', 'Mail-Navigation'],
+                ['Enter', 'Vollansicht öffnen'],
+                ['E', 'Archivieren'],
+                ['Entf', 'In den Papierkorb'],
+                ['R', 'Antworten'],
+                ['A', 'Allen antworten'],
+                ['F', 'Weiterleiten'],
+                ['U', 'Gelesen/Ungelesen'],
+                ['⌘/Ctrl + Enter', 'Antwort senden'],
+                ['⌘/Ctrl + A', 'Alle auswählen'],
+                ['Esc', 'Auswahl aufheben / schliessen'],
+                ['⌘/Ctrl + K', 'Suche'],
+                ['?', 'Diese Hilfe'],
+              ].map(([key, desc]) => (
+                <React.Fragment key={key}>
+                  <kbd className={`px-2 py-0.5 rounded ${c.bgTertiary} ${c.border} border text-xs font-mono justify-self-start`}>{key}</kbd>
+                  <span className={c.textSecondary}>{desc}</span>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
         </div>
       )}
       {/* v6.9.6: Aktions-Toast — ersetzt den Vollbild-Fehler bei Snooze/Löschen/Markieren/Triage.

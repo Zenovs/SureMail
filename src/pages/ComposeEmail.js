@@ -162,7 +162,11 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       ? (isForward ? `Fwd: ${replyTo.subject}` : `Re: ${replyTo.subject}`)
       : '',
   });
-  const [selectedAccountId, setSelectedAccountId] = useState(activeAccountId);
+  // v7.0: '__ALL__' (vereinheitlichter Posteingang) ist kein sendefähiges
+  // Konto — dann mit dem ersten echten Konto starten
+  const [selectedAccountId, setSelectedAccountId] = useState(
+    activeAccountId === '__ALL__' ? (accounts[0]?.id ?? null) : activeAccountId
+  );
   const [senderName, setSenderName] = useState('');
 
   // --- Editor ---
@@ -199,6 +203,8 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   // v6.9.6: Link-Dialog (Ersatz für window.prompt, das Electron nicht kennt)
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const savedSelectionRef = useRef(null);
+  // v7.0: stabiler Zugriff auf handleSend für den Cmd+Enter-Listener
+  const handleSendRef = useRef(null);
 
   // --- Signatur ---
   const [signatures,            setSignatures]            = useState({});
@@ -497,7 +503,25 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
   };
 
   // ── Senden ───────────────────────────────────────────────────────────────────
+  // v7.0: Cmd/Ctrl+Enter sendet — auch aus Editor/Eingabefeldern heraus.
+  // e.repeat verhindert Autorepeat bei gehaltener Taste; die eigentliche
+  // Reentry-Sicherung sitzt in handleSend selbst (Review-Befund v7.0).
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.repeat) {
+        e.preventDefault();
+        handleSendRef.current?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const handleSend = async (scheduledAt = null) => {
+    // v7.0: Reentry-Schutz — Cmd+Enter umging die disabled-Logik der Buttons.
+    // Ohne diesen Guard konnte ein zweiter Aufruf im 5s-Undo-Fenster das
+    // Undo-Intervall verwaisen lassen (wiederholter Versand derselben Mail).
+    if (sending || success || undoCountdown !== null) return;
     if (toTags.length === 0) { setError('Bitte mindestens einen Empfänger eingeben'); return; }
     if (!form.subject) { setError('Bitte Betreff ausfüllen'); return; }
     if (attachments.some(a => !a.loaded)) { setError('Bitte warten, bis alle Anhänge geladen sind'); return; }
@@ -549,6 +573,8 @@ function ComposeEmail({ onBack, replyTo: replyToProp = null, composeData = null 
       }
     }, 1000);
   };
+  // Für den Cmd+Enter-Listener (siehe oben) — bei jedem Render aktuell
+  handleSendRef.current = () => handleSend(null);
 
   const executeSend = async (emailData, activeAcc) => {
     setSending(true); setError(null);

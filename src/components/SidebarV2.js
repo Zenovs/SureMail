@@ -212,6 +212,32 @@ function SidebarV2({ currentView, onNavigate }) {
           <div className={`text-xs uppercase tracking-wide ${c.textSecondary} mb-2 px-2`}>
             Konten
           </div>
+          {/* v7.0: Vereinheitlichter Posteingang über alle Konten */}
+          <button
+            onClick={() => {
+              setActiveAccountId('__ALL__');
+              onNavigate('inbox');
+            }}
+            className={`cm-nav-item w-full text-left px-3 py-1.5 mb-1 rounded-xl text-sm flex items-center justify-between ${
+              activeAccountId === '__ALL__'
+                ? `${c.bgTertiary} ${c.accent} font-medium`
+                : `${c.textSecondary} ${c.hover}`
+            }`}
+          >
+            <span className="truncate font-medium">📥 Alle Konten</span>
+            {(() => {
+              // '__ALL__' defensiv ausschliessen — sonst würde ein virtueller
+              // Eintrag die Summe verdoppeln
+              const totalUnread = Object.entries(accountStats || {})
+                .filter(([id]) => id !== '__ALL__')
+                .reduce((n, [, s]) => n + (s?.unread || 0), 0);
+              return totalUnread > 0 ? (
+                <span className="ml-2 px-1.5 py-0.5 bg-blue-500 text-white text-xs rounded-full font-medium min-w-[18px] text-center flex-shrink-0">
+                  {totalUnread > 99 ? '99+' : totalUnread}
+                </span>
+              ) : null;
+            })()}
+          </button>
           {categories.map(category => {
             const accounts = getAccountsByCategory(category.id);
             const isExpanded = expandedCategories.includes(category.id);

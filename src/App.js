@@ -139,7 +139,9 @@ function AppContent() {
 
       const localStorageEnabled = localStorage.getItem('emailSettings.localStorageEnabled') !== 'false';
 
-      for (const account of accounts) {
+      // v7.0: Konten parallel synchronisieren — vorher lief der Sync strikt
+      // sequenziell; bei einem langsamen/hängenden Konto warteten alle anderen.
+      const syncOne = async (account) => {
         try {
           let result;
           if (account.type === 'microsoft') {
@@ -153,7 +155,7 @@ function AppContent() {
             // IndexedDB geschrieben und im FTS-Index neu indexiert.
             const signature = result.emails.map(e => `${e.uid}:${e.seen ? 1 : 0}`).join(',');
             if (lastSyncSignatureRef.current.get(account.id) === signature) {
-              continue;
+              return;
             }
             lastSyncSignatureRef.current.set(account.id, signature);
             if (localStorageEnabled) {
@@ -191,7 +193,9 @@ function AppContent() {
           if (syncErrorTimerRef.current) clearTimeout(syncErrorTimerRef.current);
           syncErrorTimerRef.current = setTimeout(() => setSyncErrorToast(null), 5000);
         }
-      }
+      };
+
+      await Promise.allSettled(accounts.map(syncOne));
     };
 
     const interval = getInterval();
@@ -212,6 +216,14 @@ function AppContent() {
   }, [accounts]);
 
   const handleFullView = (email, folder = 'INBOX') => {
+    // v7.0: Aus dem Alle-Konten-Modus heraus trägt die Mail ihr Konto selbst —
+    // aktives Konto umschalten und die Original-UID verwenden, damit die
+    // Vollansicht (und Antworten daraus) am richtigen Konto arbeiten.
+    if (email?.__accId) {
+      setActiveAccountId(email.__accId);
+      email = { ...email, uid: email.origUid ?? email.uid };
+      folder = 'INBOX';
+    }
     setFullViewEmail(email);
     setCurrentFolder(folder);
     setCurrentView('emailView');
@@ -223,6 +235,11 @@ function AppContent() {
   };
 
   const handleReply = (email, options = {}) => {
+    // v7.0: aus dem Alle-Konten-Modus mit dem Konto der Mail antworten
+    if (email?.__accId) {
+      setActiveAccountId(email.__accId);
+      email = { ...email, uid: email.origUid ?? email.uid };
+    }
     setComposeData({
       type: options.forward ? 'forward' : (options.replyAll ? 'replyAll' : 'reply'),
       originalEmail: email,
