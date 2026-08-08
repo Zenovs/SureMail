@@ -3176,7 +3176,10 @@ ipcMain.handle('imap:fetchEmailsFromFolder', async (event, accountId, folder, op
         messageId: (headerLines['message-id'] || [null])[0],
         date: msg.attributes.date || (headerLines.date || [new Date()])[0],
         seen: msg.attributes.flags?.includes('\\Seen') || false,
+        // v6.14.0: einheitlicher Feldname (Plural) wie in den übrigen Fetches —
+        // Singular bleibt für ältere Cache-Einträge erhalten
         hasAttachment: !!msg.attributes.struct?.find(p => p.disposition?.type === 'attachment'),
+        hasAttachments: !!msg.attributes.struct?.find(p => p.disposition?.type === 'attachment'),
         preview: ''
       };
     });

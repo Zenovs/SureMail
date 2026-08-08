@@ -478,17 +478,24 @@ const EmailListItem = memo(({ email, index, isSelected, isChecked, onSelect, onC
         )}
 
         <div className="flex-1 min-w-0 overflow-hidden">
-          {/* Zeile 1: Absender + Datum rechts */}
+          {/* Zeile 1: Absender + Anhang-Indikator + Datum rechts */}
           <div className="flex items-baseline justify-between gap-2">
             <span className={`text-sm truncate ${isUnread ? `font-semibold ${c.text}` : `font-medium ${c.text}`}`}>
               {isSentFolder && <span className={`text-xs ${c.textSecondary}`}>An: </span>}
               {displayAddress}
             </span>
-            <span
-              className={`text-xs flex-shrink-0 group-hover:invisible ${isUnread ? 'text-blue-400 font-medium' : c.textSecondary}`}
-              title={new Date(email.date).toLocaleString('de-DE')}
-            >
-              {formatListDate(email.date)}
+            <span className="flex items-center gap-1.5 flex-shrink-0">
+              {/* v6.14.0: Anhänge deutlich kennzeichnen — wurden vorher in
+                  der Liste gar nicht angezeigt und darum leicht übersehen */}
+              {(email.hasAttachments || email.hasAttachment) && (
+                <Attachment size={14} className="text-amber-400 flex-shrink-0" aria-label="Enthält Anhang" />
+              )}
+              <span
+                className={`text-xs group-hover:invisible ${isUnread ? 'text-blue-400 font-medium' : c.textSecondary}`}
+                title={new Date(email.date).toLocaleString('de-DE')}
+              >
+                {formatListDate(email.date)}
+              </span>
             </span>
           </div>
 
@@ -3376,16 +3383,17 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
               {/* Email content — flex-shrink-0 damit Reply-Panel den Inhalt nicht
                   zusammenstaucht und der Container scrollen kann (v6.7.2) */}
               <div className="p-6 flex-shrink-0">
-                {selectedEmail.html ? (
-                  <EmailHtmlFrame html={selectedEmail.html} fontFamily={previewFontStyle} />
-                ) : (
-                  <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: previewFontStyle }}>
-                    {selectedEmail.text}
-                  </pre>
-                )}
+                {/* v6.14.0: Anhänge ÜBER dem Mailtext in einem markanten Banner —
+                    vorher standen sie unter der Mail und waren ohne Scrollen
+                    unsichtbar (wurden dadurch leicht übersehen). */}
                 {selectedEmail.attachments?.length > 0 && (
-                  <div className={`mt-6 pt-4 ${c.border} border-t`}>
-                    <h4 className={`font-medium ${c.text} mb-2`}>Anhänge ({selectedEmail.attachments.length})</h4>
+                  <div className="mb-4 p-3 rounded-xl border border-amber-500/50 bg-amber-500/10">
+                    <h4 className="font-semibold text-amber-400 mb-2 flex items-center gap-2 text-sm">
+                      <Attachment size={18} />
+                      {selectedEmail.attachments.length === 1
+                        ? '1 Anhang'
+                        : `${selectedEmail.attachments.length} Anhänge`}
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedEmail.attachments.map((att, i) => {
                         const prog = attachProgress[i];
@@ -3421,6 +3429,13 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
                       })}
                     </div>
                   </div>
+                )}
+                {selectedEmail.html ? (
+                  <EmailHtmlFrame html={selectedEmail.html} fontFamily={previewFontStyle} />
+                ) : (
+                  <pre className={`${c.text} whitespace-pre-wrap`} style={{ fontFamily: previewFontStyle }}>
+                    {selectedEmail.text}
+                  </pre>
                 )}
               </div>
             </div>

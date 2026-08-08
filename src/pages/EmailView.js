@@ -666,20 +666,14 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
       {/* E-Mail Inhalt */}
       <div className={`flex-1 overflow-y-auto p-6 ${c.bg}`}>
         <div className="max-w-4xl mx-auto">
-          {fullEmail.html ? (
-            <EmailHtmlFrame html={fullEmail.html} />
-          ) : (
-            <pre className={`whitespace-pre-wrap font-mono text-sm ${c.text} ${c.bgSecondary} p-6 rounded-lg`}>
-              {fullEmail.text}
-            </pre>
-          )}
-
-          {/* Anhänge */}
+          {/* v6.14.0: Anhänge ÜBER dem Mailtext in einem markanten Banner —
+              vorher unter der Mail und darum leicht zu übersehen */}
           {fullEmail.attachments && fullEmail.attachments.length > 0 && (
-            <div className={`mt-6 pt-6 ${c.border} border-t`}>
+            <div className="mb-5 p-4 rounded-xl border border-amber-500/50 bg-amber-500/10">
               <div className="flex items-center justify-between mb-4">
-                <h3 className={`text-sm font-medium ${c.textSecondary} flex items-center gap-2`}>
-                  <Attachment size={16} /> Anhänge ({fullEmail.attachments.length})
+                <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-2">
+                  <Attachment size={18} />
+                  {fullEmail.attachments.length === 1 ? '1 Anhang' : `${fullEmail.attachments.length} Anhänge`}
                 </h3>
                 <button
                   onClick={downloadAllAttachments}
@@ -770,6 +764,14 @@ const EmailView = ({ email, onBack, onReply, onReplyAll, onForward, currentFolde
                 ))}
               </div>
             </div>
+          )}
+
+          {fullEmail.html ? (
+            <EmailHtmlFrame html={fullEmail.html} />
+          ) : (
+            <pre className={`whitespace-pre-wrap font-mono text-sm ${c.text} ${c.bgSecondary} p-6 rounded-lg`}>
+              {fullEmail.text}
+            </pre>
           )}
         </div>
       </div>
