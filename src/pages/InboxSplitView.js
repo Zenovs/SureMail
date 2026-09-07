@@ -291,6 +291,22 @@ const emailCache = new Map();
 // Bewusst klein gehalten, weil Mails mit Base64-Anhängen mehrere MB wiegen können.
 const previewCache = new Map();
 const PREVIEW_CACHE_MAX = 15;
+
+// v7.1: Gesendet-Ordner-Pfad pro IMAP-Konto (für "Gesendet (alle Konten)") —
+// einmal pro Sitzung über die Ordnerliste aufgelöst (SPECIAL-USE \Sent bevorzugt)
+const sentFolderCache = new Map();
+async function resolveSentFolder(acc) {
+  if (sentFolderCache.has(acc.id)) return sentFolderCache.get(acc.id);
+  let path = null;
+  try {
+    const r = await window.electronAPI.listFolders(acc.id);
+    const flat = (r?.folders || []).flatMap(f => [f, ...(f.children || [])]);
+    const hit = flat.find(f => f.specialUse === 'sent') || flat.find(f => f.type === 'sent');
+    path = hit?.path || null;
+  } catch (_) { /* Konto nicht erreichbar — überspringen */ }
+  sentFolderCache.set(acc.id, path);
+  return path;
+}
 const folderCache = new Map();
 const CACHE_TTL = 15 * 60 * 1000; // 15 Minuten
 
@@ -887,10 +903,15 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
   const loadFolders = useCallback(async (forceRefresh = false) => {
     if (!window.electronAPI || !activeAccountId) return;
 
-    // v7.0: Alle-Konten-Modus zeigt nur den zusammengeführten Posteingang —
-    // Ordnerlisten sind pro Konto und hier bewusst ausgeblendet.
+    // v7.0: Alle-Konten-Modus zeigt zusammengeführte Ansichten — Ordnerlisten
+    // sind pro Konto und hier bewusst auf die zwei Sammel-Ansichten reduziert.
+    // v7.1: zusätzlich "Gesendet (alle Konten)" — damit ist Gesendetes aller
+    // Konten (egal von welchem Rechner versendet) an EINER Stelle sichtbar.
     if (allMode) {
-      setFolders([{ name: 'Posteingang (alle Konten)', path: 'INBOX', type: 'inbox', children: [], unread: 0 }]);
+      setFolders([
+        { name: 'Posteingang (alle Konten)', path: 'INBOX', type: 'inbox', children: [], unread: 0 },
+        { name: 'Gesendet (alle Konten)', path: 'SENT_ALL', type: 'sent', children: [], unread: 0 },
+      ]);
       setLoadingFolders(false);
       setFolderError(null);
       return;
@@ -1059,8 +1080,10 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     bgLoadAbortRef.current = true;
 
     // v7.0: Vereinheitlichter Posteingang — INBOX aller Konten parallel laden
+    // v7.1: auch "Gesendet (alle Konten)" (currentFolder 'SENT_ALL')
     if (allMode) {
-      const cacheKey = getCacheKey('__ALL__', 'INBOX');
+      const isSentAll = currentFolder === 'SENT_ALL';
+      const cacheKey = getCacheKey('__ALL__', isSentAll ? 'SENT_ALL' : 'INBOX');
       if (useCache) {
         const cached = emailCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -1078,9 +1101,22 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       if (emailsRef.current.length === 0) setLoading(true);
       try {
         const results = await Promise.allSettled(accounts.map(async (acc) => {
-          const r = acc.type === 'microsoft'
-            ? await window.electronAPI.fetchGraphEmails(acc.id, { folder: 'INBOX', limit: 30, skip: 0 })
-            : await window.electronAPI.fetchEmailsForAccount(acc.id, { limit: 30, offset: 0 });
+          let r;
+          let realFolder = 'INBOX';
+          if (isSentAll) {
+            if (acc.type === 'microsoft') {
+              realFolder = 'Sent';
+              r = await window.electronAPI.fetchGraphEmails(acc.id, { folder: 'Sent', limit: 30, skip: 0 });
+            } else {
+              realFolder = await resolveSentFolder(acc);
+              if (!realFolder) return [];
+              r = await window.electronAPI.fetchEmailsFromFolder(acc.id, realFolder, { limit: 30, offset: 0 });
+            }
+          } else {
+            r = acc.type === 'microsoft'
+              ? await window.electronAPI.fetchGraphEmails(acc.id, { folder: 'INBOX', limit: 30, skip: 0 })
+              : await window.electronAPI.fetchEmailsForAccount(acc.id, { limit: 30, offset: 0 });
+          }
           if (!r?.success) return [];
           return (r.emails || []).map(e => ({
             ...e,
@@ -1088,6 +1124,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             origUid: e.uid,
             __accId: acc.id,
             __accName: acc.displayName || acc.name || '',
+            // Echter Ordner der Mail — Aktionen (Löschen/Archivieren/Markieren)
+            // brauchen ihn, in der Gesendet-Ansicht ist er kontospezifisch
+            __folder: realFolder,
           }));
         }));
         const merged = results
@@ -1520,7 +1559,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     const mailObj = emailsRef.current.find(e => e.uid === uid);
     const acc = accountFor(mailObj);
     const fetchUid = mailObj?.origUid ?? uid;
-    const folder = mailObj?.__accId ? 'INBOX' : currentFolder;
+    const folder = mailObj?.__accId ? (mailObj.__folder || 'INBOX') : currentFolder;
 
     // v7.0: LRU-Cache — erneutes Anklicken einer Mail zeigt sie sofort,
     // statt die komplette Roh-Mail (inkl. Base64-Anhängen) neu über IPC
@@ -1548,7 +1587,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         if (result?.success) {
           // Listen-Identität (zusammengesetzte uid, Konto-Infos) beibehalten
           const enriched = mailObj?.__accId
-            ? { ...result.email, uid, origUid: fetchUid, __accId: mailObj.__accId, __accName: mailObj.__accName }
+            ? { ...result.email, uid, origUid: fetchUid, __accId: mailObj.__accId, __accName: mailObj.__accName, __folder: mailObj.__folder }
             : result.email;
           previewCache.set(cacheKey, enriched);
           while (previewCache.size > PREVIEW_CACHE_MAX) {
@@ -1584,7 +1623,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         accountFor(mailObj),
         mailObj?.origUid ?? uid,
         !currentSeen,
-        mailObj?.__accId ? 'INBOX' : currentFolder
+        mailObj?.__accId ? (mailObj.__folder || 'INBOX') : currentFolder
       );
       if (result.success) {
         const newEmails = emailsRef.current.map(e =>
@@ -1622,7 +1661,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     if (snoozedKeys.size > 0 && activeAccountId) {
       // v7.0: konto-bewusst — im Alle-Konten-Modus trägt die Mail ihr Konto
       // selbst (sonst blendete Snooze dort nie aus, Key-Mismatch)
-      list = list.filter(e => !snoozedKeys.has(`${e.__accId || activeAccountId}|${e.__accId ? 'INBOX' : currentFolder}|${e.origUid ?? e.uid}`));
+      list = list.filter(e => !snoozedKeys.has(`${e.__accId || activeAccountId}|${e.__accId ? (e.__folder || 'INBOX') : currentFolder}|${e.origUid ?? e.uid}`));
     }
     return list;
   }, [categoryFilteredEmails, showUnreadOnly, snoozedKeys, activeAccountId, currentFolder]);
@@ -1680,7 +1719,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     if (!selectedEmail || !activeAccountId || !window.electronAPI?.snoozeAdd) return;
     // v7.0: konto-bewusst (Alle-Konten-Modus)
     const snoozeAccId = selectedEmail.__accId || activeAccountId;
-    const snoozeFolder = selectedEmail.__accId ? 'INBOX' : currentFolder;
+    const snoozeFolder = selectedEmail.__accId ? (selectedEmail.__folder || 'INBOX') : currentFolder;
     const snoozeUid = selectedEmail.origUid ?? selectedEmail.uid;
     const result = await window.electronAPI.snoozeAdd({
       accountId: snoozeAccId,
@@ -1737,7 +1776,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       const mailObj = emailsRef.current.find(e => e.uid === uid);
       const acc = accountFor(mailObj);
       const actionUid = mailObj?.origUid ?? uid;
-      const actionFolder = mailObj?.__accId ? 'INBOX' : currentFolder;
+      const actionFolder = mailObj?.__accId ? (mailObj.__folder || 'INBOX') : currentFolder;
       const inTrash = !mailObj?.__accId && isTrashFolder(currentFolder);
       const result = inTrash
         ? await MailApi.deletePermanent(acc, actionUid, actionFolder)
@@ -1759,8 +1798,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
 
         // v7.0: Gegenmodus-Cache invalidieren — sonst taucht die Mail beim
         // Wechsel zwischen Alle-Konten- und Einzelmodus wieder auf
-        if (mailObj?.__accId) emailCache.delete(getCacheKey(mailObj.__accId, 'INBOX'));
+        if (mailObj?.__accId) emailCache.delete(getCacheKey(mailObj.__accId, mailObj.__folder || 'INBOX'));
         else if (currentFolder === 'INBOX') emailCache.delete(getCacheKey('__ALL__', 'INBOX'));
+        else if (isSentFolder) emailCache.delete(getCacheKey('__ALL__', 'SENT_ALL'));
 
         // Select next email
         const selIdx = selectedIndexRef.current;
@@ -1792,7 +1832,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Fehler beim Löschen: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, getCacheKey, accountFor, isTrashFolder, loadEmailPreview, fetchEmails]);
+  }, [activeAccountId, currentFolder, getCacheKey, accountFor, isTrashFolder, isSentFolder, loadEmailPreview, fetchEmails]);
 
   // v6.10.0: Archivieren (Outlook-Semantik) — verschiebt in den Archiv-Ordner
   // (Graph: Well-Known "archive", IMAP: SPECIAL-USE/Name, wird bei Bedarf angelegt).
@@ -1805,7 +1845,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       const mailObj = emailsRef.current.find(e => e.uid === uid);
       const acc = accountFor(mailObj);
       const actionUid = mailObj?.origUid ?? uid;
-      const actionFolder = mailObj?.__accId ? 'INBOX' : currentFolder;
+      const actionFolder = mailObj?.__accId ? (mailObj.__folder || 'INBOX') : currentFolder;
       const result = await MailApi.archive(acc, actionUid, actionFolder);
       if (result.success) {
         bgLoadAbortRef.current = true;
@@ -1815,8 +1855,9 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
         emailCache.set(cacheKey, { data: newEmails, hasMore: hasMoreRef.current, timestamp: Date.now() });
         await removeEmailFromIndexedDB(acc?.id || activeAccountId, actionFolder, actionUid);
         // v7.0: Gegenmodus-Cache invalidieren (siehe handleDelete)
-        if (mailObj?.__accId) emailCache.delete(getCacheKey(mailObj.__accId, 'INBOX'));
+        if (mailObj?.__accId) emailCache.delete(getCacheKey(mailObj.__accId, mailObj.__folder || 'INBOX'));
         else if (currentFolder === 'INBOX') emailCache.delete(getCacheKey('__ALL__', 'INBOX'));
+        else if (isSentFolder) emailCache.delete(getCacheKey('__ALL__', 'SENT_ALL'));
         const selIdx = selectedIndexRef.current;
         if (selIdx >= newEmails.length) {
           setSelectedIndex(Math.max(0, newEmails.length - 1));
@@ -1844,7 +1885,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       setActionToast('Archivieren fehlgeschlagen: ' + err.message);
     }
     setActionLoading(null);
-  }, [activeAccountId, currentFolder, getCacheKey, accountFor, loadEmailPreview, fetchEmails]);
+  }, [activeAccountId, currentFolder, getCacheKey, accountFor, isSentFolder, loadEmailPreview, fetchEmails]);
 
   // v6.8.1: Einzel-Löschen erst nach Bestätigung — v6.10.0: nur noch im
   // Papierkorb (dort endgültig); sonst Outlook-Semantik: direkt in den
@@ -1984,17 +2025,21 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
       const inTrash = !allMode && isTrashFolder(currentFolder);
       // v7.0: Gegenmodus-Caches invalidieren (siehe handleDelete)
       if (allMode) {
-        new Set(uidsToDelete.map(uid => emailsRef.current.find(e => e.uid === uid)?.__accId).filter(Boolean))
-          .forEach(id => emailCache.delete(getCacheKey(id, 'INBOX')));
+        uidsToDelete.forEach(uid => {
+          const m = emailsRef.current.find(e => e.uid === uid);
+          if (m?.__accId) emailCache.delete(getCacheKey(m.__accId, m.__folder || 'INBOX'));
+        });
       } else if (currentFolder === 'INBOX') {
         emailCache.delete(getCacheKey('__ALL__', 'INBOX'));
+      } else if (isSentFolder) {
+        emailCache.delete(getCacheKey('__ALL__', 'SENT_ALL'));
       }
       const deleteResults = await Promise.allSettled(
         uidsToDelete.map(uid => {
           const mailObj = emailsRef.current.find(e => e.uid === uid);
           const acc = accountFor(mailObj);
           const actionUid = mailObj?.origUid ?? uid;
-          const actionFolder = mailObj?.__accId ? 'INBOX' : currentFolder;
+          const actionFolder = mailObj?.__accId ? (mailObj.__folder || 'INBOX') : currentFolder;
           return inTrash
             ? MailApi.deletePermanent(acc, actionUid, actionFolder)
             : MailApi.trash(acc, actionUid, actionFolder);
@@ -2012,7 +2057,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
           const mailObj = emailsRef.current.find(e => e.uid === uid);
           return removeEmailFromIndexedDB(
             mailObj?.__accId || activeAccountId,
-            mailObj?.__accId ? 'INBOX' : currentFolder,
+            mailObj?.__accId ? (mailObj.__folder || 'INBOX') : currentFolder,
             mailObj?.origUid ?? uid
           );
         })
@@ -2048,7 +2093,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
     setBulkDeleting(false);
     // Re-enable background sync
     bgLoadAbortRef.current = false;
-  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, accountFor, allMode, isTrashFolder]);
+  }, [activeAccountId, currentFolder, emails, selectedUids, hasMore, getCacheKey, selectedIndex, accountFor, allMode, isTrashFolder, isSentFolder]);
 
   // UX: Auswahl als gelesen markieren — häufigste Triage-Aktion für
   // Newsletter/Benachrichtigungen, bisher nur einzeln möglich.
@@ -2071,7 +2116,7 @@ function InboxSplitView({ onFullView, onNavigate, onForward }) {
             accountFor(mailObj),
             mailObj?.origUid ?? uid,
             true,
-            mailObj?.__accId ? 'INBOX' : currentFolder
+            mailObj?.__accId ? (mailObj.__folder || 'INBOX') : currentFolder
           );
         })
       );

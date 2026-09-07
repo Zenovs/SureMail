@@ -221,8 +221,8 @@ function AppContent() {
     // Vollansicht (und Antworten daraus) am richtigen Konto arbeiten.
     if (email?.__accId) {
       setActiveAccountId(email.__accId);
+      folder = email.__folder || 'INBOX'; // v7.1: echter Ordner (z.B. Gesendet)
       email = { ...email, uid: email.origUid ?? email.uid };
-      folder = 'INBOX';
     }
     setFullViewEmail(email);
     setCurrentFolder(folder);

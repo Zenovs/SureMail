@@ -1114,7 +1114,13 @@ async function saveToSentFolder(account, mailOptions, context = '', messageId = 
         const sentFolder = await findSentFolderName(imapConn);
         if (!sentFolder) throw new Error('Kein Gesendet-Ordner auf dem Server gefunden');
         await new Promise((resolve, reject) => {
-          imapConn.imap.append(rawMessage, { mailbox: sentFolder, flags: ['\\Seen'], date: new Date() },
+          // v7.1: KEINE date-Option — node-imap prüft sie mit dem in Node 22
+          // (Electron 41) entfernten util.isDate und crashte mit "isDate is
+          // not a function". Seit dem Electron-Upgrade scheiterte dadurch
+          // JEDE Gesendet-Ablage still (nur Logbuch-Eintrag). Ohne date
+          // stempelt der Server die aktuelle Zeit — für soeben gesendete
+          // Mails genau richtig.
+          imapConn.imap.append(rawMessage, { mailbox: sentFolder, flags: ['\\Seen'] },
             err => err ? reject(err) : resolve());
         });
       })(),
